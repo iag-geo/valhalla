@@ -6,19 +6,19 @@ VALHALLA_HOME_DIR="${HOME}/git/valhalla"
 
 cd ${HOME}
 
-## install dependencies (autoconf automake zmq czmq are required by prime_server)
-#brew install automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq
-##brew upgrade automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq
-#
-#curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
-#
-## following packages are needed for running Linux compatible scripts
-#brew install bash coreutils binutils
-##brew upgrade bash coreutils binutils
-#
-## Update your PATH env variable to include /usr/local/opt/binutils/bin:/usr/local/opt/coreutils/libexec/gnubin
-#echo 'export PATH="/usr/local/opt/binutils/bin:/usr/local/opt/coreutils/libexec/gnubin:$PATH"' >> ~/.bash_profile
-#source ~/.bash_profile
+# install dependencies (autoconf automake zmq czmq are required by prime_server)
+brew install automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq osm2pgsql
+brew upgrade automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq osm2pgsql
+
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
+
+# following packages are needed for running Linux compatible scripts
+brew install bash coreutils binutils
+brew upgrade bash coreutils binutils
+
+# Update your PATH env variable to include /usr/local/opt/binutils/bin:/usr/local/opt/coreutils/libexec/gnubin
+echo 'export PATH="/usr/local/opt/binutils/bin:/usr/local/opt/coreutils/libexec/gnubin:$PATH"' >> ~/.bash_profile
+source ~/.bash_profile
 
 # download and build prime_server
 mkdir ${HOME}/git/kevinkreiser
@@ -49,10 +49,22 @@ git clone --recurse-submodules https://github.com/valhalla/valhalla.git
 # build
 cd valhalla
 
-cd ..
-sudo rm -r build
+#cd ..
+#sudo rm -r build
 mkdir build
 cd build
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j$(sysctl -n hw.physicalcpu)
 sudo make install
+
+
+
+
+## emergency removal of all Brew installs
+#while [[ `brew list | wc -l` -ne 0 ]]; do
+#    #Interate over each installed package
+#    for EACH in `brew list`; do
+#        #Uninstall each package
+#        brew uninstall $EACH --force
+#    done
+#done
