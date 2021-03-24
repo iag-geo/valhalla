@@ -136,6 +136,7 @@ def main():
     map_match_start_time = datetime.now()
 
     # for each trajectory - send a map match request to Valhalla (use authenticated proxy if required)
+    # TODO: use multiprocessing to really fire up the map matching
     # with pac_context_for_url(valhalla_server_url, proxy_auth=http_proxy_auth):
     for row in rows:
         point_count += 1
