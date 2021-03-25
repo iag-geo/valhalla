@@ -67,6 +67,6 @@ while [[ `brew list | wc -l` -ne 0 ]]; do
     #Interate over each installed package
     for EACH in `brew list`; do
         #Uninstall each package
-        brew uninstall $EACH --force
+        brew uninstall $EACH --ignore-dependencies --force
     done
 done

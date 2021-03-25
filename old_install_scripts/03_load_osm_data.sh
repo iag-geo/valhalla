@@ -13,7 +13,7 @@ mkdir -p valhalla_tiles
 #build routing tiles
 #TODO: run valhalla_build_admins?
 #./build/valhalla_build_tiles -c valhalla.json switzerland-latest.osm.pbf liechtenstein-latest.osm.pbf
-./build/valhalla_build_tiles -c valhalla.json /Users/minus34/tmp/australia-latest.osm.pbf
+./build/valhalla_build_tiles -c valhalla.json /Users/minus34cd ~/tmp/australia-latest.osm.pbf
 
 #tar it up for running the server
 find valhalla_tiles | sort -n | tar cf valhalla_tiles.tar --no-recursion -T -
