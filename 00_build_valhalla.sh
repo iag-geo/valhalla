@@ -7,8 +7,8 @@ VALHALLA_HOME_DIR="${HOME}/git/valhalla"
 cd ${HOME}
 
 # install dependencies (autoconf automake zmq czmq are required by prime_server)
-brew install automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq osm2pgsql
-brew upgrade automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq osm2pgsql
+brew install automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq
+brew upgrade automake cmake libtool protobuf-c boost-python3 libspatialite pkg-config sqlite3 jq curl wget czmq lz4 spatialite-tools unzip luajit autoconf zmq
 
 curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.11/install.sh | bash
 
@@ -21,6 +21,7 @@ echo 'export PATH="/usr/local/opt/binutils/bin:/usr/local/opt/coreutils/libexec/
 source ~/.bash_profile
 
 # download and build prime_server
+#sudo rm -r ${HOME}/git/kevinkreiser/prime_server
 mkdir ${HOME}/git/kevinkreiser
 cd ${HOME}/git/kevinkreiser
 git clone https://github.com/kevinkreiser/prime_server.git
@@ -39,6 +40,7 @@ sudo make install
 
 # download Valhalla source code
 cd ${VALHALLA_HOME_DIR}
+sudo rm -r valhalla
 git clone --recurse-submodules https://github.com/valhalla/valhalla.git
 
 #cd ${HOME}
@@ -61,10 +63,10 @@ sudo make install
 
 
 ## emergency removal of all Brew installs
-#while [[ `brew list | wc -l` -ne 0 ]]; do
-#    #Interate over each installed package
-#    for EACH in `brew list`; do
-#        #Uninstall each package
-#        brew uninstall $EACH --force
-#    done
-#done
+while [[ `brew list | wc -l` -ne 0 ]]; do
+    #Interate over each installed package
+    for EACH in `brew list`; do
+        #Uninstall each package
+        brew uninstall $EACH --force
+    done
+done
