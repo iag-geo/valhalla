@@ -131,8 +131,12 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/mod_spatialite.so.7.1.0 /usr/lib/x86_64-linu
 # Setup
 WORKDIR /build
 ENV WORKDIR=/build DATADIR=/data VALHALLA_CONFIG=/build/valhalla.json
-RUN mkdir -p ${WORKDIR} ${DATADIR}
-RUN valhalla_build_config > ${VALHALLA_CONFIG}
+RUN mkdir -p ${WORKDIR} ${DATADIR} \
+    && valhalla_build_config > ${VALHALLA_CONFIG} \
+    && /valhalla_build_admins --config ${VALHALLA_CONFIG} /data/osm_data/your_osm_extract.pbf \
+    && valhalla_build_timezones > ${DATADIR}/tz_world.sqlite
+#    && valhalla_build_config --mjolnir-tile-dir ${DATADIR} --mjolnir-tile-extract ${DATADIR}/valhalla_tiles.tar --mjolnir-timezone ${DATADIR}/tz_world.sqlite --mjolnir-admin ${DATADIR}/admins.sqlite > ${VALHALLA_CONFIG}
+
 ADD alias_tz.csv ${WORKDIR}
 
 # Default command
