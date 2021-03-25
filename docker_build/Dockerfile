@@ -132,9 +132,13 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/mod_spatialite.so.7.1.0 /usr/lib/x86_64-linu
 WORKDIR /build
 ENV WORKDIR=/build DATADIR=/data VALHALLA_CONFIG=/build/valhalla.json
 RUN mkdir -p ${WORKDIR} ${DATADIR} \
+    && cd ${WORKDIR} \
+    && wget http://download.geofabrik.de/australia-oceania/australia-latest.osm.pbf
     && valhalla_build_config > ${VALHALLA_CONFIG} \
-    && /valhalla_build_admins --config ${VALHALLA_CONFIG} /data/osm_data/your_osm_extract.pbf \
-    && valhalla_build_timezones > ${DATADIR}/tz_world.sqlite
+    && valhalla_build_admins --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
+    && valhalla_build_timezones > ${DATADIR}/tz_world.sqlite \
+    && valhalla_build_tiles --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf
+#    && valhalla_build_transit --config ${VALHALLA_CONFIG} \
 #    && valhalla_build_config --mjolnir-tile-dir ${DATADIR} --mjolnir-tile-extract ${DATADIR}/valhalla_tiles.tar --mjolnir-timezone ${DATADIR}/tz_world.sqlite --mjolnir-admin ${DATADIR}/admins.sqlite > ${VALHALLA_CONFIG}
 
 ADD alias_tz.csv ${WORKDIR}
