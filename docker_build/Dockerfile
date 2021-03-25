@@ -144,8 +144,9 @@ RUN valhalla_build_config --mjolnir-tile-dir ${DATADIR}/valhalla_tiles \
 # build OSM tilesets and supported databases
 RUN valhalla_build_timezones > ${DATADIR}/tz_world.sqlite \
     && valhalla_build_admins --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
-    && valhalla_build_transit --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
     && valhalla_build_tiles --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf
+
+RUN valhalla_build_transit --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
 
 #    && valhalla_build_config > ${VALHALLA_CONFIG} \
 
