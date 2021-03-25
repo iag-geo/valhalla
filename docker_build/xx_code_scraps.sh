@@ -1,6 +1,7 @@
 
 
 # 1. build image
+cd /Users/s57405/git/iag_geo/valhalla/docker_build
 docker build --tag iag-geo/valhalla:3.1.0 .
 
 # 2. run container
