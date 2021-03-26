@@ -30,6 +30,18 @@ ARG VALHALLA_VERSION
 ARG VALHALLA_REPO
 ARG PRIME_SERVER_TAG
 
+# proxy (if required)
+#ARG http_proxy=http://myproxy:8080
+#ARG no_proxy=localhost,local
+#ENV http_proxy=${http_proxy}
+#ENV https_proxy=${http_proxy}
+#ENV all_proxy=${http_proxy}
+#ENV no_proxy=${no_proxy}
+#ENV HTTP_PROXY=${http_proxy}
+#ENV HTTPS_PROXY=${http_proxy}
+#ENV ALL_PROXY=${http_proxy}
+#ENV NO_PROXY=${no_proxy}
+
 # Install base packages
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
@@ -77,6 +89,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN mkdir -p /src && cd /src
 
+# set git proxy (if required)
+#RUN git config --global http.https://github.com.proxy ${http_proxy} \
+#    && git config --global http.https://github.com.sslVerify false
+
 # prime_server
 RUN git clone -v --branch ${PRIME_SERVER_TAG} https://github.com/kevinkreiser/prime_server.git && (cd prime_server && git submodule update --init --recursive && mkdir -p build && cd build && cmake .. && make -j2 install)
 
@@ -90,6 +106,16 @@ RUN git clone https://github.com/valhalla/valhalla.git && (cd valhalla && git ch
 FROM ubuntu:18.04
 ARG VALHALLA_VERSION
 ARG VALHALLA_CONCURRENCY=1
+
+## proxy (if required)
+#ENV http_proxy=${http_proxy}
+#ENV https_proxy=${http_proxy}
+#ENV all_proxy=${http_proxy}
+#ENV no_proxy=${no_proxy}
+#ENV HTTP_PROXY=${http_proxy}
+#ENV HTTPS_PROXY=${http_proxy}
+#ENV ALL_PROXY=${http_proxy}
+#ENV NO_PROXY=${no_proxy}
 
 # Copy ARG to ENV
 ENV VALHALLA_VERSION=${VALHALLA_VERSION}

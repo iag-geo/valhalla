@@ -1,6 +1,7 @@
 
 
 # 1. build image
+setproxy
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 docker build --tag iag-geo/valhalla:3.1.0 .
 
