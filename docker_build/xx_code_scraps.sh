@@ -1,11 +1,11 @@
 
 # 1. build image
-setproxy
+#setproxy
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 docker build --tag iag-geo/valhalla:3.1.0 .
 
 # 2. run container
-docker run --tty --name="valhalla" --publish=8002:8002 iag-geo/valhalla:3.1.0
+docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
 
 # 3. test a URL
 curl http://localhost:8002/route \
