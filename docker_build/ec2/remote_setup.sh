@@ -43,13 +43,19 @@ sudo service docker start
 sudo usermod -a -G docker ec2-user
 
 # set to start on boot
-sudo chkconfig docker on
+#sudo chkconfig docker on
+sudo systemctl enable docker.service
+
+# need git to download Valhalla repo
+sudo yum -q -y install git
 
 echo "-------------------------------------------------------------------------"
 echo " Install Minikube"
 echo "-------------------------------------------------------------------------"
 
-
+curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+chmod +x minikube
+sudo mv minikube /usr/local/bin/
 
 
 
