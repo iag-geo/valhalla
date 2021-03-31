@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 
 # 1. build image
 #setproxy
@@ -24,6 +25,9 @@ curl http://localhost:${NODE_PORT}/route \
 
 # Kubernetes code scraps
 
+# delete all Valhalla pods
+kubectl get pods --no-headers=true | awk '/valhalla/{print $1}' | xargs kubectl delete pod
+
 # check status
 kubectl describe services/valhalla
 
@@ -34,7 +38,10 @@ kubectl describe deployment
 kubectl get pods -l run=valhalla
 kubectl get services -l run=valhalla
 
-# change service label (optional)
+# get pod names
+kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
+
+# change service label
 kubectl label pod $POD_NAME app=valhalla
 
 # update image in pod on the fly (without down time) - will be "successful" even if image doesn't exist or work
@@ -49,9 +56,8 @@ kubectl delete service -l run=kubernetes-bootcamp
 # create proxy to access app in pod (NOT required if service is created i.e. exposed)
 kubectl proxy
 
-kubectl get pods -o go-template --template '{{range .items}}{{.mtadata.name}}{{"\n"}}{{end}}'
 
-kubectl logs
+#kubectl logs
 
 # create Bash session inside pod
 kubectl exec -ti $POD_NAME bash
