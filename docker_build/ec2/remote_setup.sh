@@ -11,7 +11,7 @@ echo "-------------------------------------------------------------------------"
 
 DOCKER_IMAGE="iag-geo/valhalla:latest"
 
-export no_proxy="auiag.corp,169.254.169.254"
+export no_proxy="auiag.corp,169.254.169.254,localhost,127.0.0.1,10.180.64.8,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24"
 export http_proxy="http://nonprod-proxy.csg.iagcloud.net:8080"
 export https_proxy=${http_proxy}
 export HTTP_PROXY=${http_proxy}
@@ -40,7 +40,8 @@ echo "-------------------------------------------------------------------------"
 #sudo yum -q -y install docker
 sudo amazon-linux-extras uninstall docker
 sudo service docker start
-sudo usermod -a -G docker ec2-user
+sudo usermod -a -G docker ec2-user && newgrp docker
+#sudo usermod -aG docker $USER && newgrp docker
 
 # set to start on boot
 #sudo chkconfig docker on
@@ -52,6 +53,8 @@ sudo yum -q -y install git
 echo "-------------------------------------------------------------------------"
 echo " Install Minikube"
 echo "-------------------------------------------------------------------------"
+
+yum -q -y install conntrack
 
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 chmod +x minikube
