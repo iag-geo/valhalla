@@ -26,9 +26,9 @@ FROM ubuntu:18.04
 ARG VALHALLA_VERSION=3.1.0
 ARG VALHALLA_REPO=https://github.com/valhalla/valhalla.git
 ARG PRIME_SERVER_TAG=0.7.0
-ARG VALHALLA_VERSION
-ARG VALHALLA_REPO
-ARG PRIME_SERVER_TAG
+#ARG VALHALLA_VERSION
+#ARG VALHALLA_REPO
+#ARG PRIME_SERVER_TAG
 
 # proxy (if required)
 #ARG http_proxy=http://myproxy:8080
@@ -104,7 +104,7 @@ RUN git clone https://github.com/valhalla/valhalla.git && (cd valhalla && git ch
 # #####################################
 
 FROM ubuntu:18.04
-ARG VALHALLA_VERSION
+ARG VALHALLA_VERSION=3.1.0
 ARG VALHALLA_CONCURRENCY=1
 
 ## proxy (if required)
