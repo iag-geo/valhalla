@@ -4,8 +4,35 @@
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 docker build --tag iag-geo/valhalla:3.1.0 .
 
-# 2. run container
-docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
+# 2. run container in a Kubernetes pod
+kubectl create deployment valhalla --image=iag-geo/valhalla:3.1.0
+
+# 3. create a service
+kubectl expose deployment/valhalla --type="NodePort" --port 8002
+
+
+
+export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
+
+
+
+# create proxy to access app in pod
+kubectl proxy
+
+curl http://localhost:8001/version
+
+kubectl get pods -o go-template --template '{{range .items}}{{.mtadata.name}}{{"\n"}}{{end}}'
+
+
+
+kubectl logs
+
+# create Bash session inside pod
+kubectl exec -ti $POD_NAME bash
+
+
+## 2. run container
+#docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
 
 # 3. test a URL
 curl http://localhost:8002/route \
