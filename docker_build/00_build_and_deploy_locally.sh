@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
 
-# pre-requisite: install Docker Desktop first
-# https://www.docker.com/products/docker-desktop
+SECONDS=0*
 
 # 1. build image
-#setproxy
-cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
+cd $HOME
 docker build --tag iag-geo/valhalla:3.1.0 .
 
 # 2. deploy to a Kubernetes pod

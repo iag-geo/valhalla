@@ -1,23 +1,7 @@
 #!/usr/bin/env bash
 
-export INSTANCE_ID="i-0d5bf0e4c94ecec94"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# pre-requisite: install Docker Desktop first
+# https://www.docker.com/products/docker-desktop
 
 # 1. build image
 #setproxy
