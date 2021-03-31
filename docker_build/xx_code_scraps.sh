@@ -4,19 +4,35 @@
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 docker build --tag iag-geo/valhalla:3.1.0 .
 
-# 2. run container in a Kubernetes pod
+# 2. deploy image to a Kubernetes pod
 kubectl create deployment valhalla --image=iag-geo/valhalla:3.1.0
 
-# 3. create a service
+# scale deployment
+kubectl scale deployments/valhalla --replicas=4
+
+
+# create (i.e. expose) a service
 kubectl expose deployment/valhalla --type="NodePort" --port 8002
 
 
 
+
+
+# check status
+kubectl get deployments
+kubectl describe deployment
+kubectl get pods -l run=valhalla
+kubectl get services -l run=valhalla
+
+# change service label (optional)
+kubectl label pod $POD_NAME app=valhalla
+
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
+# delete service (app is still running inside pod!)
+kubectl delete service -l run=kubernetes-bootcamp
 
-
-# create proxy to access app in pod
+# create proxy to access app in pod (NOT required if service is created i.e. exposed)
 kubectl proxy
 
 curl http://localhost:8001/version
