@@ -2,7 +2,7 @@
 
 # TODO: create EC2 instance using AWS CLI - MUST set IAM role to developer
 
-INSTANCE_ID="i-0306dd14917c3602d"
+INSTANCE_ID="i-0247f34f3a570a6aa"
 
 SSH_CONFIG="${HOME}/.ssh/aws-sandbox-config"
 
