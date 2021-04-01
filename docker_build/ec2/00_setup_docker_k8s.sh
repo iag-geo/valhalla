@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 
-INSTANCE_ID="i-0d5bf0e4c94ecec94"
+INSTANCE_ID="i-006c4ccd68ed9a206"
+
 SSH_CONFIG="${HOME}/.ssh/aws-sandbox-config"
+
+INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
+python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
 
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
