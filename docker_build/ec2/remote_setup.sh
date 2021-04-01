@@ -93,6 +93,12 @@ minikube start --driver=docker --docker-env HTTP_PROXY=${http_proxy} --docker-en
 # all good?
 minikube status
 
+echo "-------------------------------------------------------------------------"
+echo " Download and setup Valhalla image"
+echo "-------------------------------------------------------------------------"
+
+docker pull minus34/valhalla:latest
+
 #echo "-------------------------------------------------------------------------"
 #echo " Remove proxy"
 #echo "-------------------------------------------------------------------------"
