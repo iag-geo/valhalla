@@ -2,7 +2,7 @@
 
 # TODO: create EC2 instance using AWS CLI - MUST set IAM role to developer
 
-INSTANCE_ID="i-0247f34f3a570a6aa"
+INSTANCE_ID="i-007d743b363d1c2eb"
 
 SSH_CONFIG="${HOME}/.ssh/aws-sandbox-config"
 
@@ -15,9 +15,10 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # copy scripts to remote
-scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ecs-user@${INSTANCE_ID}:~/
+scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no /Users/s57405/git/iag_geo/valhalla/docker_build/ec2/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
+#scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
 
-
+# login
 ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
 
 
