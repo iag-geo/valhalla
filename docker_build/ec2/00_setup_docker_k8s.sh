@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-INSTANCE_ID="i-006c4ccd68ed9a206"
+# TODO: create EC2 instance using AWS CLI - MUST set IAM role to developer
+
+INSTANCE_ID="i-0306dd14917c3602d"
 
 SSH_CONFIG="${HOME}/.ssh/aws-sandbox-config"
 
@@ -29,10 +31,16 @@ echo "--------------------------------------------------------------------------
 ssh -F ${SSH_CONFIG} -fNL 8002:${INSTANCE_IP_ADDRESS}:8002 ${INSTANCE_ID}
 
 
+ssh ip-10-180-64-25.ap-southeast-2.compute.internal i-04155dc840e51f0b4
 
 
 
 
+i-05ab9a2e2b2f6a735
 
 
 
+aws ssm start-session --target ${INSTANCE_ID} --document-name AWS-StartSSHSession --profile default
+
+
+aws configservice get-resource-config-history --resource-type AWS::EC2::Instance --resource-id i-0d5bf0e4c94ecec94

@@ -40,16 +40,17 @@ echo "-------------------------------------------------------------------------"
 sudo yum -q -y install docker
 #sudo amazon-linux-extras install docker
 
-# create Docker config file with proxy settings
-cat > ~/.docker/config.json <<EOL
+# create Docker config file with proxy settings for the client
+mkdir ~/.docker
+cat >> ~/.docker/config.json <<EOL
 {
  "proxies":
  {
    "default":
    {
-     "httpProxy": ${http_proxy},
-     "httpsProxy": ${http_proxy},
-     "noProxy": ${no_proxy}
+     "httpProxy": "${http_proxy}",
+     "httpsProxy": "${http_proxy}",
+     "noProxy": "${no_proxy}"
    }
  }
 }
@@ -58,8 +59,20 @@ EOL
 # start service and set it to start on boot
 sudo service docker start
 sudo usermod -a -G docker ec2-user && newgrp docker
-#sudo chkconfig docker on
 sudo systemctl enable docker.service
+
+# create config file for the docker daemon
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null <<EOT
+[Service]
+Environment="HTTP_PROXY=${http_proxy}"
+Environment="HTTPS_PROXY=${https_proxy}"
+Environment="NO_PROXY=${no_proxy}"
+EOT
+
+# restart docker
+sudo systemctl daemon-reload
+sudo systemctl restart docker
 
 # need git to download Valhalla repo
 sudo yum -q -y install git
@@ -68,13 +81,14 @@ echo "-------------------------------------------------------------------------"
 echo " Install Minikube"
 echo "-------------------------------------------------------------------------"
 
-yum -q -y install conntrack
+#yum -q -y install conntrack
 
 curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 chmod +x minikube
 sudo mv minikube /usr/local/bin/
 
-
+# get all the Docker images need for Kubernetes server and start the k8s node
+minikube start --driver=docker --docker-env HTTP_PROXY=${http_proxy} --docker-env HTTPS_PROXY=${http_proxy} --docker-env NO_PROXY=${no_proxy}
 
 
 
