@@ -109,7 +109,7 @@ kubectl scale deployments/valhalla --replicas=4
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
-
+echo "nodePort = ${NODE_PORT}"
 
 #echo "-------------------------------------------------------------------------"
 #echo " Remove proxy"
