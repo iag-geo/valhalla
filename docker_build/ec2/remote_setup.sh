@@ -11,7 +11,7 @@ echo "-------------------------------------------------------------------------"
 
 DOCKER_IMAGE="iag-geo/valhalla:latest"
 
-export no_proxy="localhost,127.0.0.1,10.180.64.8,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24"
+export no_proxy="localhost,127.0.0.1/32,192.168.49.2/32, 10.180.64.8/32,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24"
 export http_proxy="http://nonprod-proxy.csg.iagcloud.net:8080"
 export https_proxy=${http_proxy}
 export HTTP_PROXY=${http_proxy}
