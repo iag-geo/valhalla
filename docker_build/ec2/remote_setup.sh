@@ -97,7 +97,19 @@ echo "-------------------------------------------------------------------------"
 echo " Download and setup Valhalla image"
 echo "-------------------------------------------------------------------------"
 
+# 1. download the image
 docker pull minus34/valhalla:latest
+
+# 2. deploy to a Kubernetes pod
+kubectl create deployment valhalla --image=iag-geo/valhalla:latest
+# create (i.e. expose) a service
+kubectl expose deployment/valhalla --type="NodePort" --port 8002
+# scale deployment
+kubectl scale deployments/valhalla --replicas=4
+# get the k8s node port number
+export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
+
+
 
 #echo "-------------------------------------------------------------------------"
 #echo " Remove proxy"

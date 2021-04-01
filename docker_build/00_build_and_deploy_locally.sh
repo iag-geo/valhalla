@@ -7,7 +7,7 @@ cd $HOME
 docker build --tag iag-geo/valhalla:3.1.0 .
 
 # 2. deploy to a Kubernetes pod
-kubectl create deployment valhalla --image=iag-geo/valhalla:3.1.0
+kubectl create deployment valhalla --image=iag-geo/valhalla:latest
 # create (i.e. expose) a service
 kubectl expose deployment/valhalla --type="NodePort" --port 8002
 # scale deployment
