@@ -8,7 +8,7 @@ echo "--------------------------------------------------------------------------
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # load AWS variables
-. /Users/$(whoami)/git/iag_geo/valhalla/docker_build/ec2/ec2_vars.sh
+. /.aws/ec2_vars.sh
 #. ${SCRIPT_DIR}/ec2_vars.sh
 
 # create EC2 instance
