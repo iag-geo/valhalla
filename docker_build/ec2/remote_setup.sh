@@ -49,8 +49,8 @@ sudo yum -q -y install docker
 #EOT
 
 # start service and set it to start on boot
-sudo service docker start
 sudo usermod -a -G docker ec2-user && newgrp docker
+sudo service docker start
 sudo systemctl enable docker.service
 
 ## restart docker

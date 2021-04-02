@@ -16,8 +16,8 @@ INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 -
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
 
 # waiting for instance to start
-echo "Instance ${INSTANCE_ID} started"
-sleep 15
+echo "Instance ${INSTANCE_ID} created - waiting 30 seconds for startup"
+sleep 30
 
 #INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 #python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
