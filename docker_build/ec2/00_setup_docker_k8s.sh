@@ -20,20 +20,27 @@ python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Ins
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-# copy scripts to remote
+# SSM - copy scripts to remote
 #scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no /Users/s57405/git/iag_geo/valhalla/docker_build/ec2/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
+
+# Non-SSM - copy scripts to remote
 #scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
 scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
-# login
-ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
+# SSM - login
+#ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
+
+# Non-SSM - login
 ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 
 #scp -F ${SSH_CONFIG} ${SCRIPT_DIR}/*/*.py hadoop@${INSTANCE_ID}:~/
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-# port forward Valhalla APIs
+# SSM - port forward Valhalla APIs
 #ssh -F ${SSH_CONFIG} -fNL 30702:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
+
+# Non-SSM - port forward Valhalla APIs
+##ssh -i ${AWS_PEM_FILE} -fNL 30702:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 #aws configservice get-resource-config-history --resource-type AWS::EC2::Instance --resource-id i-0d5bf0e4c94ecec94
