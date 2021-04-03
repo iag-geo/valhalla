@@ -16,19 +16,18 @@ INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 -
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
 
 # waiting for instance to start
-echo "Instance ${INSTANCE_ID} created - waiting 30 seconds for startup"
+echo "Instance ${INSTANCE_ID} created - waiting for startup"
+aws ec2 wait instance-exists --instance-ids ${INSTANCE_ID}
 sleep 30
-
-echo "----------------------------------------------------------------------------------------------------------------"
 
 #INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 #python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
 INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PublicIpAddress'])")
 
-# waiting for instance to start
-echo "Got IP address : ${INSTANCE_IP_ADDRESS} - waiting another 30 seconds for startup"
-sleep 30
+## waiting for instance to start
+echo "Got IP address : ${INSTANCE_IP_ADDRESS}"
+#sleep 30
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
@@ -39,6 +38,8 @@ echo "--------------------------------------------------------------------------
 #scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
 scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
+echo "----------------------------------------------------------------------------------------------------------------"
+
 ## SSM - login
 #ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
 
@@ -46,8 +47,6 @@ scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh
 ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 
 #scp -F ${SSH_CONFIG} ${SCRIPT_DIR}/*/*.py hadoop@${INSTANCE_ID}:~/
-
-echo "----------------------------------------------------------------------------------------------------------------"
 
 ## SSM - port forward Valhalla APIs
 #ssh -F ${SSH_CONFIG} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}

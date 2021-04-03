@@ -11,6 +11,13 @@ echo "-------------------------------------------------------------------------"
 
 DOCKER_IMAGE="minus34/valhalla:latest"
 
+#export no_proxy="localhost,127.0.0.1/32,192.168.49.2/32, 10.180.64.8/32,10.96.0.0/12,192.168.99.0/24,192.168.39.0/24"
+#export http_proxy="http://nonprod-proxy.csg.iagcloud.net:8080"
+#export https_proxy=${http_proxy}
+#export HTTP_PROXY=${http_proxy}
+#export HTTPS_PROXY=${http_proxy}
+#export NO_PROXY=${no_proxy}
+
 echo "-------------------------------------------------------------------------"
 echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
@@ -35,21 +42,27 @@ echo "-------------------------------------------------------------------------"
 
 sudo yum -y install docker
 
-echo "hello"
+## OPTIONAL - create config file for the docker daemon if going through a proxy
+#sudo mkdir -p /etc/systemd/system/docker.service.d
+#sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null <<EOT
+#[Service]
+#Environment="HTTP_PROXY=${http_proxy}"
+#Environment="HTTPS_PROXY=${https_proxy}"
+#Environment="NO_PROXY=${no_proxy}"
+#EOT
 
 # start service and set it to start on boot
 sudo usermod -a -G docker ec2-user && newgrp docker
-
-echo "hello2"
-
+#sudo service docker start
 sudo systemctl enable docker.service
-
-echo "hello3"
-
 sudo systemctl start docker
 
-echo "hello4"
+## not sure why starting the service requires an exit
+#exit
 
+## restart docker
+#sudo systemctl daemon-reload
+#sudo systemctl restart docker
 
 echo "-------------------------------------------------------------------------"
 docker version
@@ -62,7 +75,8 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/miniku
 chmod +x minikube
 sudo mv minikube /usr/local/bin/
 
-# get all the Docker images needed for Kubernetes server and start the k8s node
+# get all the Docker images need for Kubernetes server and start the k8s node
+#minikube start --driver=docker --docker-env HTTP_PROXY=${http_proxy} --docker-env HTTPS_PROXY=${http_proxy} --docker-env NO_PROXY=${no_proxy}
 minikube start --driver=docker
 
 # all good?
@@ -86,6 +100,17 @@ kubectl scale deployments/valhalla --replicas=4
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
 echo "nodePort = ${NODE_PORT}"
+
+#echo "-------------------------------------------------------------------------"
+#echo " Remove proxy"
+#echo "-------------------------------------------------------------------------"
+#
+#unset http_proxy
+#unset HTTP_PROXY
+#unset https_proxy
+#unset HTTPS_PROXY
+#unset no_proxy
+#unset NO_PROXY
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
