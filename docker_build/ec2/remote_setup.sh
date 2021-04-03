@@ -56,6 +56,9 @@ sudo usermod -a -G docker ec2-user && newgrp docker
 sudo systemctl enable docker.service
 sudo systemctl start docker
 
+# not sure why starting the service requires an exit
+exit
+
 ## restart docker
 #sudo systemctl daemon-reload
 #sudo systemctl restart docker

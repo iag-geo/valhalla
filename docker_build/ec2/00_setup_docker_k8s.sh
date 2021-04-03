@@ -50,9 +50,9 @@ ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 echo "----------------------------------------------------------------------------------------------------------------"
 
 ## SSM - port forward Valhalla APIs
-#ssh -F ${SSH_CONFIG} -fNL 30702:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
+#ssh -F ${SSH_CONFIG} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 # Non-SSM - port forward Valhalla APIs
-##ssh -i ${AWS_PEM_FILE} -fNL 30702:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
+##ssh -i ${AWS_PEM_FILE} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 #aws configservice get-resource-config-history --resource-type AWS::EC2::Instance --resource-id i-0d5bf0e4c94ecec94
