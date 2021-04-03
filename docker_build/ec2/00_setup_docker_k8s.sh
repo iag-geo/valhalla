@@ -26,8 +26,8 @@ INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} |
 python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PublicIpAddress'])")
 
 ## waiting for instance to start
-echo "Got IP address : ${INSTANCE_IP_ADDRESS}"
-#sleep 30
+echo "Got IP address : ${INSTANCE_IP_ADDRESS} - waiting 30 seconds for instance to finish startup"
+sleep 30
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
