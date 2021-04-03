@@ -36,15 +36,19 @@ echo "--------------------------------------------------------------------------
 
 # Non-SSM - copy scripts to remote
 #scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
-scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
+#scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
 echo "----------------------------------------------------------------------------------------------------------------"
+
+# run remote setup script
+ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
+
 
 ## SSM - login
 #ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
 
 # Non-SSM - login
-ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
+#ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 
 #scp -F ${SSH_CONFIG} ${SCRIPT_DIR}/*/*.py hadoop@${INSTANCE_ID}:~/
 
@@ -54,4 +58,12 @@ ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 # Non-SSM - port forward Valhalla APIs
 ##ssh -i ${AWS_PEM_FILE} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
+
+#curl http://${INSTANCE_IP_ADDRESS}:32366/route \
+#--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+
+
+
+
 #aws configservice get-resource-config-history --resource-type AWS::EC2::Instance --resource-id i-0d5bf0e4c94ecec94
+

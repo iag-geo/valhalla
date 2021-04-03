@@ -67,19 +67,19 @@ newgrp docker <<EONG
 
   # 1. download the image
   docker pull ${DOCKER_IMAGE}
-
-  # 2. deploy to a Kubernetes pod
-  kubectl create deployment valhalla --image=${DOCKER_IMAGE}
-  # create (i.e. expose) a service
-  kubectl expose deployment/valhalla --type="NodePort" --port 8002
-  # scale deployment
-  kubectl scale deployments/valhalla --replicas=4
-  # get the k8s node port number
-  export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
-
-  echo "nodePort = ${NODE_PORT}"
 EONG
 
+# 2. deploy to a Kubernetes pod
+kubectl create deployment valhalla --image=${DOCKER_IMAGE}
+# create (i.e. expose) a service
+kubectl expose deployment/valhalla --type="NodePort" --port 8002
+# scale deployment
+kubectl scale deployments/valhalla --replicas=4
+# get the k8s node port number
+export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
+
+echo "----------------------------------------------------------------------------------------------------------------"
+echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ~ || exit
