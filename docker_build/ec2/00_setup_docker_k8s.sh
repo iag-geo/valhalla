@@ -8,7 +8,7 @@ echo "--------------------------------------------------------------------------
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # load AWS variables
-. /.aws/ec2_vars.sh
+. ${HOME}/.aws/ec2_vars.sh
 #. ${SCRIPT_DIR}/ec2_vars.sh
 
 # create EC2 instance
@@ -19,10 +19,16 @@ python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['Instan
 echo "Instance ${INSTANCE_ID} created - waiting 30 seconds for startup"
 sleep 30
 
+echo "----------------------------------------------------------------------------------------------------------------"
+
 #INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 #python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
 INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PublicIpAddress'])")
+
+# waiting for instance to start
+echo "Got IP address : ${INSTANCE_IP_ADDRESS} - waiting another 30 seconds for startup"
+sleep 30
 
 echo "----------------------------------------------------------------------------------------------------------------"
 

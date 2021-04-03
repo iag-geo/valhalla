@@ -22,8 +22,8 @@ echo "-------------------------------------------------------------------------"
 echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -q -y update
-sudo yum -q -y install tmux  # to enable logging out of the remote server while running a long job
+sudo yum -y update
+sudo yum -y install tmux  # to enable logging out of the remote server while running a long job
 
 echo "-------------------------------------------------------------------------"
 echo " Install Kubernetes"
@@ -33,11 +33,13 @@ curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s http
 chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 
+kubectl version --client
+
 echo "-------------------------------------------------------------------------"
 echo " Install Docker"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -q -y install docker
+sudo yum -y install docker
 
 ## OPTIONAL - create config file for the docker daemon if going through a proxy
 #sudo mkdir -p /etc/systemd/system/docker.service.d
@@ -50,12 +52,15 @@ sudo yum -q -y install docker
 
 # start service and set it to start on boot
 sudo usermod -a -G docker ec2-user && newgrp docker
-sudo service docker start
+#sudo service docker start
 sudo systemctl enable docker.service
+sudo systemctl start docker
 
 ## restart docker
 #sudo systemctl daemon-reload
 #sudo systemctl restart docker
+
+docker version
 
 echo "-------------------------------------------------------------------------"
 echo " Install and start Minikube"
@@ -66,7 +71,8 @@ chmod +x minikube
 sudo mv minikube /usr/local/bin/
 
 # get all the Docker images need for Kubernetes server and start the k8s node
-minikube start --driver=docker --docker-env HTTP_PROXY=${http_proxy} --docker-env HTTPS_PROXY=${http_proxy} --docker-env NO_PROXY=${no_proxy}
+#minikube start --driver=docker --docker-env HTTP_PROXY=${http_proxy} --docker-env HTTPS_PROXY=${http_proxy} --docker-env NO_PROXY=${no_proxy}
+minikube start --driver=docker
 
 # all good?
 minikube status
