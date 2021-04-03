@@ -12,7 +12,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 #. ${SCRIPT_DIR}/ec2_vars.sh
 
 # create EC2 instance
-INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 --instance-type t2.micro --key-name ${AWS_KEYPAIR} --security-group-ids ${AWS_SECURITY_GROUP} --subnet-id ${AWS_SUBNET} | \
+INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 --instance-type t2.large --key-name ${AWS_KEYPAIR} --security-group-ids ${AWS_SECURITY_GROUP} --subnet-id ${AWS_SUBNET} | \
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
 
 # waiting for instance to start

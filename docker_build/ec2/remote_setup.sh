@@ -22,8 +22,8 @@ echo "-------------------------------------------------------------------------"
 echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -y update
-sudo yum -y install tmux  # to enable logging out of the remote server while running a long job
+sudo yum -y -q update
+sudo yum -y -q install tmux  # to enable logging out of the remote server while running a long job
 
 echo "-------------------------------------------------------------------------"
 echo " Install Kubernetes"
@@ -39,7 +39,7 @@ echo "-------------------------------------------------------------------------"
 echo " Install Docker"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -y install docker
+sudo yum -y -q install docker
 
 ## OPTIONAL - create config file for the docker daemon if going through a proxy
 #sudo mkdir -p /etc/systemd/system/docker.service.d
