@@ -15,8 +15,8 @@ echo "-------------------------------------------------------------------------"
 echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -y update
-sudo yum -y install tmux  # to enable logging out of the remote server while running a long job
+sudo yum -y -q update
+sudo yum -y -q install tmux  # to enable logging out of the remote server while running a long job
 
 echo "-------------------------------------------------------------------------"
 echo " Install Kubernetes"
@@ -33,41 +33,34 @@ echo "-------------------------------------------------------------------------"
 echo " Install Docker"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -y install docker
+sudo yum -y -q install docker
 
-echo "hello"
+# add user to docker group
+sudo usermod -a -G docker ec2-user
 
-# start service and set it to start on boot
-sudo usermod -a -G docker ec2-user && newgrp docker
+# change user group, start docker service, install and start minikube (a Kubernetes server) whilst docker group active
+newgrp docker <<EONG
+  sudo systemctl enable docker.service
+  sudo systemctl start docker
 
-echo "hello2"
+  echo "-------------------------------------------------------------------------"
+  docker version
 
-sudo systemctl enable docker.service
+  echo "-------------------------------------------------------------------------"
+  echo " Install and start Minikube"
+  echo "-------------------------------------------------------------------------"
 
-echo "hello3"
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+  chmod +x minikube
+  sudo mv minikube /usr/local/bin/
 
-sudo systemctl start docker
+  # get all the Docker images needed for Kubernetes server and start the k8s node
+  minikube start --driver=docker
 
-echo "hello4"
-
-
-echo "-------------------------------------------------------------------------"
-docker version
-
-echo "-------------------------------------------------------------------------"
-echo " Install and start Minikube"
-echo "-------------------------------------------------------------------------"
-
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-chmod +x minikube
-sudo mv minikube /usr/local/bin/
-
-# get all the Docker images needed for Kubernetes server and start the k8s node
-minikube start --driver=docker
-
-# all good?
-echo "-------------------------------------------------------------------------"
-minikube status
+  # all good?
+  echo "-------------------------------------------------------------------------"
+  minikube status
+EONG
 
 echo "-------------------------------------------------------------------------"
 echo " Download and setup Valhalla image"

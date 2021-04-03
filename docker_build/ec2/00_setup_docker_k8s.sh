@@ -18,7 +18,7 @@ python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['Instan
 # waiting for instance to start
 echo "Instance ${INSTANCE_ID} created - waiting for startup"
 aws ec2 wait instance-exists --instance-ids ${INSTANCE_ID}
-sleep 30
+#sleep 30
 
 #INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
 #python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
