@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+
+SECONDS=0*
+
+echo "----------------------------------------------------------------------------------------------------------------"
+echo " Start time : $(date)"
+
 echo "----------------------------------------------------------------------------------------------------------------"
 
 #SSH_CONFIG="${HOME}/.ssh/aws-sandbox-config"
@@ -43,6 +49,13 @@ echo "--------------------------------------------------------------------------
 # run remote setup script
 ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
 
+echo "----------------------------------------------------------------------------------------------------------------"
+
+duration=$SECONDS
+
+echo " End time : $(date)"
+echo " Docker + Kubernetes install took $((duration / 60)) mins"
+echo "----------------------------------------------------------------------------------------------------------------"
 
 ## SSM - login
 #ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
@@ -59,7 +72,7 @@ ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRE
 ##ssh -i ${AWS_PEM_FILE} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 
-#curl http://${INSTANCE_IP_ADDRESS}:32366/route \
+#curl http://${INSTANCE_IP_ADDRESS}:31553/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
 
 

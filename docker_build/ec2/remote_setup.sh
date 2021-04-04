@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 
-SECONDS=0*
-
-echo "-------------------------------------------------------------------------"
-echo " Start time : $(date)"
-
 echo "-------------------------------------------------------------------------"
 echo " Set temp local environment vars"
 echo "-------------------------------------------------------------------------"
@@ -78,14 +73,10 @@ kubectl scale deployments/valhalla --replicas=4
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
+#kubectl port-forward deployment/valhalla 8002:${NODE_PORT}
+
 echo "----------------------------------------------------------------------------------------------------------------"
 echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ~ || exit
-
-duration=$SECONDS
-
-echo " End time : $(date)"
-echo " Docker + Kubernetes install took $((duration / 60)) mins"
-echo "----------------------------------------------------------------------------------------------------------------"

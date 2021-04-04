@@ -26,7 +26,7 @@ kubectl set image deployments/valhalla valhalla=iag-geo/valhalla:3.1.0
 kubectl rollout undo deployments/valhalla
 
 # delete service (app is still running inside pod!)
-kubectl delete service -l run=kubernetes-bootcamp
+kubectl delete service -l run=valhalla
 
 # create proxy to access app in pod (NOT required if service is created i.e. exposed)
 kubectl proxy
