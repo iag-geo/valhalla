@@ -22,5 +22,7 @@ export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.
 #docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
 
 # 3. test a URL
+sleep 10
+
 curl http://localhost:${NODE_PORT}/route \
 --data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
