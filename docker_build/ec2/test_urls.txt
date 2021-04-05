@@ -7,6 +7,10 @@ curl http://${INSTANCE_IP_ADDRESS}:8002/route \
 --data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
 
 
+curl http://54.206.20.145:8002/route \
+--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+
+54.206.20.145
 
 
 curl http://192.168.49.2:31511/route --data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}'
@@ -15,9 +19,3 @@ curl http://192.168.49.2:31511/route --data '{"locations":[{"lat":-33.85,"lon":1
 # Works! - uses k8s control plane IP address and NodePort
 curl http://192.168.49.2:31511/route --data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}'
 
-
-PORT=31894
-PUBLIC_IP=13.238.200.44
-echo "HTTP/1.0 200 Ok" > tempfile
-cat tempfile | nc -q 1 -l -p $PORT
-curl http://$PUBLIC_IP:$PORT/

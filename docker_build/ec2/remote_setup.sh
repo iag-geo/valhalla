@@ -70,29 +70,31 @@ newgrp docker <<EONG
   docker pull ${DOCKER_IMAGE}
 EONG
 
-# create deployment based on config file (5 pods)
-kubectl apply -f ~/valhalla-config.yml
+## create deployment based on config file (5 pods)
+#kubectl apply -f ~/valhalla-config.yml
+#
+## create service from deployment
+#kubectl expose deployment valhalla --type=NodePort --name=valhalla --port=8002 --target-port=8002
 
-# create service from deployment
-kubectl expose deployment valhalla --type=NodePort --name=valhalla --port=8002 --target-port=8002
-
-## 2. deploy to a Kubernetes pod
-#kubectl create deployment valhalla --image=${DOCKER_IMAGE}
-## create (i.e. expose) a service
-#kubectl expose deployment/valhalla --type="LoadBalancer" --port 8002
-## scale deployment
-#kubectl scale deployments/valhalla --replicas=4
+# 2. deploy to a Kubernetes pod
+kubectl create deployment valhalla --image=${DOCKER_IMAGE}
+# create (i.e. expose) a service
+kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8002
+# scale deployment
+kubectl scale deployments/valhalla --replicas=4
 
 # wait for service to start
 sleep 60
 
-# get the k8s node port number
-export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
+## get the k8s node port number
+#export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
-#kubectl port-forward deployment/valhalla 8002:${NODE_PORT}
+# port forward from Kubernetes to all local IPs (to enable external requests)
+#kubectl port-forward services valhalla 8002:${NODE_PORT}
+kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0
 
-echo "----------------------------------------------------------------------------------------------------------------"
-echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
+#echo "----------------------------------------------------------------------------------------------------------------"
+#echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
