@@ -37,17 +37,16 @@ sleep 30
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-## SSM - copy config file to remote
-scp -i ${AWS_PEM_FILE}  -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_IP_ADDRESS}:~/
+## Non-SSM - copy config file to remote
+#scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
-# Non-SSM - copy scripts to remote
-#scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
-#scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
+# SSM - copy config file to remote
+#scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_ID}:~/
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # run remote setup script
-ssh  -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
+ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
