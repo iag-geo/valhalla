@@ -56,6 +56,9 @@ duration=$SECONDS
 echo " End time : $(date)"
 echo " Docker + Kubernetes install took $((duration / 60)) mins"
 echo "----------------------------------------------------------------------------------------------------------------"
+echo "Instance ID : ${INSTANCE_ID}"
+echo "Public IP Address : ${INSTANCE_IP_ADDRESS}"
+echo "----------------------------------------------------------------------------------------------------------------"
 
 ## SSM - login
 #ssh -F ${SSH_CONFIG} ${INSTANCE_ID}
