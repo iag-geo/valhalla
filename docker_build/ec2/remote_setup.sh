@@ -86,15 +86,9 @@ kubectl scale deployments/valhalla --replicas=4
 # wait for service to start
 sleep 60
 
-## get the k8s node port number
-#export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
-
 # port forward from Kubernetes to all local IPs (to enable external requests)
-#kubectl port-forward services valhalla 8002:${NODE_PORT}
 kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0
 
-#echo "----------------------------------------------------------------------------------------------------------------"
-#echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
