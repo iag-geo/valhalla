@@ -51,18 +51,18 @@ newgrp docker <<EONG
 
   # get all the Docker images needed for Kubernetes server and start the k8s node
   minikube start --driver=docker
-
-  # all good?
-  echo "-------------------------------------------------------------------------"
-  minikube status
-
-  echo "-------------------------------------------------------------------------"
-  echo " Download and setup Valhalla image"
-  echo "-------------------------------------------------------------------------"
-
-  # 1. download the image
-  docker pull ${DOCKER_IMAGE}
 EONG
+
+# all good?
+echo "-------------------------------------------------------------------------"
+minikube status
+
+echo "-------------------------------------------------------------------------"
+echo " Download and setup Valhalla image"
+echo "-------------------------------------------------------------------------"
+
+# 1. download the image
+docker pull ${DOCKER_IMAGE}
 
 # 2. deploy to a Kubernetes pod
 kubectl create deployment valhalla --image=${DOCKER_IMAGE}
@@ -77,6 +77,12 @@ export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.
 
 echo "----------------------------------------------------------------------------------------------------------------"
 echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl cluster-info
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl get services
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl get deployments
 echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ~ || exit
