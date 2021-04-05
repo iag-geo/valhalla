@@ -81,6 +81,7 @@ RUN apt-get update && apt-get install -y \
     python-all-dev \
     python-pip \
     python-virtualenv \
+    socat \
     software-properties-common \
     spatialite-bin \
     vim-common \
@@ -140,6 +141,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libsqlite3-mod-spatialite \
     python-pip \
     python-virtualenv \
+    socat \
     spatialite-bin \
     jo \
     jq \
