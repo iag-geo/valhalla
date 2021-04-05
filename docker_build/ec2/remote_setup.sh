@@ -51,31 +51,34 @@ newgrp docker <<EONG
 
   # get all the Docker images needed for Kubernetes server and start the k8s node
   minikube start --driver=docker
+
+  # install NGINX Ingress addon to enable routing of request to k8s service
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
+
+  # all good?
+  echo "-------------------------------------------------------------------------"
+  echo " minikube status"
+  echo "-------------------------------------------------------------------------"
+
+  minikube status
+
+  echo "-------------------------------------------------------------------------"
+  echo " Download and setup Valhalla image"
+  echo "-------------------------------------------------------------------------"
+
+  # 1. download the image
+  docker pull ${DOCKER_IMAGE}
 EONG
-
-# all good?
-echo "-------------------------------------------------------------------------"
-echo " minikube status"
-echo "-------------------------------------------------------------------------"
-
-minikube status
-
-echo "-------------------------------------------------------------------------"
-echo " Download and setup Valhalla image"
-echo "-------------------------------------------------------------------------"
-
-# 1. download the image
-docker pull ${DOCKER_IMAGE}
 
 # 2. deploy to a Kubernetes pod
 kubectl create deployment valhalla --image=${DOCKER_IMAGE}
 # create (i.e. expose) a service
-kubectl expose deployment/valhalla --type="NodePort" --port 8002
+kubectl expose deployment/valhalla --type="LoadBalancer" --port 8002
 # scale deployment
 kubectl scale deployments/valhalla --replicas=4
 
 # wait for containers to scale
-sleep 15
+sleep 30
 
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
@@ -87,9 +90,9 @@ echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
-kubectl get services
-echo "----------------------------------------------------------------------------------------------------------------"
 kubectl get deployments
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl describe services valhalla
 echo "----------------------------------------------------------------------------------------------------------------"
 
 cd ~ || exit

@@ -22,7 +22,7 @@ INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 -
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
 
 # waiting for instance to start
-echo "Instance ${INSTANCE_ID} created - waiting for startup"
+echo "Instance ${INSTANCE_ID} created"
 aws ec2 wait instance-exists --instance-ids ${INSTANCE_ID}
 #sleep 30
 
@@ -72,8 +72,8 @@ echo "--------------------------------------------------------------------------
 ##ssh -i ${AWS_PEM_FILE} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 
-#curl http://${INSTANCE_IP_ADDRESS}:31553/route \
-#--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+curl http://${INSTANCE_IP_ADDRESS}:31320/route \
+--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
 
 
 
