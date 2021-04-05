@@ -70,11 +70,11 @@ newgrp docker <<EONG
   docker pull ${DOCKER_IMAGE}
 EONG
 
-# create deployment based on config file
+# create deployment based on config file (5 pods)
 kubectl apply -f ~/valhalla-config.yml
 
 # create service from deployment
-kubectl expose deployment valhalla --type=LoadBalancer --name=valhalla
+kubectl expose deployment valhalla --type=NodePort --name=valhalla --port=8002 --target-port=8002
 
 ## 2. deploy to a Kubernetes pod
 #kubectl create deployment valhalla --image=${DOCKER_IMAGE}
@@ -84,7 +84,7 @@ kubectl expose deployment valhalla --type=LoadBalancer --name=valhalla
 #kubectl scale deployments/valhalla --replicas=4
 
 # wait for service to start
-sleep 120
+sleep 60
 
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
