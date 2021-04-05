@@ -52,8 +52,8 @@ newgrp docker <<EONG
   # get all the Docker images needed for Kubernetes server and start the k8s node
   minikube start --driver=docker
 
-  # install NGINX Ingress addon to enable routing of request to k8s service
-  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
+#  # install NGINX Ingress addon to enable routing to k8s service
+#  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
 
   # all good?
   echo "-------------------------------------------------------------------------"
@@ -70,15 +70,21 @@ newgrp docker <<EONG
   docker pull ${DOCKER_IMAGE}
 EONG
 
-# 2. deploy to a Kubernetes pod
-kubectl create deployment valhalla --image=${DOCKER_IMAGE}
-# create (i.e. expose) a service
-kubectl expose deployment/valhalla --type="LoadBalancer" --port 8002
-# scale deployment
-kubectl scale deployments/valhalla --replicas=4
+# create deployment based on config file
+kubectl apply -f ~/valhalla-config.yml
 
-# wait for containers to scale
-sleep 30
+# create service from deployment
+kubectl expose deployment valhalla --type=LoadBalancer --name=valhalla
+
+## 2. deploy to a Kubernetes pod
+#kubectl create deployment valhalla --image=${DOCKER_IMAGE}
+## create (i.e. expose) a service
+#kubectl expose deployment/valhalla --type="LoadBalancer" --port 8002
+## scale deployment
+#kubectl scale deployments/valhalla --replicas=4
+
+# wait for service to start
+sleep 120
 
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
@@ -90,7 +96,7 @@ echo "Kubernetes Valhalla nodePort = ${NODE_PORT}"
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
-kubectl get deployments
+kubectl get services valhalla
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl describe services valhalla
 echo "----------------------------------------------------------------------------------------------------------------"

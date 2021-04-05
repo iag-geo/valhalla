@@ -37,8 +37,8 @@ sleep 30
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-## SSM - copy scripts to remote
-#scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no /Users/s57405/git/iag_geo/valhalla/docker_build/ec2/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
+## SSM - copy config file to remote
+scp -i ${AWS_PEM_FILE}  -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
 # Non-SSM - copy scripts to remote
 #scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_ID}:~/
@@ -47,7 +47,7 @@ echo "--------------------------------------------------------------------------
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # run remote setup script
-ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
+ssh  -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
@@ -72,8 +72,8 @@ echo "--------------------------------------------------------------------------
 ##ssh -i ${AWS_PEM_FILE} -fNL 31870:${INSTANCE_IP_ADDRESS}:30702 ${INSTANCE_ID}
 
 
-curl http://${INSTANCE_IP_ADDRESS}:31320/route \
---data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+#curl http://${INSTANCE_IP_ADDRESS}:32060/route \
+#--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
 
 
 
