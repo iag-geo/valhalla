@@ -70,6 +70,10 @@ kubectl create deployment valhalla --image=${DOCKER_IMAGE}
 kubectl expose deployment/valhalla --type="NodePort" --port 8002
 # scale deployment
 kubectl scale deployments/valhalla --replicas=4
+
+# wait for containers to scale
+sleep 15
+
 # get the k8s node port number
 export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
 
