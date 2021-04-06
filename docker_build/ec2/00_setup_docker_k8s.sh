@@ -46,7 +46,10 @@ echo "--------------------------------------------------------------------------
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # run remote setup script
-ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} 'bash -s' < ${SCRIPT_DIR}/remote_setup.sh
+ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} "bash -s" < ${SCRIPT_DIR}/remote_setup.sh
+
+## port forward from Kubernetes to all local IPs (to enable external requests)
+#ssh  -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} "kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &"
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
