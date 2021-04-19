@@ -2,27 +2,40 @@
 
 SECONDS=0*
 
-## 1. build image
-#cd $HOME
-#docker build --tag iag-geo/valhalla:3.1.0 .
+# ------------------------------------------------------------------------------------------------------------
+# 1. build or download image
+# ------------------------------------------------------------------------------------------------------------
+cd $HOME
 
-# download image
+#docker build --tag iag-geo/valhalla:3.1.0 .
 docker pull minus34/valhalla:latest
 
-# 2. deploy to a Kubernetes pod
+# ------------------------------------------------------------------------------------------------------------
+# 2. deploy using Kubernetes
+# ------------------------------------------------------------------------------------------------------------
+
 kubectl create deployment valhalla --image=minus34/valhalla:latest
+
 # create (i.e. expose) a service
-kubectl expose deployment/valhalla --type="NodePort" --port 8002
+kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8002
+
 # scale deployment
 kubectl scale deployments/valhalla --replicas=4
-# get the k8s node port number
-export NODE_PORT=$(kubectl get services/valhalla -o go-template='{{(index .spec.ports 0).nodePort}}')
+
+# wait for service to start
+sleep 30
+
+# port forward from Kubernetes to all local IPs (to enable external requests)
+kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &
+
+# test URL
+curl http://localhost:8002/route \
+--data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}'
+
+##test URL with JSON formatting (install using "brew install jq")
+#curl http://localhost:8002/route \
+#--data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+
 
 ## 2. run container in Docker only
 #docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
-
-# 3. test a URL
-sleep 10
-
-curl http://localhost:${NODE_PORT}/route \
---data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'

@@ -1,7 +1,16 @@
 #!/usr/bin/env bash
 
-# delete all Valhalla pods
+# list all taints on nodes - could cause pods to never start (aka make them "unschedulable")
+kubectl get nodes -o json | jq '.items[].spec.taints'
+
+## remove "unschedulable" taint - WARNING - current version of docker desktop replaces this taint automatically
+#kubectl taint node docker-desktop node.kubernetes.io/unschedulable:NoSchedule-
+
+# delete Valhalla pods, service and deployment
 kubectl get pods --no-headers=true | awk '/valhalla/{print $1}' | xargs kubectl delete pod
+kubectl delete service -l app=valhalla
+kubectl delete deployment -l app=valhalla
+
 
 # check status
 kubectl describe services/valhalla
@@ -10,8 +19,8 @@ kubectl get deployments
 kubectl get pods -o wide
 
 kubectl describe deployment
-kubectl get pods -l run=valhalla
-kubectl get services -l run=valhalla
+kubectl get pods -l app=valhalla
+kubectl get services -l app=valhalla
 
 # get pod names
 kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}'
@@ -26,7 +35,7 @@ kubectl set image deployments/valhalla valhalla=iag-geo/valhalla:3.1.0
 kubectl rollout undo deployments/valhalla
 
 # delete service (app is still running inside pod!)
-kubectl delete service -l run=valhalla
+kubectl delete service -l app=valhalla
 
 # create proxy to access app in pod (NOT required if service is created i.e. exposed)
 kubectl proxy
