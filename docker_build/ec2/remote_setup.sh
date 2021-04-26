@@ -60,8 +60,6 @@ sudo yum -y -q install docker
 # add user to docker group
 sudo usermod -a -G docker ec2-user
 
-
-
 # change user group, start docker service, install and start minikube (a Kubernetes server) whilst docker group active
 newgrp docker <<EONG
   sudo systemctl enable docker.service
@@ -73,12 +71,14 @@ newgrp docker <<EONG
       echo "No proxy";
     else
       sudo mkdir -p /etc/systemd/system/docker.service.d
-      echo '[Service]\nEnvironment="HTTP_PROXY=${http_proxy}"\nEnvironment="HTTPS_PROXY=${https_proxy}"' | \
-      sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
+      echo '[Service]' sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
+      echo 'Environment="HTTP_PROXY=${http_proxy}"' sudo tee -a /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
+      echo 'Environment="HTTPS_PROXY=${https_proxy}"' sudo tee -a /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
+      echo 'Environment="NO_PROXY="localhost,127.0.0.1,::1"' sudo tee -a /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
   fi
 
-  sudo systemd daemon-reload
-  sudo systemd restart docker
+  sudo systemctl daemon-reload
+  sudo systemctl restart docker
 
   echo "-------------------------------------------------------------------------"
   docker version
