@@ -131,17 +131,15 @@ kubectl scale deployments/valhalla --replicas=4
 # wait for service to start
 sleep 60
 
-# port forward from Kubernetes to all local IPs (to enable external requests over port 8002)
-kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &
+# port forward from Kubernetes to all IPs (to enable external requests over port 8002)
+# run in background to allow script to complete
+pf_cmd="kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0"
+eval "${pf_cmd}" &>/dev/null & disown;
 
-
-# note: these are unreachable if you are running this remotely via SSH
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl cluster-info
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl get services valhalla
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl describe services valhalla
-#echo "----------------------------------------------------------------------------------------------------------------"
-#
-#cd ~
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl cluster-info
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl get services valhalla
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl describe services valhalla
+echo "----------------------------------------------------------------------------------------------------------------"

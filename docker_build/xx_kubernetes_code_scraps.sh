@@ -44,3 +44,7 @@ kubectl proxy
 
 # create Bash session inside pod
 kubectl exec -ti $POD_NAME bash
+
+# test Valhalla URL
+#curl http://${INSTANCE_IP_ADDRESS}:8002/route \
+#--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
