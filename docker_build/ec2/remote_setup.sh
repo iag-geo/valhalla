@@ -1,5 +1,27 @@
 #!/usr/bin/env bash
 
+# check if proxy server required
+while getopts p: flag
+do
+    case "${flag}" in
+        p) PROXY=${OPTARG};;
+    esac
+done
+
+if [ -z ${PROXY+x} ];
+  then echo "Proxy is unset";
+  else
+    echo "-------------------------------------------------------------------------"
+    echo "Proxy is set to '$PROXY'"
+    echo "-------------------------------------------------------------------------"
+    export no_proxy="localhost, 127.0.0.1";
+    export http_proxy="$PROXY";
+    export https_proxy=${http_proxy};
+    export HTTP_PROXY=${http_proxy};
+    export HTTPS_PROXY=${http_proxy};
+    export NO_PROXY=${no_proxy};
+fi
+
 echo "-------------------------------------------------------------------------"
 echo " Set temp local environment vars"
 echo "-------------------------------------------------------------------------"
