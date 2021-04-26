@@ -1,19 +1,23 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 # check if proxy server required
-while getopts p: flag
-do
-    case "${flag}" in
-        p) PROXY=${OPTARG};;
-    esac
+while getopts ":p:" opt; do
+  case $opt in
+    p)
+      PROXY=$OPTARG
+      ;;
+  esac
 done
 
-if [ -z ${PROXY+x} ];
-  then echo "Proxy is unset";
+if [ -z ${PROXY} ];
+  then
+    echo "-------------------------------------------------------------------------";
+    echo "No proxy set";
+    echo "-------------------------------------------------------------------------";
   else
-    echo "-------------------------------------------------------------------------"
-    echo "Proxy is set to '$PROXY'"
-    echo "-------------------------------------------------------------------------"
+    echo "-------------------------------------------------------------------------";
+    echo " Proxy is set to '$PROXY'";
+    echo "-------------------------------------------------------------------------";
     export no_proxy="localhost,127.0.0.1";
     export http_proxy="$PROXY";
     export https_proxy=${http_proxy};
@@ -32,7 +36,7 @@ echo "-------------------------------------------------------------------------"
 echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
 
-sudo yum -y -q update
+#sudo yum -y -q update
 sudo yum -y -q install tmux  # to enable logging out of the remote server while running a long job
 
 echo "-------------------------------------------------------------------------"
@@ -44,6 +48,7 @@ chmod +x ./kubectl
 sudo mv ./kubectl /usr/local/bin/kubectl
 
 echo "-------------------------------------------------------------------------"
+echo " kubectl client:"
 kubectl version --client
 
 echo "-------------------------------------------------------------------------"
@@ -55,10 +60,25 @@ sudo yum -y -q install docker
 # add user to docker group
 sudo usermod -a -G docker ec2-user
 
+
+
 # change user group, start docker service, install and start minikube (a Kubernetes server) whilst docker group active
 newgrp docker <<EONG
   sudo systemctl enable docker.service
   sudo systemctl start docker
+
+  # set proxy for docker daemon if required
+  if [ -z ${PROXY} ];
+    then
+      echo "No proxy";
+    else
+      sudo mkdir -p /etc/systemd/system/docker.service.d
+      echo '[Service]\nEnvironment="HTTP_PROXY=${http_proxy}"\nEnvironment="HTTPS_PROXY=${https_proxy}"' | \
+      sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
+  fi
+
+  sudo systemd daemon-reload
+  sudo systemd restart docker
 
   echo "-------------------------------------------------------------------------"
   docker version
