@@ -9,13 +9,9 @@ while getopts ":p:" opt; do
   esac
 done
 
-if [ -z ${PROXY} ];
+if [ -n "${PROXY}" ];
   then
-    echo "-------------------------------------------------------------------------";
-    echo "No proxy set";
-    echo "-------------------------------------------------------------------------";
-  else
-    export no_proxy="localhost,127.0.0.1,:11";
+    export no_proxy="192.168.49.2,localhost,127.0.0.1,:11";  # include minukube IP address
     export http_proxy="$PROXY";
     export https_proxy=${http_proxy};
     export HTTP_PROXY=${http_proxy};
@@ -62,10 +58,8 @@ sudo yum -y -q install docker
 sudo usermod -a -G docker ec2-user
 
 # set proxy for docker daemon if required
-if [ -z ${PROXY} ];
+if [ -n "${PROXY}" ];
   then
-    echo "No proxy";
-  else
     sudo mkdir -p /etc/systemd/system/docker.service.d
     echo "[Service]" | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
     echo "Environment=\"HTTP_PROXY=${http_proxy}\"" | sudo tee -a /etc/systemd/system/docker.service.d/http-proxy.conf >/dev/null
@@ -78,66 +72,74 @@ newgrp docker <<EONG
   sudo systemctl enable docker.service
   sudo systemctl start docker
 
-#  sudo systemctl daemon-reload
-#  sudo systemctl restart docker
-
   echo "-------------------------------------------------------------------------"
   docker version
 
-#  echo "-------------------------------------------------------------------------"
-#  echo " Install and start Minikube"
-#  echo "-------------------------------------------------------------------------"
-#
-#  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-#  chmod +x minikube
-#  sudo mv minikube /usr/local/bin/
-#
-#  # get all the Docker images needed for Kubernetes server and start the k8s node
-#  minikube start --driver=docker
-#
-##  # install NGINX Ingress addon to enable routing to k8s service
-##  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
-#
-#  # all good?
-#  echo "-------------------------------------------------------------------------"
-#  echo " minikube status"
-#  echo "-------------------------------------------------------------------------"
-#
-#  minikube status
-#
-#  echo "-------------------------------------------------------------------------"
-#  echo " Download and setup Valhalla image"
-#  echo "-------------------------------------------------------------------------"
+  echo "-------------------------------------------------------------------------"
+  echo " Install and start Minikube"
+  echo "-------------------------------------------------------------------------"
+
+  curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+  chmod +x minikube
+  sudo mv minikube /usr/local/bin/
+
+  # get all the Docker images needed for Kubernetes server and start the k8s node
+  minikube start --driver=docker
+
+#  # install NGINX Ingress addon to enable routing to k8s service
+#  kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.44.0/deploy/static/provider/aws/deploy.yaml
+
+  # all good?
+  echo "-------------------------------------------------------------------------"
+  echo " minikube status"
+  echo "-------------------------------------------------------------------------"
+
+  minikube status
+
+  echo "-------------------------------------------------------------------------"
+  echo " Download and setup Valhalla image"
+  echo "-------------------------------------------------------------------------"
 
   # 1. download the image
   docker pull ${DOCKER_IMAGE}
 EONG
 
-### create deployment based on config file (5 pods)
-##kubectl apply -f ~/valhalla-config.yml
-##
-### create service from deployment
-##kubectl expose deployment valhalla --type=NodePort --name=valhalla --port=8002 --target-port=8002
+# remove proxy if set
+if [ -n "${PROXY}" ];
+  then
+    unset http_proxy
+    unset HTTP_PROXY
+    unset https_proxy
+    unset HTTPS_PROXY
+    unset no_proxy
+    unset NO_PROXY
+fi
+
+## create deployment based on config file (5 pods)
+#kubectl apply -f ~/valhalla-config.yml
 #
-## 2. deploy to a Kubernetes pod
-#kubectl create deployment valhalla --image=${DOCKER_IMAGE}
-## create (i.e. expose) a service
-#kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8002
-## scale deployment
-#kubectl scale deployments/valhalla --replicas=4
-#
-## wait for service to start
-#sleep 60
-#
-## port forward from Kubernetes to all local IPs (to enable external requests)
-#kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &
-#
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl cluster-info
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl get services valhalla
-#echo "----------------------------------------------------------------------------------------------------------------"
-#kubectl describe services valhalla
-#echo "----------------------------------------------------------------------------------------------------------------"
-#
-#cd ~
+## create service from deployment
+#kubectl expose deployment valhalla --type=NodePort --name=valhalla --port=8002 --target-port=8002
+
+# 2. deploy to a Kubernetes pod
+kubectl create deployment valhalla --image=${DOCKER_IMAGE}
+# create (i.e. expose) a service
+kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8002
+# scale deployment
+kubectl scale deployments/valhalla --replicas=4
+
+# wait for service to start
+sleep 60
+
+# port forward from Kubernetes to all local IPs (to enable external requests)
+kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &
+
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl cluster-info
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl get services valhalla
+echo "----------------------------------------------------------------------------------------------------------------"
+kubectl describe services valhalla
+echo "----------------------------------------------------------------------------------------------------------------"
+
+cd ~
