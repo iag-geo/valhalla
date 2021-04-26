@@ -14,7 +14,7 @@ if [ -z ${PROXY+x} ];
     echo "-------------------------------------------------------------------------"
     echo "Proxy is set to '$PROXY'"
     echo "-------------------------------------------------------------------------"
-    export no_proxy="localhost, 127.0.0.1";
+    export no_proxy="localhost,127.0.0.1";
     export http_proxy="$PROXY";
     export https_proxy=${http_proxy};
     export HTTP_PROXY=${http_proxy};

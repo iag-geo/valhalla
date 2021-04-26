@@ -55,8 +55,8 @@ echo "--------------------------------------------------------------------------
 
 duration=$SECONDS
 
-echo " End time : $(date)"
-echo " Docker + Kubernetes install took $((duration / 60)) mins"
+echo "End time : $(date)"
+echo "Docker + Kubernetes install took $((duration / 60)) mins"
 echo "----------------------------------------------------------------------------------------------------------------"
 echo "Instance ID : ${INSTANCE_ID}"
 echo "Public IP Address : ${INSTANCE_IP_ADDRESS}"
