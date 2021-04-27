@@ -21,35 +21,45 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 INSTANCE_ID=$(aws ec2 run-instances --image-id ami-06202e06492f46177 --count 1 --instance-type t2.large --key-name ${AWS_KEYPAIR} --security-group-ids ${AWS_SECURITY_GROUP} --subnet-id ${AWS_SUBNET} | \
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
 
-# waiting for instance to start
 echo "Instance ${INSTANCE_ID} created"
 aws ec2 wait instance-exists --instance-ids ${INSTANCE_ID}
-#sleep 30
 
-#INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
-#python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
+INSTANCE_STATE="pending"
+
+# wait for instance to fire up
+while [ $INSTANCE_STATE != "running" ]; do
+    sleep 5
+    INSTANCE_STATE=$(aws ec2 describe-instance-status --instance-id | \
+    python3 -c "import sys, json; print(json.load(sys.stdin)['InstanceStatuses'][0]['InstanceState']['Name'])")
+    echo "  - Instance status : ${INSTANCE_STATE}"
+done
+
 INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
-python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PublicIpAddress'])")
+python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
+#echo "IP address : ${INSTANCE_IP_ADDRESS}"
 
-## waiting for instance to start
-echo "Got IP address : ${INSTANCE_IP_ADDRESS} - waiting 30 seconds for instance to finish startup"
-sleep 30
+# waiting for SSH to start
+INSTANCE_READY=''
+while [ ! $INSTANCE_READY ]; do
+    echo "  - Waiting for ready status"
+    sleep 5
+    set +e
+    OUT=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes ec2-user@$INSTANCE_ID 2>&1 | grep "Permission denied" )
+    [[ $? = 0 ]] && INSTANCE_READY='ready'
+    set -e
+done
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
-## Non-SSM - copy config file to remote
-#scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_IP_ADDRESS}:~/
-
-# SSM - copy config file to remote
-#scp -F ${SSH_CONFIG} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/valhalla-config.yml ec2-user@${INSTANCE_ID}:~/
+# Non-SSM - copy config file to remote
+scp -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ${SCRIPT_DIR}/remote_setup.sh ec2-user@${INSTANCE_IP_ADDRESS}:~/
 
 echo "----------------------------------------------------------------------------------------------------------------"
+echo " Start remote setup"
+echo "----------------------------------------------------------------------------------------------------------------"
 
-# run remote setup script
-ssh  -i ${AWS_PEM_FILE} -o StrictHostKeyChecking=no ec2-user@${INSTANCE_IP_ADDRESS} "bash -s" < ${SCRIPT_DIR}/remote_setup.sh
-
-## port forward from Kubernetes to all local IPs (to enable external requests)
-#ssh  -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} "kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &"
+# run remote setup script, remotely
+ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_ID} ". ./remote_setup.sh"
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
