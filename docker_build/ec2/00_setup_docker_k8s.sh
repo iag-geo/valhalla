@@ -72,6 +72,12 @@ ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_ID} ". ./remote_setup.sh"
 
 echo "----------------------------------------------------------------------------------------------------------------"
 
+# save vars to local file
+echo "export SCRIPT_DIR=${SCRIPT_DIR}" > ~/temp_ec2_vars.sh
+echo "export SSH_CONFIG=${SSH_CONFIG}" >> ~/temp_ec2_vars.sh
+echo "export INSTANCE_ID=${INSTANCE_ID}" >> ~/temp_ec2_vars.sh
+echo "export INSTANCE_IP_ADDRESS=${INSTANCE_IP_ADDRESS}" >> ~/temp_ec2_vars.sh
+
 duration=$SECONDS
 
 echo "End time : $(date)"
