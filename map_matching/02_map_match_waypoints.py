@@ -100,21 +100,21 @@ def main():
     request_dict["shape_match"] = "map_snap"
     request_dict["trace_options"] = {"search_radius": 65}
     # , "search_radius": 100
-    request_dict["filters"] = {"attributes":["edge.way_id",
-                                             "edge.names",
-                                             "edge.road_class",
-                                             "edge.speed",
-                                             "edge.begin_shape_index",
-                                             "edge.end_shape_index",
-                                             "matched.point",
-                                             "matched.type",
-                                             "matched.edge_index",
-                                             "matched.begin_route_discontinuity",
-                                             "matched.end_route_discontinuity",
-                                             "matched.distance_along_edge",
-                                             "matched.distance_from_trace_point",
-                                             "shape"],
-                               "action":"include"}
+    request_dict["filters"] = {"attributes": ["edge.way_id",
+                                              "edge.names",
+                                              "edge.road_class",
+                                              "edge.speed",
+                                              "edge.begin_shape_index",
+                                              "edge.end_shape_index",
+                                              "matched.point",
+                                              "matched.type",
+                                              "matched.edge_index",
+                                              "matched.begin_route_discontinuity",
+                                              "matched.end_route_discontinuity",
+                                              "matched.distance_along_edge",
+                                              "matched.distance_from_trace_point",
+                                              "shape"],
+                               "action": "include"}
 
     i = 0
     point_count = 0
