@@ -39,7 +39,7 @@ INSTANCE_STATE="pending"
 # wait for instance to fire up
 while [ $INSTANCE_STATE != "running" ]; do
     sleep 5
-    INSTANCE_STATE=$(aws ec2 describe-instance-status --instance-id | \
+    INSTANCE_STATE=$(aws ec2 describe-instance-status --instance-id ${INSTANCE_ID} | \
     python3 -c "import sys, json; print(json.load(sys.stdin)['InstanceStatuses'][0]['InstanceState']['Name'])")
     echo "  - Instance status : ${INSTANCE_STATE}"
 done
