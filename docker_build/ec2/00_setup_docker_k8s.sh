@@ -4,6 +4,9 @@ SECONDS=0*
 
 echo "----------------------------------------------------------------------------------------------------------------"
 echo " Start time : $(date)"
+
+echo "-------------------------------------------------------------------------"
+echo " Set temp local environment vars"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # get directory this script is running from
@@ -12,11 +15,17 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # load AWS variables
 . ${HOME}/.aws/ec2_vars.sh
 
+echo "-------------------------------------------------------------------------"
+echo " Create EC2 instance and wait for startup"
+echo "-------------------------------------------------------------------------"
+
+INSTANCE_TYPE="t2.large"
+
 # create EC2 instance
 INSTANCE_ID=$(aws ec2 run-instances \
 --image-id ami-06202e06492f46177 \
 --count 1 \
---instance-type t2.large \
+--instance-type ${INSTANCE_TYPE} \
 --key-name ${AWS_KEYPAIR} \
 --security-group-ids ${AWS_SECURITY_GROUP} \
 --subnet-id ${AWS_SUBNET} | \
