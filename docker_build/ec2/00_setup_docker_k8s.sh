@@ -41,11 +41,17 @@ while [ $INSTANCE_STATE != "running" ]; do
     sleep 5
     INSTANCE_STATE=$(aws ec2 describe-instance-status --include-all-instances --instance-id ${INSTANCE_ID} | \
     python3 -c "import sys, json; print(json.load(sys.stdin)['InstanceStatuses'][0]['InstanceState']['Name'])")
-    echo "  - Instance status : ${INSTANCE_STATE}"
+    echo "  - Instance ${INSTANCE_STATE}"
 done
 
 INSTANCE_IP_ADDRESS=$(aws ec2 describe-instances --instance-ids ${INSTANCE_ID} | \
-python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PrivateIpAddress'])")
+python3 -c "import sys, json; print(json.load(sys.stdin)['Reservations'][0]['Instances'][0]['PublicIpAddress'])")
+
+# save vars to local file
+echo "export SCRIPT_DIR=${SCRIPT_DIR}" > ~/temp_ec2_vars.sh
+echo "export SSH_CONFIG=${SSH_CONFIG}" >> ~/temp_ec2_vars.sh
+echo "export INSTANCE_ID=${INSTANCE_ID}" >> ~/temp_ec2_vars.sh
+echo "export INSTANCE_IP_ADDRESS=${INSTANCE_IP_ADDRESS}" >> ~/temp_ec2_vars.sh
 
 # waiting for SSH to start
 INSTANCE_READY=''
@@ -53,7 +59,7 @@ while [ ! $INSTANCE_READY ]; do
     echo "  - Waiting for ready status"
     sleep 5
     set +e
-    OUT=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes ec2-user@$INSTANCE_ID 2>&1 | grep "Permission denied" )
+    OUT=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes ec2-user@$INSTANCE_IP_ADDRESS 2>&1 | grep "Permission denied" )
     [[ $? = 0 ]] && INSTANCE_READY='ready'
     set -e
 done
@@ -68,15 +74,9 @@ echo " Start remote setup"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # run remote setup script, remotely
-ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_ID} ". ./remote_setup.sh"
+ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} ". ./remote_setup.sh"
 
 echo "----------------------------------------------------------------------------------------------------------------"
-
-# save vars to local file
-echo "export SCRIPT_DIR=${SCRIPT_DIR}" > ~/temp_ec2_vars.sh
-echo "export SSH_CONFIG=${SSH_CONFIG}" >> ~/temp_ec2_vars.sh
-echo "export INSTANCE_ID=${INSTANCE_ID}" >> ~/temp_ec2_vars.sh
-echo "export INSTANCE_IP_ADDRESS=${INSTANCE_IP_ADDRESS}" >> ~/temp_ec2_vars.sh
 
 duration=$SECONDS
 
@@ -90,6 +90,6 @@ echo "--------------------------------------------------------------------------
 # remote login
 #ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 
-## test Valhalla routing URL
-#curl http://${INSTANCE_IP_ADDRESS}:8002/route \
-#--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+# test Valhalla routing URL (requires jq to eb install "brew install jq")
+curl http://${INSTANCE_IP_ADDRESS}:8002/route \
+--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
