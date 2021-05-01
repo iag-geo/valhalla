@@ -73,8 +73,8 @@ echo "--------------------------------------------------------------------------
 echo " Start remote setup"
 echo "----------------------------------------------------------------------------------------------------------------"
 
-# run remote setup script, remotely
-ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} ". ./remote_setup.sh"
+# run remote setup script, remotely, to create a Kubernetes cluster with Valhalla running on 4 replicas
+ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS} ". ./remote_setup.sh -r 4"
 
 echo "----------------------------------------------------------------------------------------------------------------"
 

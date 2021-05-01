@@ -1,17 +1,20 @@
 #!/bin/bash
 
 # check if proxy server required
-while getopts ":p:" opt; do
+while getopts ":p:r:" opt; do
   case $opt in
     p)
       PROXY=$OPTARG
+      ;;
+    r)
+      REPLICAS=$OPTARG
       ;;
   esac
 done
 
 if [ -n "${PROXY}" ];
   then
-    export no_proxy="192.168.49.2,localhost,127.0.0.1,:11";  # include minukube IP address
+    export no_proxy="192.168.49.2,localhost,127.0.0.1,:11";  # include default minukube IP address
     export http_proxy="$PROXY";
     export https_proxy=${http_proxy};
     export HTTP_PROXY=${http_proxy};
@@ -126,7 +129,7 @@ kubectl create deployment valhalla --image=${DOCKER_IMAGE}
 # create (i.e. expose) a service
 kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8002
 # scale deployment
-kubectl scale deployments/valhalla --replicas=4
+kubectl scale deployments/valhalla --replicas=${REPLICAS}
 
 # wait for service to start
 sleep 60
@@ -139,7 +142,7 @@ eval "${pf_cmd}" &>/dev/null & disown;
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
-kubectl get services valhalla
+kubectl kubectl get pods
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl describe services valhalla
 echo "----------------------------------------------------------------------------------------------------------------"
