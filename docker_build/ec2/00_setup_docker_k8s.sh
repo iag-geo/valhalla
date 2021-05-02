@@ -90,6 +90,6 @@ echo "--------------------------------------------------------------------------
 # remote login
 #ssh -i ${AWS_PEM_FILE} ec2-user@${INSTANCE_IP_ADDRESS}
 
-# test Valhalla routing URL (requires jq to eb install "brew install jq")
+# test Valhalla routing URL (requires jq to be installed: brew install jq)
 curl http://${INSTANCE_IP_ADDRESS}:8002/route \
 --data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
