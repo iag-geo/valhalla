@@ -44,7 +44,12 @@ ARG PRIME_SERVER_TAG=0.7.0
 
 # Install base packages
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y \
+RUN apt-get update \
+    && apt-get remove --purge --auto-remove cmake \
+    && apt-get install -y wget gpg software-properties-common \
+    && wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null \
+    && apt-add-repository 'deb https://apt.kitware.com/ubuntu/ bionic main' \
+    && apt-get install -y \
     autoconf \
     automake \
     build-essential \
