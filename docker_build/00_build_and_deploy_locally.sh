@@ -7,7 +7,7 @@ SECONDS=0*
 # ------------------------------------------------------------------------------------------------------------
 cd $HOME
 
-#docker build --tag iag-geo/valhalla:3.1.0 .
+#docker build --tag minus34/valhalla:latest .
 docker pull minus34/valhalla:latest
 
 # ------------------------------------------------------------------------------------------------------------
@@ -38,4 +38,4 @@ curl http://localhost:8002/route \
 
 
 ## 2. run container in Docker only
-#docker run --name=valhalla --publish=8002:8002 iag-geo/valhalla:3.1.0
+#docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest

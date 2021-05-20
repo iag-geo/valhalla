@@ -29,7 +29,7 @@ kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{
 kubectl label pod $POD_NAME app=valhalla
 
 # update image in pod on the fly (without down time) - will be "successful" even if image doesn't exist or work
-kubectl set image deployments/valhalla valhalla=iag-geo/valhalla:3.1.0
+kubectl set image deployments/valhalla valhalla=minus34/valhalla:latest
 
 # roll back image update changes if images don't exist or don't work
 kubectl rollout undo deployments/valhalla
