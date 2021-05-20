@@ -48,6 +48,6 @@ kubectl exec -ti $POD_NAME bash
 # test Valhalla URL - requires jq ( brew install jq)
 #curl http://${INSTANCE_IP_ADDRESS}:8002/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
-#
+
 #curl http://localhost:8002/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
