@@ -21,7 +21,7 @@
 # ############ STAGE 1 ################
 # #####################################
 
-FROM ubuntu:20.04
+FROM python:3.9-slim-buster
 
 ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_REPO=https://github.com/valhalla/valhalla.git
@@ -42,67 +42,56 @@ ARG PRIME_SERVER_TAG=0.7.0
 #ENV ALL_PROXY=${http_proxy}
 #ENV NO_PROXY=${no_proxy}
 
-
-
-
 # Install base packages
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update \
-    && apt-get install -y software-properties-common
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    automake \
+    build-essential \
+    cmake \
+    curl \
+    g++ \
+    gcc \
+    git \
+    jq \
+    lcov \
+    libboost-all-dev \
+    libboost-python-dev \
+    libbz2-dev \
+    libcurl4-openssl-dev \
+    libczmq-dev \
+    libexpat1-dev \
+    libgeos++-dev \
+    libgeos-dev \
+    libluajit-5.1-dev \
+    liblz4-dev \
+    libspatialite-dev \
+    libsqlite3-dev \
+    libsqlite3-mod-spatialite \
+    libprotobuf-dev \
+    libprotobuf-lite10 \
+    libtool \
+    libzmq3-dev \
+    make \
+    osmctools \
+    osmosis \
+    parallel \
+    pkg-config \
+    protobuf-compiler \
+    socat \
+    software-properties-common \
+    spatialite-bin \
+    vim-common \
+    wget \
+    zlib1g-dev
 
-RUN add-apt-repository -y ppa:valhalla-core/valhalla \
-    && apt-get update \
-    && apt-get install -y sudo cmake make libtool pkg-config g++ gcc curl unzip jq lcov protobuf-compiler vim-common locales libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libprime-server-dev libprotobuf-dev prime-server-bin \
-    && apt-get install -y libgeos-dev libgeos++-dev libluajit-5.1-dev libspatialite-dev libsqlite3-dev wget sqlite3 spatialite-bin \
-    && source /etc/lsb-release \
-    && if [[ $(python -c "print(int($DISTRIB_RELEASE > 15))") > 0 ]]; then apt-get install -y libsqlite3-mod-spatialite; fi \
-    && apt-get install -y python-all-dev
+RUN mkdir -p /src && cd /src
 
-# RUN apt-get update && apt-get install -y \
-#     autoconf \
-#     automake \
-#     build-essential \
-#     cmake \
-#     curl \
-#     g++ \
-#     gcc \
-#     git \
-#     jq \
-#     lcov \
-#     libboost-all-dev \
-#     libboost-python-dev \
-#     libbz2-dev \
-#     libcurl4-openssl-dev \
-#     libczmq-dev \
-#     libexpat1-dev \
-#     libgeos++-dev \
-#     libgeos-dev \
-#     libluajit-5.1-dev \
-#     liblz4-dev \
-#     libspatialite-dev \
-#     libsqlite3-dev \
-#     libsqlite3-mod-spatialite \
-#     libprotobuf-dev \
-#     libprotobuf-lite10 \
-#     libtool \
-#     libzmq3-dev \
-#     make \
-#     osmctools \
-#     osmosis \
-#     parallel \
-#     pkg-config \
-#     protobuf-compiler \
+
 #     python-all-dev \
 #     python-pip \
 #     python-virtualenv \
-#     socat \
-#     software-properties-common \
-#     spatialite-bin \
-#     vim-common \
-#     wget \
-#     zlib1g-dev
 
-RUN mkdir -p /src && cd /src
 
 # set git proxy (if required)
 #RUN git config --global http.https://github.com.proxy ${http_proxy} \
@@ -118,7 +107,7 @@ RUN git clone https://github.com/valhalla/valhalla.git && (cd valhalla && git ch
 # ############ STAGE 2 ################
 # #####################################
 
-FROM ubuntu:20.04
+FROM python:3.9-slim-buster
 
 ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_CONCURRENCY=1
@@ -141,36 +130,30 @@ ENV VALHALLA_CONCURRENCY=${VALHALLA_CONCURRENCY}
 RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-https curl libcurl4 ca-certificates gnupg && rm -rf /var/lib/apt/lists/*
 
 # Install apt packages packages
-# RUN apt-get update && apt-get install --no-install-recommends -y \
-#     libboost-python1.65.1 \
-#     libboost-filesystem1.65.1 \
-#     libboost-iostreams1.65.1 \
-#     libboost-regex1.65.1 \
-#     libboost-thread1.65.1 \
-#     libboost-program-options1.65.1 \
-#     libluajit-5.1-2 \
-#     libprotoc10 \
-#     libprotobuf-lite10 \
-#     libzmq5 \
-#     libczmq4 \
-#     libsqlite3-mod-spatialite \
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    libboost-python1.65.1 \
+    libboost-filesystem1.65.1 \
+    libboost-iostreams1.65.1 \
+    libboost-regex1.65.1 \
+    libboost-thread1.65.1 \
+    libboost-program-options1.65.1 \
+    libluajit-5.1-2 \
+    libprotoc10 \
+    libprotobuf-lite10 \
+    libzmq5 \
+    libczmq4 \
+    libsqlite3-mod-spatialite \
+    socat \
+    spatialite-bin \
+    jo \
+    jq \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
 #     python-pip \
 #     python-virtualenv \
-#     socat \
-#     spatialite-bin \
-#     jo \
-#     jq \
-#     wget \
-#     unzip \
 
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update \
-    && apt-get install -y sudo unzip cmake make libtool pkg-config g++ gcc curl unzip jq lcov protobuf-compiler vim-common locales libboost-all-dev libcurl4-openssl-dev zlib1g-dev liblz4-dev libprime-server-dev libprotobuf-dev prime-server-bin \
-    && apt-get install -y libgeos-dev libgeos++-dev libluajit-5.1-dev libspatialite-dev libsqlite3-dev wget sqlite3 spatialite-bin \
-    && source /etc/lsb-release \
-    && if [[ $(python -c "print(int($DISTRIB_RELEASE > 15))") > 0 ]]; then apt-get install -y libsqlite3-mod-spatialite; fi \
-    && apt-get install -y python-all-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy previous installs
 COPY --from=0 /usr/local /usr/local
