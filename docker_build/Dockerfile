@@ -21,9 +21,9 @@
 # ############ STAGE 1 ################
 # #####################################
 
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
-ARG VALHALLA_VERSION=3.1.0
+ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_REPO=https://github.com/valhalla/valhalla.git
 ARG PRIME_SERVER_TAG=0.7.0
 #ARG VALHALLA_VERSION
@@ -104,8 +104,8 @@ RUN git clone https://github.com/valhalla/valhalla.git && (cd valhalla && git ch
 # ############ STAGE 2 ################
 # #####################################
 
-FROM ubuntu:18.04
-ARG VALHALLA_VERSION=3.1.0
+FROM ubuntu:20.04
+ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_CONCURRENCY=1
 
 ## proxy (if required)
