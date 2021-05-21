@@ -8,7 +8,11 @@ cd ~/git/valhalla/valhalla
 
 #get the config and setup
 mkdir -p valhalla_tiles
-./scripts/valhalla_build_config --mjolnir-tile-dir ${PWD}/valhalla_tiles --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json
+./scripts/valhalla_build_config \
+--mjolnir-tile-dir ${PWD}/valhalla_tiles \
+--mjolnir-tile-extract ${PWD}/valhalla_tiles.tar \
+--mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite \
+--mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > valhalla.json
 
 #build routing tiles
 #TODO: run valhalla_build_admins?
