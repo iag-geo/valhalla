@@ -13,13 +13,17 @@ RUN cd /valhalla \
         --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar \
         --mjolnir-timezone ${PWD}/valhalla_tiles/timezones.sqlite \
         --mjolnir-admin ${PWD}/valhalla_tiles/admins.sqlite > ${PWD}/conf/valhalla.json \
-    && valhalla_build_timezones > ${PWD}/valhalla_tiles/tz_world.sqlite \
+    && valhalla_build_timezones > ${PWD}/valhalla_tiles/timezones.sqlite \
     && valhalla_build_admins --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf \
     && valhalla_build_tiles --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf \
     && find valhalla_tiles | sort -n | tar -cf "valhalla_tiles.tar" --no-recursion -T - \
     && rm -r australia-latest.osm.pbf
 
 #     && valhalla_build_transit --config valhalla.json australia-latest.osm.pbf \
+
+#  /valhalla/valhalla_tiles/timezones.sqlite
+
+
 
 ADD alias_tz.csv /valhalla
 
