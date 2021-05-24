@@ -1,7 +1,7 @@
 
 FROM valhalla/valhalla:run-latest
 
-RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf
+RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
 
 # copy timezone aliases files
 ADD alias_tz.csv /valhalla
@@ -16,9 +16,10 @@ RUN cd /valhalla \
         --mjolnir-tile-extract ${PWD}/valhalla_tiles.tar \
         --mjolnir-timezone ${PWD}/timezones.sqlite \
         --mjolnir-admin ${PWD}/admins.sqlite > ${PWD}/conf/valhalla.json \
-    && valhalla_build_timezones > ${PWD}/timezones.sqlite \
-    && valhalla_build_admins --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf \
-    && valhalla_build_tiles --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf \
+         | tee ${PWD}/logs/valhalla_build_config.log \
+    && valhalla_build_timezones > ${PWD}/timezones.sqlite | tee ${PWD}/logs/valhalla_build_timezones.log \
+    && valhalla_build_admins --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf | tee ${PWD}/logs/valhalla_build_admins.log\
+    && valhalla_build_tiles --config ${PWD}/conf/valhalla.json australia-latest.osm.pbf | tee ${PWD}/logs/valhalla_build_tiles.log\
     && find valhalla_tiles | sort -n | tar -cf "valhalla_tiles.tar" --no-recursion -T - \
     && rm -r ${PWD}/valhalla_tiles \
     && rm -r australia-latest.osm.pbf
