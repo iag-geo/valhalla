@@ -27,7 +27,7 @@ ln -s ~/.nvm/versions/node/v10.15.0/include/node/v8.h /usr/local/include/v8.h
 
 
 
-https://github.com/valhalla/valhalla/archive/refs/tags/3.1.0.tar.gz
+https://github.com/valhalla/valhalla/archive/refs/tags/3.1.1.tar.gz
 
 
 

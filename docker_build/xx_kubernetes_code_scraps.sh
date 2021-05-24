@@ -6,6 +6,7 @@ kubectl get nodes -o json | jq '.items[].spec.taints'
 ## remove "unschedulable" taint - WARNING - current version of docker desktop replaces this taint automatically
 #kubectl taint node docker-desktop node.kubernetes.io/unschedulable:NoSchedule-
 
+
 # delete Valhalla pods, service and deployment
 kubectl get pods --no-headers=true | awk '/valhalla/{print $1}' | xargs kubectl delete pod
 kubectl delete service -l app=valhalla
@@ -34,8 +35,6 @@ kubectl set image deployments/valhalla valhalla=minus34/valhalla:latest
 # roll back image update changes if images don't exist or don't work
 kubectl rollout undo deployments/valhalla
 
-# delete service (app is still running inside pod!)
-kubectl delete service -l app=valhalla
 
 # create proxy to access app in pod (NOT required if service is created i.e. exposed)
 kubectl proxy
@@ -48,6 +47,6 @@ kubectl exec -ti $POD_NAME bash
 # test Valhalla URL - requires jq ( brew install jq)
 #curl http://${INSTANCE_IP_ADDRESS}:8002/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
-#
+
 #curl http://localhost:8002/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'

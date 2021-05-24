@@ -21,14 +21,14 @@
 # ############ STAGE 1 ################
 # #####################################
 
-FROM ubuntu:18.04
+FROM python:3.9-slim-buster
 
 ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_REPO=https://github.com/valhalla/valhalla.git
 ARG PRIME_SERVER_TAG=0.7.0
-ARG VALHALLA_VERSION
-ARG VALHALLA_REPO
-ARG PRIME_SERVER_TAG
+#ARG VALHALLA_VERSION
+#ARG VALHALLA_REPO
+#ARG PRIME_SERVER_TAG
 
 # proxy (if required)
 #ARG http_proxy=http://myproxy:8080
@@ -78,9 +78,7 @@ RUN apt-get update && apt-get install -y \
     parallel \
     pkg-config \
     protobuf-compiler \
-    python-all-dev \
-    python-pip \
-    python-virtualenv \
+    socat \
     software-properties-common \
     spatialite-bin \
     vim-common \
@@ -88,6 +86,12 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev
 
 RUN mkdir -p /src && cd /src
+
+
+#     python-all-dev \
+#     python-pip \
+#     python-virtualenv \
+
 
 # set git proxy (if required)
 #RUN git config --global http.https://github.com.proxy ${http_proxy} \
@@ -103,8 +107,9 @@ RUN git clone https://github.com/valhalla/valhalla.git && (cd valhalla && git ch
 # ############ STAGE 2 ################
 # #####################################
 
-FROM ubuntu:18.04
-ARG VALHALLA_VERSION
+FROM python:3.9-slim-buster
+
+ARG VALHALLA_VERSION=3.1.1
 ARG VALHALLA_CONCURRENCY=1
 
 ## proxy (if required)
@@ -138,14 +143,17 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     libzmq5 \
     libczmq4 \
     libsqlite3-mod-spatialite \
-    python-pip \
-    python-virtualenv \
+    socat \
     spatialite-bin \
     jo \
     jq \
     wget \
     unzip \
     && rm -rf /var/lib/apt/lists/*
+
+#     python-pip \
+#     python-virtualenv \
+
 
 # Copy previous installs
 COPY --from=0 /usr/local /usr/local
@@ -155,27 +163,25 @@ ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/local/lib"
 RUN ln -s /usr/lib/x86_64-linux-gnu/mod_spatialite.so.7.1.0 /usr/lib/x86_64-linux-gnu/mod_spatialite
 
 # Setup and download OSM data
+# create Valhalla config file
+# build OSM tilesets and supported databases
 WORKDIR /build
 ENV WORKDIR=/build DATADIR=/data/valhalla VALHALLA_CONFIG=/build/valhalla.json
 RUN mkdir -p ${WORKDIR} ${DATADIR}/valhalla_tiles \
     && cd ${WORKDIR} \
-    && wget http://download.geofabrik.de/australia-oceania/australia-latest.osm.pbf
-
-# create Valhalla config file
-RUN valhalla_build_config --mjolnir-tile-dir ${DATADIR}/valhalla_tiles \
+    && wget http://download.geofabrik.de/australia-oceania/australia-latest.osm.pbf \
+    && valhalla_build_config --mjolnir-tile-dir ${DATADIR}/valhalla_tiles \
            --mjolnir-tile-extract ${DATADIR}/valhalla_tiles.tar \
            --mjolnir-timezone ${DATADIR}/tz_world.sqlite \
-           --mjolnir-admin ${DATADIR}/admin.sqlite > ${VALHALLA_CONFIG}
-
-# build OSM tilesets and supported databases
-RUN valhalla_build_timezones > ${DATADIR}/tz_world.sqlite \
+           --mjolnir-admin ${DATADIR}/admin.sqlite > ${VALHALLA_CONFIG} \
+    && valhalla_build_timezones > ${DATADIR}/tz_world.sqlite \
     && valhalla_build_admins --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
-    && valhalla_build_transit --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
-    && valhalla_build_tiles --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf
+    && valhalla_build_tiles --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
+    && rm -r ${WORKDIR}/australia-latest.osm.pbf
 
-#    && valhalla_build_config > ${VALHALLA_CONFIG} \
+# RUN valhalla_build_transit --config ${VALHALLA_CONFIG} ${WORKDIR}/australia-latest.osm.pbf \
 
-ADD ../docker_build/alias_tz.csv ${WORKDIR}
+ADD alias_tz.csv ${WORKDIR}
 
 # Default command
 CMD valhalla_service ${VALHALLA_CONFIG} ${VALHALLA_CONCURRENCY}

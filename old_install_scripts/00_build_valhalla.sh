@@ -44,9 +44,9 @@ sudo rm -r valhalla
 git clone --recurse-submodules https://github.com/valhalla/valhalla.git
 
 #cd ${HOME}
-#wget https://github.com/valhalla/valhalla/archive/refs/tags/3.1.0.tar.gz
-#tar -xzf 3.1.0.tar.gz
-#rm 3.1.0.tar.gz
+#wget https://github.com/valhalla/valhalla/archive/refs/tags/3.1.1.tar.gz
+#tar -xzf 3.1.1.tar.gz
+#rm 3.1.1.tar.gz
 
 # build
 cd valhalla
