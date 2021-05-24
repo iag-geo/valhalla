@@ -3,6 +3,9 @@ FROM valhalla/valhalla:run-latest
 
 RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf
 
+# copy timezone aliases files
+ADD alias_tz.csv /valhalla
+
 # 1. Download OSM data
 # 2. create Valhalla config file
 # 3. build OSM tilesets and supporting databases
@@ -21,8 +24,6 @@ RUN cd /valhalla \
     && rm -r australia-latest.osm.pbf
 
 #     && valhalla_build_transit --config valhalla.json australia-latest.osm.pbf \
-
-ADD alias_tz.csv /valhalla
 
 # Default command
 CMD valhalla_service /valhalla/conf/valhalla.json 1
