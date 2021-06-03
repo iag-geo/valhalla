@@ -24,7 +24,7 @@ log_interval = 1000000
 valhalla_server_url = "http://localhost:8002/trace_attributes"
 
 # input GPS points table
-imput_table = "testing.waypoint"
+input_table = "testing.waypoint"
 
 
 # # file path to SQL file the create non-PII trip geoms
@@ -42,37 +42,35 @@ def main():
     local_pg_conn.autocommit = True
     local_pg_cur = local_pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    # only add missing trips
-    new_list = get_id_list(local_pg_cur, "distinct trip_id", "testing.waypoint")
-    old_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_shape")
-    fail_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_fail")
-    temp_new_list = list(set(new_list).difference(old_list))
-    new_trip_id_set = set(temp_new_list).difference(fail_list)
-
-    new_trip_id_list = list(new_trip_id_set)
-    # new_trip_id_list = [..., ...]
-    # new_trip_id_list = list(new_trip_id_set)[:1000]
-
-    logger.info("Processing {} trips : {}".format(len(new_trip_id_list), datetime.now() - start_time))
-    start_time = datetime.now()
+    # # only add missing trips
+    # new_list = get_id_list(local_pg_cur, "distinct trip_id", "testing.waypoint")
+    # old_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_shape")
+    # fail_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_fail")
+    # temp_new_list = list(set(new_list).difference(old_list))
+    # new_trip_id_set = set(temp_new_list).difference(fail_list)
+    #
+    # new_trip_id_list = list(new_trip_id_set)
+    # # new_trip_id_list = [..., ...]
+    # # new_trip_id_list = list(new_trip_id_set)[:1000]
 
     # TODO: account for large gaps in waypoints due to GPS/data missing
     #  need to route these, not map match them - causes weird routes
 
     # get waypoints
-    sql = """select row_number() over (partition by trip_id order by time_local) - 1 as point_index,
+    sql = """select point_index,
                     trip_id,
-                    st_y(geom) AS lat,
-                    st_x(geom) AS lon,
-                    st_m(geom) AS time
-             from {}
-             where trip_id in ({})
-             order by trip_id, time_local"""\
-        .format(imput_table, tuple(new_trip_id_list)).replace(",)", ")")
+                    lat,
+                    lon,
+                    time
+             from {}""".format(input_table)
+        #      where trip_id in {}"""\
+        # .format(input_table, tuple(new_trip_id_list)).replace(",)", ")")
 
     local_pg_cur.execute(sql)
-
     rows = local_pg_cur.fetchall()
+
+    logger.info("Processing {} trips : {}".format(len(rows), datetime.now() - start_time))
+    start_time = datetime.now()
 
     # fix to get the last trip processed
     # TODO: fix the looping mechanism to process the first and last trip without this bodge fix
