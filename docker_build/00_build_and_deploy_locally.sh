@@ -28,6 +28,9 @@ sleep 30
 # port forward from Kubernetes to all local IPs (to enable external requests)
 kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0 &
 
+# wait for service to start
+sleep 30
+
 # test URL
 curl http://localhost:8002/route \
 --data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}'
