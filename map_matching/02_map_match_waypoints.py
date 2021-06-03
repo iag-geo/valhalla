@@ -5,7 +5,7 @@ import os
 import psycopg2  # need to install psycopg2-binary package
 import psycopg2.extras
 import requests
-import sys
+# import sys
 
 from datetime import datetime
 from psycopg2.extensions import AsIs
@@ -20,11 +20,15 @@ log_interval = 1000000
 
 # http_proxy_auth = HTTPProxyAuth(user, pwd)
 
-# valhalla server
+# valhalla map matching server
 valhalla_server_url = "http://localhost:8002/trace_attributes"
 
-# file path to SQl dfile the create non-PII trip geoms
-non_pii_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "02_create_non_pii_trips_table.sql")
+# input GPS points table
+imput_table = "testing.waypoint"
+
+
+# # file path to SQL file the create non-PII trip geoms
+# non_pii_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "02_create_non_pii_trips_table.sql")
 
 
 def main():
@@ -40,8 +44,8 @@ def main():
 
     # only add missing trips
     new_list = get_id_list(local_pg_cur, "distinct trip_id", "testing.waypoint")
-    old_list = get_id_list(local_pg_cur, "trip_id", "testing.osm_waypoint_shape")
-    fail_list = get_id_list(local_pg_cur, "trip_id", "testing.osm_waypoint_fail")
+    old_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_shape")
+    fail_list = get_id_list(local_pg_cur, "trip_id", "testing.valhalla_fail")
     temp_new_list = list(set(new_list).difference(old_list))
     new_trip_id_set = set(temp_new_list).difference(fail_list)
 
@@ -49,11 +53,11 @@ def main():
     # new_trip_id_list = [..., ...]
     # new_trip_id_list = list(new_trip_id_set)[:1000]
 
-    logger.info("Need to process {} trips : {}".format(len(new_trip_id_list), datetime.now() - start_time))
+    logger.info("Processing {} trips : {}".format(len(new_trip_id_list), datetime.now() - start_time))
     start_time = datetime.now()
 
     # TODO: account for large gaps in waypoints due to GPS/data missing
-    #  need to route these manually - causes weird routes
+    #  need to route these, not map match them - causes weird routes
 
     # get waypoints
     sql = """select row_number() over (partition by trip_id order by time_local) - 1 as point_index,
@@ -61,9 +65,10 @@ def main():
                     st_y(geom) AS lat,
                     st_x(geom) AS lon,
                     st_m(geom) AS time
-             from testing.waypoint
+             from {}
+             where trip_id in ({})
              order by trip_id, time_local"""\
-        .format(tuple(new_trip_id_list)).replace(",)", ")")
+        .format(imput_table, tuple(new_trip_id_list)).replace(",)", ")")
 
     local_pg_cur.execute(sql)
 
@@ -74,24 +79,24 @@ def main():
     rows.append([0, -1, 0, 0, 1.0])
 
     # # empty output tables
-    # local_pg_cur.execute("truncate table testing.osm_waypoint_shape")
-    # local_pg_cur.execute("truncate table testing.osm_waypoint_shape_non_pii")
-    # local_pg_cur.execute("truncate table testing.osm_waypoint_edge")
-    # # local_pg_cur.execute("truncate table testing.osm_waypoint_point")
-    # local_pg_cur.execute("truncate table testing.osm_waypoint_fail")
+    # local_pg_cur.execute("truncate table testing.valhalla_shape")
+    # local_pg_cur.execute("truncate table testing.valhalla_shape_non_pii")
+    # local_pg_cur.execute("truncate table testing.valhalla_edge")
+    # # local_pg_cur.execute("truncate table testing.valhalla_point")
+    # local_pg_cur.execute("truncate table testing.valhalla_fail")
 
-    # local_pg_cur.execute("delete from testing.osm_waypoint_shape where trip_id = ...")
-    # local_pg_cur.execute("delete from testing.osm_waypoint_edge where trip_id = ...")
-    # local_pg_cur.execute("delete from testing.osm_waypoint_point where trip_id = ...")
-    # local_pg_cur.execute("delete from testing.osm_waypoint_fail where trip_id = ...")
+    # local_pg_cur.execute("delete from testing.valhalla_shape where trip_id = ...")
+    # local_pg_cur.execute("delete from testing.valhalla_edge where trip_id = ...")
+    # local_pg_cur.execute("delete from testing.valhalla_point where trip_id = ...")
+    # local_pg_cur.execute("delete from testing.valhalla_fail where trip_id = ...")
 
-    # local_pg_cur.execute("delete from testing.osm_waypoint_shape where trip_id in {}"
+    # local_pg_cur.execute("delete from testing.valhalla_shape where trip_id in {}"
     #                      .format(tuple(new_trip_id_list)))
-    # local_pg_cur.execute("delete from testing.osm_waypoint_edge where trip_id in {}"
+    # local_pg_cur.execute("delete from testing.valhalla_edge where trip_id in {}"
     #                      .format(tuple(new_trip_id_list)))
-    # local_pg_cur.execute("delete from testing.osm_waypoint_point where trip_id in {}"
+    # local_pg_cur.execute("delete from testing.valhalla_point where trip_id in {}"
     #                      .format(tuple(new_trip_id_list)))
-    # local_pg_cur.execute("delete from testing.osm_waypoint_fail where trip_id in {}"
+    # local_pg_cur.execute("delete from testing.valhalla_fail where trip_id in {}"
     #                      .format(tuple(new_trip_id_list)))
 
     request_dict = dict()
@@ -179,7 +184,7 @@ def main():
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326), 4283)"
 
-                    sql = """insert into testing.osm_waypoint_shape
+                    sql = """insert into testing.valhalla_shape
                                  values ('{0}', st_length({1}::geography), {1})"""\
                         .format(trip_id, geom_string)
                     shape_sql_list.append(sql)
@@ -204,7 +209,7 @@ def main():
                         columns = list(edge.keys())
                         values = [edge[column] for column in columns]
 
-                        insert_statement = "INSERT INTO testing.osm_waypoint_edge (%s) VALUES %s"
+                        insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES %s"
                         sql = local_pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                             .decode("utf-8")
                         edge_sql_list.append(sql)
@@ -231,7 +236,7 @@ def main():
                         columns = list(point.keys())
                         values = [point[column] for column in columns]
 
-                        insert_statement = "INSERT INTO testing.osm_waypoint_point (%s) VALUES %s"
+                        insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES %s"
                         sql = local_pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                             .decode("utf-8")
                         sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4283)'", ",4283)")
@@ -265,7 +270,7 @@ def main():
                 curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}'\
                     .format(json_payload, valhalla_server_url)
 
-                sql = "insert into testing.osm_waypoint_fail values ('{}', {}, '{}', '{}', '{}')"\
+                sql = "insert into testing.valhalla_fail values ('{}', {}, '{}', '{}', '{}')"\
                     .format(trip_id, e["error_code"], e["error"],
                             str(e["status_code"]) + ":" + e["status"], curl_command)
                 local_pg_cur.execute(sql)
@@ -292,9 +297,10 @@ def main():
                 .format(trip_count, fail_count, datetime.now() - start_time))
 
     # update stats on tables
-    local_pg_cur.execute("analyse testing.osm_waypoint_edge")
-    local_pg_cur.execute("analyse testing.osm_waypoint_shape")
-    local_pg_cur.execute("analyse testing.osm_waypoint_point")
+    local_pg_cur.execute("analyse testing.valhalla_edge")
+    local_pg_cur.execute("analyse testing.valhalla_shape")
+    local_pg_cur.execute("analyse testing.valhalla_point")
+    local_pg_cur.execute("analyse testing.valhalla_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
