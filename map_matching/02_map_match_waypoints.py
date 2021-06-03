@@ -69,7 +69,7 @@ def main():
     local_pg_cur.execute(sql)
     rows = local_pg_cur.fetchall()
 
-    logger.info("Processing {} trips : {}".format(len(rows), datetime.now() - start_time))
+    logger.info("Processing {} points : {}".format(len(rows), datetime.now() - start_time))
     start_time = datetime.now()
 
     # fix to get the last trip processed
