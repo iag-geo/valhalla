@@ -97,12 +97,16 @@ def main():
     # local_pg_cur.execute("delete from testing.valhalla_fail where trip_id in {}"
     #                      .format(tuple(new_trip_id_list)))
 
+    # TODO: Set use timestamps flag
+    # TODO: Test shape_match options - is walk_or_snap better?
+    # TODO: look at using valhalla IDs for road segments (WARNING: IDs are transient and will change between OSM data versions)
+    # TODO: Avoid using latest Valhalla version until Edge ID issue is resolved
+
     request_dict = dict()
     request_dict["costing"] = "auto"
     request_dict["directions_options"] = {"units": "kilometres"}
     request_dict["shape_match"] = "map_snap"
     request_dict["trace_options"] = {"search_radius": 65}
-    # , "search_radius": 100
     request_dict["filters"] = {"attributes": ["edge.way_id",
                                               "edge.names",
                                               "edge.road_class",
