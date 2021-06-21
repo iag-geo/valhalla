@@ -182,9 +182,9 @@ def main():
                     for coords in shape_coords:
                         point_list.append("{} {}".format(coords[0], coords[1]))
 
-                    geom_string = "st_transform(ST_GeomFromText('LINESTRING("
+                    geom_string = "ST_GeomFromText('LINESTRING("
                     geom_string += ",".join(point_list)
-                    geom_string += ")', 4326), 4283)"
+                    geom_string += ")', 4326)"
 
                     sql = """insert into testing.valhalla_shape
                                  values ('{0}', st_length({1}::geography), {1})"""\
@@ -228,7 +228,7 @@ def main():
                         point["trip_id"] = trip_id
                         point["point_type"] = point.pop("type")
                         point["point_index"] = point_index
-                        point["geom"] = "st_setsrid(st_makepoint({},{}),4283)"\
+                        point["geom"] = "st_setsrid(st_makepoint({},{}),4326)"\
                             .format(point["lon"], point["lat"])
 
                         # drop coordinates to save table space
@@ -241,7 +241,7 @@ def main():
                         insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES %s"
                         sql = local_pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                             .decode("utf-8")
-                        sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4283)'", ",4283)")
+                        sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
                         point_sql_list.append(sql)
 
                         point_index += 1
