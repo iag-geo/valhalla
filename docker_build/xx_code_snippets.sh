@@ -10,6 +10,9 @@ docker build --squash --tag minus34/valhalla:latest .
 # 3. run a container
 docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
 
+# 4. push to Docker Hub
+docker push minus34/valhalla:latest
+
 # 4. clean up Docker locally - note: this could accidentally destroy your resources
 docker system prune
 
