@@ -87,25 +87,12 @@ def main():
 
     pg_cur.execute(sql)
     job_list = pg_cur.fetchall()
-
-    # close Postgres connection
-    pg_cur.close()
-    pg_pool.putconn(pg_conn)
-
-    # point_count = 0
-    # fail_count = 0
-    # traj_count = 0
-    #
-    # log_point = log_interval
-    #
-    # shape_sql_list = list()
-    # edge_sql_list = list()
-    # point_sql_list = list()
+    job_count = len(job_list)
 
     logger.info("Got {} trajectories, ready to map match : {}".format(len(job_list), datetime.now() - start_time))
     start_time = datetime.now()
 
-    # for each trajectory - send a map match request to Valhalla ysusing multiporcessing
+    # for each trajectory - send a map match request to Valhalla using multiprocessing
     pool = multiprocessing.Pool(cpu_count)
     results = pool.imap_unordered(map_match_trajectory, job_list)
     pool.close()
@@ -116,16 +103,8 @@ def main():
         if result is not None:
             print("WARNING: multiprocessing error : {}".format(result))
 
-
-
-    logger.info("\t - points map matched : {}".format(datetime.now() - start_time))
-
-    if len(shape_sql_list) > 0:
-        # insert_data(pg_cur, edge_sql_list, shape_sql_list)
-        insert_data(pg_cur, edge_sql_list, point_sql_list, shape_sql_list)
-
-    logger.info("100% complete ({} successful : {} failed: {}"
-                .format(traj_count, fail_count, datetime.now() - start_time))
+    logger.info("\t - all trajectories map matched : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
 
     # update stats on tables
     pg_cur.execute("analyse testing.valhalla_edge")
@@ -139,14 +118,22 @@ def main():
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
-    logger.info("{} trajectories processed in {}".format(traj_count, datetime.now() - map_match_start_time))
-    logger.warning("{} trajectories failed".format(fail_count))
+    # get table counts
+    edge_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_edge").fetchone()[0]
+    traj_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape").fetchone()[0]
+    point_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_point").fetchone()[0]
+    fail_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail").fetchone()[0]
 
-    # don't need DB connections anymore
+    # close Postgres connection
     pg_cur.close()
-    pg_conn.close()
+    pg_pool.putconn(pg_conn)
 
-    return True
+    logger.warning("Row counts")
+    logger.info("\t - {} input trajectories".format(job_count))
+    logger.info("\t - {} map matched trajectories".format(traj_count))
+    logger.info("\t\t - {} edges".format(edge_count))
+    logger.info("\t\t - {} points".format(point_count))
+    logger.warning("\t - {} trajectories FAILED".format(fail_count))
 
 
 # edit these to taste
@@ -181,24 +168,24 @@ def get_map_matching_parameters(use_timestamps):
     return request_dict
 
 
-
 def map_match_trajectory(job):
+
+    # get postgres connection from pool
+    pg_conn = pg_pool.getconn()
+    pg_conn.autocommit = True
+    pg_cur = pg_conn.cursor()
+
+    # trajectory ID
     traj_id = job[0]
     # traj_point_count = job[1]
 
-    # get map match request parameters
+    # add parameters and trajectory to request
     # TODO: this could probably be done better than evaluating this everytime
     request_dict = get_map_matching_parameters(use_timestamps)
-
-    # add trajectory to request
     request_dict["shape"] = job[2]
 
-    # convert to JSON string
+    # convert request data to JSON string
     json_payload = json.dumps(request_dict)
-
-    shape_sql = None
-    edge_sql_list = list()
-    point_sql_list = list()
 
     # get a route
     try:
@@ -207,7 +194,7 @@ def map_match_trajectory(job):
         # if complete failure - Valhalla has possibly crashed
         return "Valhalla routing failure on trajectory {} : {}".format(traj_id, e)
 
-    # add results to lists of shape, edge and point dicts for bulk insertion into Postgres
+    # add results to lists of shape, edge and point dicts for insertion into Postgres
     if r.status_code == 200:
         response_dict = r.json()
 
@@ -234,11 +221,13 @@ def map_match_trajectory(job):
             shape_sql = """insert into testing.valhalla_shape
                                  values ('{0}', st_length({1}::geography), {1})""" \
                 .format(traj_id, geom_string)
+            pg_cur.execute(shape_sql)
 
         # output edge information
         edges = response_dict.get("edges")
 
         if edges is not None:
+            edge_sql_list = list()
             edge_index = 0
 
             for edge in edges:
@@ -254,16 +243,19 @@ def map_match_trajectory(job):
                 values = [edge[column] for column in columns]
 
                 insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES %s"
-                sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
-                    .decode("utf-8")
+                sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
                 edge_index += 1
+
+            # insert all edges in a single go
+            pg_cur.execute(";".join(edge_sql_list))
 
         # output point data
         points = response_dict.get("matched_points")
 
         if points is not None:
+            point_sql_list = list()
             point_index = 0
 
             for point in points:
@@ -288,26 +280,10 @@ def map_match_trajectory(job):
 
                 point_index += 1
 
-        if point_count > log_point:
-            logger.info("\t - points map matched : {}".format(datetime.now() - start_time))
+            # insert all points in a single go
+            pg_cur.execute(";".join(point_sql_list))
 
-            # Insert data into Postgres in bulk
-            insert_data(pg_cur, edge_sql_list, point_sql_list, shape_sql_list)
-
-            percent_done = float(point_count) / float(num_rows) * 100.0
-            logger.info("{:.1f}% complete ({} successful : {} failed: {})"
-                        .format(percent_done, traj_count, fail_count, datetime.now() - start_time))
-            start_time = datetime.now()
-
-            # reset insert statement lists
-            shape_sql_list = list()
-            edge_sql_list = list()
-            point_sql_list = list()
-
-            log_point += log_interval
     else:
-        fail_count += 1
-
         # get error
         e = json.loads(r.content)
 
@@ -315,25 +291,13 @@ def map_match_trajectory(job):
             .format(json_payload, valhalla_server_url)
 
         sql = "insert into testing.valhalla_fail values ('{}', {}, '{}', '{}', '{}')" \
-            .format(traj_id, e["error_code"], e["error"],
-                    str(e["status_code"]) + ":" + e["status"], curl_command)
+            .format(traj_id, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
+
         pg_cur.execute(sql)
 
-
-def insert_data(edge_sql, point_sql, shape_sql):
-
-    # get postgres connection from pool
-    pg_conn = pg_pool.getconn()
-    pg_conn.autocommit = True
-    pg_cur = pg_conn.cursor()
-
-    pg_cur.execute(shape_sql)
-    pg_cur.execute(edge_sql)
-    pg_cur.execute(point_sql)
-
+    # clean up
     pg_cur.close()
     pg_pool.putconn(pg_conn)
-
 
 
 # decode a Google encoded polyline string
