@@ -89,7 +89,7 @@ def main():
     job_list = pg_cur.fetchall()
     job_count = len(job_list)
 
-    logger.info("Got {} trajectories, ready to map match : {}".format(len(job_list), datetime.now() - start_time))
+    logger.info("Got {} trajectories, starting map matching : {}".format(len(job_list), datetime.now() - start_time))
     start_time = datetime.now()
 
     # for each trajectory - send a map match request to Valhalla using multiprocessing
@@ -107,22 +107,26 @@ def main():
     start_time = datetime.now()
 
     # update stats on tables
-    pg_cur.execute("analyse testing.valhalla_edge")
-    pg_cur.execute("analyse testing.valhalla_shape")
-    pg_cur.execute("analyse testing.valhalla_point")
-    pg_cur.execute("analyse testing.valhalla_fail")
+    pg_cur.execute("ANALYSE testing.valhalla_edge")
+    pg_cur.execute("ANALYSE testing.valhalla_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_point")
+    pg_cur.execute("ANALYSE testing.valhalla_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
-    start_time = datetime.now()
+    # start_time = datetime.now()
 
     # sql = open(non_pii_sql_file, "r").read()
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
     # get table counts
-    edge_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_edge").fetchone()[0]
-    traj_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape").fetchone()[0]
-    point_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_point").fetchone()[0]
-    fail_count = pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail").fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape")
+    traj_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_edge")
+    edge_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_point")
+    point_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
+    fail_count = pg_cur.fetchone()[0]
 
     # close Postgres connection
     pg_cur.close()
@@ -169,7 +173,6 @@ def get_map_matching_parameters(use_timestamps):
 
 
 def map_match_trajectory(job):
-
     # get postgres connection from pool
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
