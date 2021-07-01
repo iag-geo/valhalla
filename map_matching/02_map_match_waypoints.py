@@ -26,6 +26,24 @@ valhalla_server_url = "http://localhost:8002/trace_attributes"
 # input GPS points table
 input_table = "testing.waypoint"
 
+# Does data have timestamps
+use_timestamps = False
+
+# latitude field
+lat_field = "latitude"
+
+# longitude field
+lon_field = "longitude"
+
+# timestamp field
+time_field = "time_utc"
+
+# point_index_field
+point_index_field = "point_index"
+
+# trajectory_id field
+trajectory_id_field = "trip_id"
+
 
 # # file path to SQL file the create non-PII trip geoms
 # non_pii_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "02_create_non_pii_trips_table.sql")
@@ -57,17 +75,21 @@ def main():
     #  need to route these, not map match them - causes weird routes
 
     # get waypoints
-    sql = """select point_index,
-                    trip_id,
-                    lat,
-                    lon,
-                    time
-             from {}""".format(input_table)
+    if use_timestamps:
+        sql = """WITH points as (SELECT {0}, {1}, json_agg(({2}, {3}, {4})) AS loc FROM {5} GROUP BY {0})
+                 SELECT {0}, array_agg(loc) ORDER BY {1}) AS locs FROM points GROUP BY {0}""" \
+            .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
         #      where trip_id in {}"""\
         # .format(input_table, tuple(new_trip_id_list)).replace(",)", ")")
+    else:
+        sql = """WITH points as (SELECT {0}, {1}, json_agg(({2}, {3})) AS loc FROM {4})
+                 SELECT {0}, array_agg(loc ORDER BY {1}) AS locs FROM points GROUP BY {0}""" \
+            .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
     local_pg_cur.execute(sql)
     rows = local_pg_cur.fetchall()
+
+    print(rows[0])
 
     logger.info("Processing {} points : {}".format(len(rows), datetime.now() - start_time))
     start_time = datetime.now()
