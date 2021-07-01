@@ -1,7 +1,11 @@
 
 # TODO: look at using valhalla IDs for road segments
 #   - WARNING: IDs are transient and will change between OSM data versions
+
 # TODO: Avoid using latest Valhalla version until Edge ID issue is resolved
+
+# TODO: account for large gaps in waypoints due to GPS/data missing
+#  need to route these, not map match them - causes weird routes
 
 import json
 import logging
@@ -25,7 +29,7 @@ cpu_count = multiprocessing.cpu_count()
 # create postgres connect string
 pg_connect_string = "dbname=geo host=localhost port=5432 user=postgres password=password"
 
-# create Postgres connection pool
+# create postgres connection pool
 pg_pool = psycopg2.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
 
 # TODO: make these runtime arguments
@@ -61,15 +65,12 @@ trajectory_id_field = "trip_id"
 def main():
     start_time = datetime.now()
 
-    # get Postgres connection & dictionary cursor (returns rows as dicts)
+    # get postgres connection & dictionary cursor (returns rows as dicts)
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
     pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    # TODO: account for large gaps in waypoints due to GPS/data missing
-    #  need to route these, not map match them - causes weird routes
-
-    # get trajectory data from Postgres
+    # get trajectory data from postgres
     if use_timestamps:
         sql = """SELECT {0},
                         count(*) as point_count,
@@ -93,15 +94,15 @@ def main():
     start_time = datetime.now()
 
     # for each trajectory - send a map match request to Valhalla using multiprocessing
-    pool = multiprocessing.Pool(cpu_count)
-    results = pool.imap_unordered(map_match_trajectory, job_list)
-    pool.close()
-    pool.join()
+    mp_pool = multiprocessing.Pool(cpu_count)
+    mp_results = mp_pool.imap_unordered(map_match_trajectory, job_list)
+    mp_pool.close()
+    mp_pool.join()
 
     # check parallel processing results
-    for result in results:
-        if result is not None:
-            print("WARNING: multiprocessing error : {}".format(result))
+    for mp_result in mp_results:
+        if mp_result is not None:
+            print("WARNING: multiprocessing error : {}".format(mp_result))
 
     logger.info("\t - all trajectories map matched : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
@@ -128,11 +129,11 @@ def main():
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
     fail_count = pg_cur.fetchone()[0]
 
-    # close Postgres connection
+    # close postgres connection
     pg_cur.close()
     pg_pool.putconn(pg_conn)
 
-    logger.warning("Row counts")
+    logger.info("Row counts")
     logger.info("\t - {} input trajectories".format(job_count))
     logger.info("\t - {} map matched trajectories".format(traj_count))
     logger.info("\t\t - {} edges".format(edge_count))
@@ -141,7 +142,7 @@ def main():
 
 
 # edit these to taste
-def get_map_matching_parameters(use_timestamps):
+def get_map_matching_parameters():
 
     request_dict = dict()
 
@@ -183,8 +184,8 @@ def map_match_trajectory(job):
     # traj_point_count = job[1]
 
     # add parameters and trajectory to request
-    # TODO: this could probably be done better than evaluating this everytime
-    request_dict = get_map_matching_parameters(use_timestamps)
+    # TODO: this could be done better, instead of evaluating this every request
+    request_dict = get_map_matching_parameters()
     request_dict["shape"] = job[2]
 
     # convert request data to JSON string
@@ -197,7 +198,7 @@ def map_match_trajectory(job):
         # if complete failure - Valhalla has possibly crashed
         return "Valhalla routing failure on trajectory {} : {}".format(traj_id, e)
 
-    # add results to lists of shape, edge and point dicts for insertion into Postgres
+    # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
         response_dict = r.json()
 
@@ -245,7 +246,7 @@ def map_match_trajectory(job):
                 columns = list(edge.keys())
                 values = [edge[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES %s"
+                insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES (%s)"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
@@ -275,7 +276,7 @@ def map_match_trajectory(job):
                 columns = list(point.keys())
                 values = [point[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES %s"
+                insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES (%s)"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                     .decode("utf-8")
                 sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
@@ -306,13 +307,13 @@ def map_match_trajectory(job):
 # decode a Google encoded polyline string
 def decode(encoded):
     decoded = []
-    previous = [0,0]
+    previous = [0, 0]
     i = 0
 
     # for each byte
     while i < len(encoded):
         # for each coord (lat, lon)
-        ll = [0,0]
+        ll = [0, 0]
         for j in [0, 1]:
             shift = 0
             byte = 0x20
@@ -375,7 +376,7 @@ if __name__ == '__main__':
 
     logger.info("{} started : {}".format(task_name, datetime.now()))
 
-    result = main()
+    main()
 
     time_taken = datetime.now() - full_start_time
     logger.info("{} finished : {}".format(task_name, time_taken))
