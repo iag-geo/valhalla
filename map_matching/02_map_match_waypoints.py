@@ -134,11 +134,11 @@ def main():
     pg_pool.putconn(pg_conn)
 
     logger.info("Row counts")
-    logger.info("\t - {} input trajectories".format(job_count))
-    logger.info("\t - {} map matched trajectories".format(traj_count))
-    logger.info("\t\t - {} edges".format(edge_count))
-    logger.info("\t\t - {} points".format(point_count))
-    logger.warning("\t - {} trajectories FAILED".format(fail_count))
+    logger.info("\t - {:,} input trajectories".format(job_count))
+    logger.info("\t - {:,} map matched trajectories".format(traj_count))
+    logger.info("\t\t - {:,} edges".format(edge_count))
+    logger.info("\t\t - {:,} points".format(point_count))
+    logger.warning("\t - {:,} trajectories FAILED".format(fail_count))
 
 
 # edit these to taste
@@ -246,7 +246,7 @@ def map_match_trajectory(job):
                 columns = list(edge.keys())
                 values = [edge[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES (%s)"
+                insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES %s"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
@@ -276,7 +276,7 @@ def map_match_trajectory(job):
                 columns = list(point.keys())
                 values = [point[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES (%s)"
+                insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES %s"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                     .decode("utf-8")
                 sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
