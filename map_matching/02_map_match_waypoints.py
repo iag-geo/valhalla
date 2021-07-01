@@ -97,9 +97,6 @@ def main():
 
     job_list = local_pg_cur.fetchall()
 
-    logger.info("Processing {} trajectories : {}".format(len(job_list), datetime.now() - start_time))
-    start_time = datetime.now()
-
     # # WARNING: delete all rows in output tables (without logging)
     # local_pg_cur.execute("truncate table testing.valhalla_shape")
     # local_pg_cur.execute("truncate table testing.valhalla_shape_non_pii")
@@ -123,7 +120,7 @@ def main():
     edge_sql_list = list()
     point_sql_list = list()
 
-    logger.info("Got trajectories, ready to map match : {}".format(datetime.now() - start_time))
+    logger.info("Got {} trajectories, ready to map match : {}".format(len(job_list), datetime.now() - start_time))
     start_time = datetime.now()
     map_match_start_time = datetime.now()
 
@@ -306,21 +303,21 @@ def get_map_matching_parameters(use_timestamps):
     if use_timestamps:
         request_dict["use_timestamps"] = "true"
 
-    # request_dict["filters"] = {"attributes": ["edge.way_id",
-    #                                           "edge.names",
-    #                                           "edge.road_class",
-    #                                           "edge.speed",
-    #                                           "edge.begin_shape_index",
-    #                                           "edge.end_shape_index",
-    #                                           "matched.point",
-    #                                           "matched.type",
-    #                                           "matched.edge_index",
-    #                                           "matched.begin_route_discontinuity",
-    #                                           "matched.end_route_discontinuity",
-    #                                           "matched.distance_along_edge",
-    #                                           "matched.distance_from_trace_point",
-    #                                           "shape"],
-    #                            "action": "include"}
+    request_dict["filters"] = {"attributes": ["edge.way_id",
+                                              "edge.names",
+                                              "edge.road_class",
+                                              "edge.speed",
+                                              "edge.begin_shape_index",
+                                              "edge.end_shape_index",
+                                              "matched.point",
+                                              "matched.type",
+                                              "matched.edge_index",
+                                              "matched.begin_route_discontinuity",
+                                              "matched.end_route_discontinuity",
+                                              "matched.distance_along_edge",
+                                              "matched.distance_from_trace_point",
+                                              "shape"],
+                               "action": "include"}
 
     return request_dict
 
