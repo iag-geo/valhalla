@@ -215,17 +215,22 @@ def map_match_trajectory(job):
             shape_coords = decode(shape)  # decode Google encoded polygon
             point_list = list()
 
-            for coords in shape_coords:
-                point_list.append("{} {}".format(coords[0], coords[1]))
+            if len(shape_coords) > 1:
+                for coords in shape_coords:
+                    point_list.append("{} {}".format(coords[0], coords[1]))
 
-            geom_string = "ST_GeomFromText('LINESTRING("
-            geom_string += ",".join(point_list)
-            geom_string += ")', 4326)"
+                geom_string = "ST_GeomFromText('LINESTRING("
+                geom_string += ",".join(point_list)
+                geom_string += ")', 4326)"
 
-            shape_sql = """insert into testing.valhalla_shape
-                                 values ('{0}', st_length({1}::geography), {1})""" \
-                .format(traj_id, geom_string)
-            pg_cur.execute(shape_sql)
+                shape_sql = """insert into testing.valhalla_shape
+                                     values ('{0}', st_length({1}::geography), {1})""" \
+                    .format(traj_id, geom_string)
+                pg_cur.execute(shape_sql)
+            else:
+                fail_sql = "insert into testing.valhalla_fail (trip_id, error) values ('{}', '{}')" \
+                    .format(traj_id, "Linestring only has one point")
+                pg_cur.execute(fail_sql)
 
         # output edge information
         edges = response_dict.get("edges")
