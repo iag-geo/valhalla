@@ -1,5 +1,41 @@
 
 
+-- -- Only show trajectories that don't leave the road network
+-- drop view if exists testing.vw_valhalla_trajectories;
+-- create view testing.vw_valhalla_trajectories as
+-- with point as (
+--     select trip_id,
+--            count(*) as point_count,
+--            sum(case when edge_index = 0 then 1 else 0 end) as no_edge_index_count,
+--            sum(case when begin_route_discontinuity then 1 else 0 end) +
+--            sum(case when end_route_discontinuity then 1 else 0 end) as discontinuity_count
+--     from testing.valhalla_point
+--     group by trip_id
+--     order by discontinuty_count desc
+-- ), edge as (
+--     select trip_id,
+--            count(*) as edge_count,
+--            sum(case when names is null then 1 else 0 end) as unnamed_edge_count,
+--            sum(case when speed is null then 1 else 0 end) as no_speed_edge_count
+--     from testing.valhalla_edge
+--     group by trip_id
+-- )
+-- select sum.trip_id,
+--        sum.user_id,
+--        sum.start_time_utc,
+--        point.point_count,
+--        point.no_edge_index_count,
+--        point.discontinuity_count,
+--        edge.edge_count,
+--        edge.unnamed_edge_count,
+--        edge.no_speed_edge_count,
+--        sum.trip_line as cmt_geom,
+--        traj.geom as vha_geom
+-- from testing.valhalla_shape as traj
+--          inner join point on traj.trip_id = point.trip_id
+--          inner join edge on traj.trip_id = edge.trip_id
+--          inner join testing.prod_waypoint_trajectories as sum on traj.trip_id = sum.trip_id;
+
 
 -- check biggest distance from waypoint to map matched point
 select *
