@@ -5,8 +5,8 @@ drop table if exists testing.valhalla_shape cascade;
 create table testing.valhalla_shape
 (
     trip_id text,
-    distance float,
     search_radius smallint,
+    distance float,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape owner to postgres;
@@ -16,8 +16,8 @@ drop table if exists testing.valhalla_shape_non_pii cascade;
 create table testing.valhalla_shape_non_pii
 (
     trip_id text,
-    distance float,
     search_radius smallint,
+    distance float,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape_non_pii owner to postgres;
@@ -28,6 +28,7 @@ drop table if exists testing.valhalla_edge cascade;
 create table testing.valhalla_edge
 (
     trip_id text,
+    search_radius smallint,
     edge_index integer,
     osm_id integer,
     names text[],

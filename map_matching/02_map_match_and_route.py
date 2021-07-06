@@ -26,10 +26,11 @@ sql_directory = os.path.dirname(os.path.realpath(__file__))
 # six degrees of precision used in Valhalla encoded polyline (DO NOT EDIT)
 inverse_precision = 1.0 / 1e6
 
-# set of serach radii to use in map matching
+# set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [10, 20, 30, 40, 50, 60, 70]
-iteration_count = len(search_radii)
+search_radii = [10, 20, 30, 40, 50, 60]
+# search_radii = [70]
+# iteration_count = len(search_radii)
 
 # number of CPUs to use in processing (defaults to local CPU count)
 cpu_count = multiprocessing.cpu_count()
@@ -97,14 +98,14 @@ def main():
         sql = """SELECT {0},
                         count(*) as point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS points 
-                 FROM {5}
+                 FROM {5} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
         sql = """SELECT {0},
                         count(*) as point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS points 
-                 FROM {4}
+                 FROM {4} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
@@ -184,6 +185,11 @@ def get_map_matching_parameters(search_radius):
     request_dict["directions_options"] = {"units": "kilometres"}
     request_dict["shape_match"] = "walk_or_snap"
     request_dict["trace_options"] = {"search_radius": search_radius}
+
+    # # test parameters - yet to do anything
+    # request_dict["gps_accuracy"] = 65
+    # request_dict["breakage_distance"] = 6000
+    # request_dict["interpolation_distance"] = 6000
 
     if use_timestamps:
         request_dict["use_timestamps"] = "true"
@@ -268,7 +274,7 @@ def map_match_trajectory(job):
                     geom_string += ")', 4326)"
 
                     shape_sql = """insert into testing.valhalla_shape
-                                         values ('{0}', {1} st_length({2}::geography), {2})""" \
+                                         values ('{0}', {1}, st_length({2}::geography), {2})""" \
                         .format(traj_id, search_radius, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
@@ -286,6 +292,7 @@ def map_match_trajectory(job):
 
                 for edge in edges:
                     edge[trajectory_id_field] = traj_id
+                    edge["search_radius"] = search_radius
                     edge["osm_id"] = edge.pop("way_id")
                     edge["edge_index"] = edge_index
 
@@ -322,7 +329,7 @@ def map_match_trajectory(job):
                         matched_point["point_index"] = point_index
                         matched_point["lat"] = point["lat"]
                         matched_point["lon"] = point["lon"]
-                        matched_point["search_radius"] = search_radii[iteration]
+                        matched_point["search_radius"] = search_radius
                         matched_point["distance"] = point["distance_from_trace_point"]
                         matched_points.append(matched_point)
 
@@ -382,8 +389,8 @@ def map_match_trajectory(job):
             curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
                 .format(json_payload, valhalla_server_url)
 
-            sql = "insert into testing.valhalla_fail values ('{}', {}, '{}', '{}', '{}')" \
-                .format(traj_id, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
+            sql = "insert into testing.valhalla_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
+                .format(traj_id, search_radius, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 
             pg_cur.execute(sql)
 

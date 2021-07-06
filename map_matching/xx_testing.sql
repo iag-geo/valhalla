@@ -1,5 +1,18 @@
 
 
+
+
+-- look at edges that aren't a street segment
+select *
+from testing.valhalla_edge
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+  and search_radius = 60
+order by edge_index;
+
+
+
+
+
 -- -- Only show trajectories that don't leave the road network
 -- drop view if exists testing.vw_valhalla_trajectories;
 -- create view testing.vw_valhalla_trajectories as
