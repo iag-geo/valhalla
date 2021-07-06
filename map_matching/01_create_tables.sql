@@ -6,7 +6,7 @@ create table testing.valhalla_shape
 (
     trip_id text,
     distance float,
-    geom geometry(linestring, 4283)
+    geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape owner to postgres;
 
@@ -16,7 +16,7 @@ create table testing.valhalla_shape_non_pii
 (
     trip_id text,
     distance float,
-    geom geometry(linestring, 4283)
+    geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape_non_pii owner to postgres;
 
@@ -49,7 +49,7 @@ create table testing.valhalla_point
     end_route_discontinuity boolean,
     edge_index integer,
     point_type text,
-    geom geometry(point, 4283)
+    geom geometry(point, 4326)
 );
 
 alter table testing.valhalla_point owner to postgres;

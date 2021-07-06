@@ -20,6 +20,9 @@ from datetime import datetime
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
+# this directory
+sql_directory = os.path.dirname(os.path.realpath(__file__))
+
 # six degrees of precision used in Valhalla encoded polyline (DO NOT EDIT)
 inverse_precision = 1.0 / 1e6
 
@@ -70,6 +73,18 @@ def main():
     pg_conn.autocommit = True
     pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
+    # --------------------------------------------------------------------------------------
+    # WARNING: deletes all routing results
+    # --------------------------------------------------------------------------------------
+    # optional: recreate output tables
+    sql_file = os.path.join(sql_directory, "01_create_tables.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
+
+    logger.info("\t - output tables recreated : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+
     # get trajectory data from postgres
     if use_timestamps:
         sql = """SELECT {0},
@@ -107,17 +122,29 @@ def main():
     logger.info("\t - all trajectories map matched : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
+    # # create anonymous trajectories
+    # sql = open(non_pii_sql_file, "r").read()
+    # pg_cur.execute(sql)
+    # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
+
     # update stats on tables
     pg_cur.execute("ANALYSE testing.valhalla_edge")
     pg_cur.execute("ANALYSE testing.valhalla_shape")
     pg_cur.execute("ANALYSE testing.valhalla_point")
     pg_cur.execute("ANALYSE testing.valhalla_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
-    # start_time = datetime.now()
+    start_time = datetime.now()
 
-    # sql = open(non_pii_sql_file, "r").read()
-    # pg_cur.execute(sql)
-    # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
+    # optional: create indexes on output tables
+    try:
+        sql_file = os.path.join(sql_directory, "03_create_indexes.sql")
+        sql = open(sql_file, "r").read()
+        pg_cur.execute(sql)
+
+        logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+    except:
+        # meh!
+        pass
 
     # get table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape")
@@ -142,14 +169,14 @@ def main():
 
 
 # edit these to taste
-def get_map_matching_parameters():
+def get_map_matching_parameters(search_radius):
 
     request_dict = dict()
 
     request_dict["costing"] = "auto"
     request_dict["directions_options"] = {"units": "kilometres"}
     request_dict["shape_match"] = "walk_or_snap"
-    request_dict["trace_options"] = {"search_radius": 40}
+    request_dict["trace_options"] = {"search_radius": search_radius}
 
     if use_timestamps:
         request_dict["use_timestamps"] = "true"
@@ -185,7 +212,7 @@ def map_match_trajectory(job):
 
     # add parameters and trajectory to request
     # TODO: this could be done better, instead of evaluating this every request
-    request_dict = get_map_matching_parameters()
+    request_dict = get_map_matching_parameters(20)
     request_dict["shape"] = job[2]
 
     # convert request data to JSON string
