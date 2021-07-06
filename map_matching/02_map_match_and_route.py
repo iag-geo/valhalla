@@ -26,6 +26,10 @@ sql_directory = os.path.dirname(os.path.realpath(__file__))
 # six degrees of precision used in Valhalla encoded polyline (DO NOT EDIT)
 inverse_precision = 1.0 / 1e6
 
+# set of serach radii to use in map matching
+# will iterate over these and select good matches as they increase; to get the best route possible
+search_radii = [10, 20, 30, 40, 50, 60]
+
 # number of CPUs to use in processing (defaults to local CPU count)
 cpu_count = multiprocessing.cpu_count()
 
@@ -76,6 +80,7 @@ def main():
     # --------------------------------------------------------------------------------------
     # WARNING: deletes all routing results
     # --------------------------------------------------------------------------------------
+
     # optional: recreate output tables
     sql_file = os.path.join(sql_directory, "01_create_tables.sql")
     sql = open(sql_file, "r").read()
@@ -84,6 +89,7 @@ def main():
     logger.info("\t - output tables recreated : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
+    # --------------------------------------------------------------------------------------
 
     # get trajectory data from postgres
     if use_timestamps:
@@ -210,10 +216,15 @@ def map_match_trajectory(job):
     traj_id = job[0]
     # traj_point_count = job[1]
 
+    input_points = job[2]
+
+    # add point_index to points to enable iteration
+    input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
+
     # add parameters and trajectory to request
     # TODO: this could be done better, instead of evaluating this every request
     request_dict = get_map_matching_parameters(20)
-    request_dict["shape"] = job[2]
+    request_dict["shape"] = input_points
 
     # convert request data to JSON string
     json_payload = json.dumps(request_dict)
@@ -290,11 +301,22 @@ def map_match_trajectory(job):
         # output point data
         points = response_dict.get("matched_points")
 
+        matched_points = list()
+
         if points is not None:
             point_sql_list = list()
             point_index = 0
 
             for point in points:
+                # get matched points for use in the next iteration
+                matched_point = dict()
+                matched_point["traj_id"] = traj_id
+                matched_point["point_index"] = point_index
+                matched_point["lat"] = point["lat"]
+                matched_point["lon"] = point["lon"]
+                matched_points.append(matched_point)
+
+                # alter point dict for input into Postgres
                 point[trajectory_id_field] = traj_id
                 point["point_type"] = point.pop("type")
                 point[point_index_field] = point_index
@@ -318,6 +340,10 @@ def map_match_trajectory(job):
 
             # insert all points in a single go
             pg_cur.execute(";".join(point_sql_list))
+
+
+        # add input points that couldn't be matched to the matched points dictionary as the input into the next interation
+
 
     else:
         # get error
