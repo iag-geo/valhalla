@@ -29,6 +29,7 @@ inverse_precision = 1.0 / 1e6
 # set of serach radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 search_radii = [10, 20, 30, 40, 50, 60]
+iteration_count = len(search_radii)
 
 # number of CPUs to use in processing (defaults to local CPU count)
 cpu_count = multiprocessing.cpu_count()
@@ -220,6 +221,7 @@ def map_match_trajectory(job):
 
     # add point_index to points to enable iteration
     input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
+    # print(input_points_with_index)
 
     # add parameters and trajectory to request
     # TODO: this could be done better, instead of evaluating this every request
@@ -308,13 +310,14 @@ def map_match_trajectory(job):
             point_index = 0
 
             for point in points:
-                # get matched points for use in the next iteration
-                matched_point = dict()
-                matched_point["traj_id"] = traj_id
-                matched_point["point_index"] = point_index
-                matched_point["lat"] = point["lat"]
-                matched_point["lon"] = point["lon"]
-                matched_points.append(matched_point)
+                # get only matched points for use in the next iteration
+                if point["type"] == "matched":
+                    matched_point = dict()
+                    matched_point["traj_id"] = traj_id
+                    matched_point["point_index"] = point_index
+                    matched_point["lat"] = point["lat"]
+                    matched_point["lon"] = point["lon"]
+                    matched_points.append(matched_point)
 
                 # alter point dict for input into Postgres
                 point[trajectory_id_field] = traj_id
@@ -341,9 +344,23 @@ def map_match_trajectory(job):
             # insert all points in a single go
             pg_cur.execute(";".join(point_sql_list))
 
+        # merge matched points with input points that couldn't be matched; as the input into the next ineration
+        new_points = list()
 
-        # add input points that couldn't be matched to the matched points dictionary as the input into the next interation
+        for point in input_points:
+            matched = False
 
+            for matched_point in matched_points:
+                if point["point_index"] == matched_point["point_index"]:
+                    new_points.append(matched_point)
+                    matched = True
+                    break
+
+            if not matched:
+                new_points.append(point)
+
+        # sort new list of points
+        sorted_new_points = sorted(new_points, key=lambda k: k['name'])
 
     else:
         # get error
