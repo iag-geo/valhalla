@@ -6,6 +6,7 @@ create table testing.valhalla_shape
 (
     trip_id text,
     distance float,
+    search_radius smallint,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape owner to postgres;
@@ -16,6 +17,7 @@ create table testing.valhalla_shape_non_pii
 (
     trip_id text,
     distance float,
+    search_radius smallint,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_shape_non_pii owner to postgres;
@@ -42,6 +44,7 @@ drop table if exists testing.valhalla_point cascade;
 create table testing.valhalla_point
 (
     trip_id text,
+    search_radius smallint,
     point_index integer,
     distance_from_trace_point float,
     distance_along_edge float,
@@ -49,7 +52,6 @@ create table testing.valhalla_point
     end_route_discontinuity boolean,
     edge_index integer,
     point_type text,
-    search_radius smallint,
     geom geometry(point, 4326)
 );
 
@@ -61,7 +63,8 @@ drop table if exists testing.valhalla_fail cascade;
 create table testing.valhalla_fail
 (
     trip_id text,
-    error_code integer,
+    search_radius smallint,
+    error_code smallint,
     error text,
     http_status text,
     curl_command text
