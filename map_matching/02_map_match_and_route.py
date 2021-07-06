@@ -28,7 +28,7 @@ inverse_precision = 1.0 / 1e6
 
 # set of serach radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [10, 20, 30, 40, 50, 60]
+search_radii = [10, 20, 30, 40, 50, 60, 70]
 iteration_count = len(search_radii)
 
 # number of CPUs to use in processing (defaults to local CPU count)
@@ -217,9 +217,12 @@ def map_match_trajectory(job):
     traj_id = job[0]
     # traj_point_count = job[1]
 
+    # iteration numbers are 0 based
+    iteration = 0
+
     input_points = job[2]
 
-    # add point_index to points to enable iteration
+    # add point_index to points list of dicts to enable iteration
     input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
     # print(input_points_with_index)
 
@@ -313,16 +316,19 @@ def map_match_trajectory(job):
                 # get only matched points for use in the next iteration
                 if point["type"] == "matched":
                     matched_point = dict()
-                    matched_point["traj_id"] = traj_id
+                    # matched_point["traj_id"] = traj_id
                     matched_point["point_index"] = point_index
                     matched_point["lat"] = point["lat"]
                     matched_point["lon"] = point["lon"]
+                    matched_point["search_radius"] = search_radii[iteration]
+                    matched_point["distance"] = point["distance_from_trace_point"]
                     matched_points.append(matched_point)
 
                 # alter point dict for input into Postgres
                 point[trajectory_id_field] = traj_id
                 point["point_type"] = point.pop("type")
                 point[point_index_field] = point_index
+                point["search_radius"] = "?????"  # TODO: sort this out
                 point["geom"] = "st_setsrid(st_makepoint({},{}),4326)" \
                     .format(point["lon"], point["lat"])
 
@@ -346,21 +352,27 @@ def map_match_trajectory(job):
 
         # merge matched points with input points that couldn't be matched; as the input into the next ineration
         new_points = list()
-
-        for point in input_points:
+        for point in input_points_with_index:
             matched = False
-
+            # look for matched point and use its new coordinates
             for matched_point in matched_points:
                 if point["point_index"] == matched_point["point_index"]:
                     new_points.append(matched_point)
                     matched = True
                     break
-
+            # if point not matched use current coordinates
             if not matched:
                 new_points.append(point)
 
         # sort new list of points
-        sorted_new_points = sorted(new_points, key=lambda k: k['name'])
+        sorted_new_points = sorted(new_points, key=lambda k: k["point_index"])
+
+        # create new input list for next iteration of map matching
+        if use_timestamps:
+            input_points = [{k: new_point[k] for k in ("lat", "lon", "time")} for new_point in sorted_new_points]
+        else:
+            input_points = [{k: new_point[k] for k in ("lat", "lon")} for new_point in sorted_new_points]
+
 
     else:
         # get error

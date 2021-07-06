@@ -49,6 +49,7 @@ create table testing.valhalla_point
     end_route_discontinuity boolean,
     edge_index integer,
     point_type text,
+    search_radius smallint,
     geom geometry(point, 4326)
 );
 
