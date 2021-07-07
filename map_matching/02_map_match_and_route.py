@@ -145,14 +145,23 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "04_create_indexes.sql")
+        sql_file = os.path.join(sql_directory, "03_create_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
         logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+        start_time = datetime.now()
     except:
         # meh!
         pass
+
+    # create trajectory segments to route
+    sql_file = os.path.join(sql_directory, "04_split_routes.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
+
+    logger.info("\t - created segments to route : {}".format(datetime.now() - start_time))
+    # start_time = datetime.now()
 
     # get table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape")
@@ -164,6 +173,9 @@ def main():
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
     fail_count = pg_cur.fetchone()[0]
 
+    pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
+    route_count = pg_cur.fetchone()[0]
+
     # close postgres connection
     pg_cur.close()
     pg_pool.putconn(pg_conn)
@@ -173,8 +185,8 @@ def main():
     logger.info("\t - {:,} map matched trajectories".format(traj_count))
     logger.info("\t\t - {:,} edges".format(edge_count))
     logger.info("\t\t - {:,} points".format(point_count))
+    logger.info("\t - {:,} trajectory segments to route".format(route_count))
     logger.warning("\t - {:,} trajectories FAILED".format(fail_count))
-
 
 # edit these to taste
 def get_map_matching_parameters(search_radius):
