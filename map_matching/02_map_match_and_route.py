@@ -28,9 +28,9 @@ inverse_precision = 1.0 / 1e6
 
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [10, 20, 30, 40, 50, 60]
+search_radii = [10, 20, 30, 40, 50, 60, 70]
 # search_radii = [70]
-# iteration_count = len(search_radii)
+iteration_count = len(search_radii)
 
 # number of CPUs to use in processing (defaults to local CPU count)
 cpu_count = multiprocessing.cpu_count()
@@ -145,7 +145,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "03_create_indexes.sql")
+        sql_file = os.path.join(sql_directory, "04_create_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
@@ -169,7 +169,7 @@ def main():
     pg_pool.putconn(pg_conn)
 
     logger.info("Row counts")
-    logger.info("\t - {:,} input trajectories".format(job_count))
+    logger.info("\t - {:,} input trajectories X {} search radii".format(job_count, iteration_count))
     logger.info("\t - {:,} map matched trajectories".format(traj_count))
     logger.info("\t\t - {:,} edges".format(edge_count))
     logger.info("\t\t - {:,} points".format(point_count))
