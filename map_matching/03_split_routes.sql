@@ -79,6 +79,7 @@ SELECT trip_id,
 FROM lines
 ;
 ANALYSE testing.temp_split_shape;
+
 ALTER TABLE testing.temp_split_shape
     ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, segment_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
@@ -89,4 +90,28 @@ select * from testing.temp_split_shape
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 60
 ;
+
+-- STEP 5 - get start and end points of segments that need to be routed (length > 1km)
+DROP TABLE IF EXISTS testing.temp_route_this;
+CREATE TABLE testing.temp_route_this AS
+WITH pnt as (
+    SELECT trip_id,
+           search_radius,
+           segment_index,
+           distance_m,
+           point_count,
+           st_startpoint(geom) as start_geom,
+           st_endpoint(geom)   as end_geom
+    FROM testing.temp_split_shape
+    WHERE distance_m > 1000.0
+)
+SELECT *,
+       st_y(start_geom) as start_lat,
+       st_x(start_geom) as start_lon,
+       st_y(end_geom) as end_lat,
+       st_x(end_geom) as end_lon
+FROM pnt
+;
+ANALYSE testing.temp_route_this;
+
 
