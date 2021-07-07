@@ -170,11 +170,10 @@ def main():
     edge_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_point")
     point_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
-    fail_count = pg_cur.fetchone()[0]
-
     pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
     route_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
+    fail_count = pg_cur.fetchone()[0]
 
     # close postgres connection
     pg_cur.close()
