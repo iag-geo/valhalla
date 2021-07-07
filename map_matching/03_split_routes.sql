@@ -79,12 +79,12 @@ SELECT trip_id,
 FROM lines
 ;
 ANALYSE testing.temp_split_shape;
-
--- ALTER TABLE testing.temp_split_shape ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, point_index, search_radius);
+ALTER TABLE testing.temp_split_shape
+    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, segment_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
-
+-- testing
 select * from testing.temp_split_shape
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 60
