@@ -49,15 +49,34 @@ DROP TABLE IF EXISTS temp_line_points;
 -- STEP 4 - split the matched routes into a new table
 DROP TABLE IF EXISTS testing.temp_split_shape;
 CREATE TABLE testing.temp_split_shape AS
-SELECT blade.trip_id,
-       blade.point_index,
-       blade.search_radius,
-       blade.point_type,
-       (ST_Dump(st_split(trip.geom, blade.geom))).geom as geom
-from testing.valhalla_shape as trip
-inner join testing.temp_split_lines as blade on trip.trip_id = blade.trip_id
-    and trip.search_radius = blade.search_radius
-    AND st_intersects(blade.geom, trip.geom)
+WITH blade AS (
+    SELECT trip_id,
+           search_radius,
+           st_collect(geom) as geom
+    FROM testing.temp_split_lines
+    GROUP BY trip_id,
+             search_radius
+), split AS (
+    SELECT trip.trip_id,
+           trip.search_radius,
+           st_split(trip.geom, blade.geom) AS geom
+    FROM testing.valhalla_shape as trip
+             INNER JOIN blade ON trip.trip_id = blade.trip_id
+        AND trip.search_radius = blade.search_radius
+), lines as (
+    SELECT trip_id,
+           search_radius,
+           (ST_Dump(geom)).path[1] AS segment_index,
+           (ST_Dump(geom)).geom    AS geom
+    FROM split
+)
+SELECT trip_id,
+       search_radius,
+       segment_index,
+       st_length(geom::geography) as distance_m,
+       st_npoints(geom) as point_count,
+       geom
+FROM lines
 ;
 ANALYSE testing.temp_split_shape;
 
@@ -69,40 +88,5 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 select * from testing.temp_split_shape
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 60
-order by point_index
 ;
-
-
-
-
-
-drop table if exists testing.temp_split_shape cascade;
-create table testing.temp_split_shape as
-with pnt as (
-    select *
-    from testing.valhalla_point
-    where point_type = 'matched'
-)
-select trip.trip_id,
-       pnt.point_index,
-       trip.search_radius,
-       pnt.point_type,
-       trip.distance,
-       st_split(trip.geom, ST_Snap(pnt.geom, trip.geom, 0.0001)) as geom
-from testing.valhalla_shape as trip
-inner join pnt on trip.trip_id = pnt.trip_id
-and trip.search_radius = pnt.search_radius
-;
-
-alter table testing.temp_split_shape add constraint temp_split_shape_pkey primary key (trip_id, point_index, search_radius);
-create index temp_split_shape_geom_idx on testing.temp_split_shape using gist (geom);
-ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
-
-
-select * from testing.temp_split_shape
-where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-  and search_radius = 60
-order by point_index
-;
-
 
