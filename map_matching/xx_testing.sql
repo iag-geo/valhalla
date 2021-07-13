@@ -2,9 +2,14 @@
 
 
 
+select *
+from testing.temp_route_this
+;
+
+
 -- look at edges that aren't a street segment
 select *
-from testing.valhalla_edge
+from testing.valhalla_map_match_edge
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 60
 order by edge_index;
@@ -22,7 +27,7 @@ order by edge_index;
 --            sum(case when edge_index = 0 then 1 else 0 end) as no_edge_index_count,
 --            sum(case when begin_route_discontinuity then 1 else 0 end) +
 --            sum(case when end_route_discontinuity then 1 else 0 end) as discontinuity_count
---     from testing.valhalla_point
+--     from testing.valhalla_map_match_point
 --     group by trip_id
 --     order by discontinuty_count desc
 -- ), edge as (
@@ -30,7 +35,7 @@ order by edge_index;
 --            count(*) as edge_count,
 --            sum(case when names is null then 1 else 0 end) as unnamed_edge_count,
 --            sum(case when speed is null then 1 else 0 end) as no_speed_edge_count
---     from testing.valhalla_edge
+--     from testing.valhalla_map_match_edge
 --     group by trip_id
 -- )
 -- select sum.trip_id,
@@ -44,7 +49,7 @@ order by edge_index;
 --        edge.no_speed_edge_count,
 --        sum.trip_line as cmt_geom,
 --        traj.geom as vha_geom
--- from testing.valhalla_shape as traj
+-- from testing.valhalla_map_match_shape as traj
 --          inner join point on traj.trip_id = point.trip_id
 --          inner join edge on traj.trip_id = edge.trip_id
 --          inner join testing.prod_waypoint_trajectories as sum on traj.trip_id = sum.trip_id;

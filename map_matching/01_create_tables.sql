@@ -1,31 +1,31 @@
 
 -- create tables for Python script to output to
 
-drop table if exists testing.valhalla_shape cascade;
-create table testing.valhalla_shape
+drop table if exists testing.valhalla_map_match_shape cascade;
+create table testing.valhalla_map_match_shape
 (
     trip_id text,
     search_radius smallint,
     distance float,
     geom geometry(linestring, 4326)
 );
-alter table testing.valhalla_shape owner to postgres;
+alter table testing.valhalla_map_match_shape owner to postgres;
 
 
-drop table if exists testing.valhalla_shape_non_pii cascade;
-create table testing.valhalla_shape_non_pii
+drop table if exists testing.valhalla_map_match_shape_non_pii cascade;
+create table testing.valhalla_map_match_shape_non_pii
 (
     trip_id text,
     search_radius smallint,
     distance float,
     geom geometry(linestring, 4326)
 );
-alter table testing.valhalla_shape_non_pii owner to postgres;
+alter table testing.valhalla_map_match_shape_non_pii owner to postgres;
 
 
 -- create table for code to output osm_ids for route segments
-drop table if exists testing.valhalla_edge cascade;
-create table testing.valhalla_edge
+drop table if exists testing.valhalla_map_match_edge cascade;
+create table testing.valhalla_map_match_edge
 (
     trip_id text,
     search_radius smallint,
@@ -37,12 +37,12 @@ create table testing.valhalla_edge
     begin_shape_index integer,
     end_shape_index integer
 );
-alter table testing.valhalla_edge owner to postgres;
+alter table testing.valhalla_map_match_edge owner to postgres;
 
 
 -- create table for code to output osm_ids for route segments
-drop table if exists testing.valhalla_point cascade;
-create table testing.valhalla_point
+drop table if exists testing.valhalla_map_match_point cascade;
+create table testing.valhalla_map_match_point
 (
     trip_id text,
     search_radius smallint,
@@ -56,12 +56,12 @@ create table testing.valhalla_point
     geom geometry(point, 4326)
 );
 
-alter table testing.valhalla_point owner to postgres;
+alter table testing.valhalla_map_match_point owner to postgres;
 
 
 -- create table for code to output failed trip_ids to
-drop table if exists testing.valhalla_fail cascade;
-create table testing.valhalla_fail
+drop table if exists testing.valhalla_map_match_fail cascade;
+create table testing.valhalla_map_match_fail
 (
     trip_id text,
     search_radius smallint,
@@ -70,4 +70,4 @@ create table testing.valhalla_fail
     http_status text,
     curl_command text
 );
-alter table testing.valhalla_fail owner to postgres;
+alter table testing.valhalla_map_match_fail owner to postgres;

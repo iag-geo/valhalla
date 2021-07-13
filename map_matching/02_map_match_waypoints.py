@@ -108,10 +108,10 @@ def main():
     start_time = datetime.now()
 
     # update stats on tables
-    pg_cur.execute("ANALYSE testing.valhalla_edge")
-    pg_cur.execute("ANALYSE testing.valhalla_shape")
-    pg_cur.execute("ANALYSE testing.valhalla_point")
-    pg_cur.execute("ANALYSE testing.valhalla_fail")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
 
@@ -120,13 +120,13 @@ def main():
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
     # get table counts
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_shape")
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
     traj_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_edge")
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
     edge_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_point")
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
     point_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_fail")
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
     fail_count = pg_cur.fetchone()[0]
 
     # close postgres connection
@@ -223,12 +223,12 @@ def map_match_trajectory(job):
                 geom_string += ",".join(point_list)
                 geom_string += ")', 4326)"
 
-                shape_sql = """insert into testing.valhalla_shape
+                shape_sql = """insert into testing.valhalla_map_match_shape
                                      values ('{0}', st_length({1}::geography), {1})""" \
                     .format(traj_id, geom_string)
                 pg_cur.execute(shape_sql)
             else:
-                fail_sql = "insert into testing.valhalla_fail (trip_id, error) values ('{}', '{}')" \
+                fail_sql = "insert into testing.valhalla_map_match_fail (trip_id, error) values ('{}', '{}')" \
                     .format(traj_id, "Linestring only has one point")
                 pg_cur.execute(fail_sql)
 
@@ -251,7 +251,7 @@ def map_match_trajectory(job):
                 columns = list(edge.keys())
                 values = [edge[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_edge (%s) VALUES %s"
+                insert_statement = "INSERT INTO testing.valhalla_map_match_edge (%s) VALUES %s"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
@@ -281,7 +281,7 @@ def map_match_trajectory(job):
                 columns = list(point.keys())
                 values = [point[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_point (%s) VALUES %s"
+                insert_statement = "INSERT INTO testing.valhalla_map_match_point (%s) VALUES %s"
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                     .decode("utf-8")
                 sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
@@ -299,7 +299,7 @@ def map_match_trajectory(job):
         curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
             .format(json_payload, valhalla_server_url)
 
-        sql = "insert into testing.valhalla_fail values ('{}', {}, '{}', '{}', '{}')" \
+        sql = "insert into testing.valhalla_map_match_fail values ('{}', {}, '{}', '{}', '{}')" \
             .format(traj_id, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 
         pg_cur.execute(sql)

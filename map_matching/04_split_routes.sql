@@ -8,8 +8,8 @@ SELECT DISTINCT pnt.trip_id,
                 pnt.point_type,
                 pnt.geom AS geomA,
                 ST_ClosestPoint(trip.geom, pnt.geom) AS geomB
-FROM testing.valhalla_point AS pnt
-    INNER JOIN testing.valhalla_shape as trip ON trip.trip_id = pnt.trip_id
+FROM testing.valhalla_map_match_point AS pnt
+    INNER JOIN testing.valhalla_map_match_shape as trip ON trip.trip_id = pnt.trip_id
     AND trip.search_radius = pnt.search_radius
 WHERE pnt.point_type = 'matched'
 ;
@@ -60,7 +60,7 @@ WITH blade AS (
     SELECT trip.trip_id,
            trip.search_radius,
            st_split(trip.geom, blade.geom) AS geom
-    FROM testing.valhalla_shape as trip
+    FROM testing.valhalla_map_match_shape as trip
              INNER JOIN blade ON trip.trip_id = blade.trip_id
         AND trip.search_radius = blade.search_radius
 ), lines as (
