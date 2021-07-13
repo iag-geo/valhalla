@@ -491,13 +491,13 @@ def route_trajectory(job):
     start_location = dict()
     start_location["lat"] = job[5]
     start_location["lon"] = job[6]
-    start_location["radius"] = 10
+    # start_location["radius"] = 10
     start_location["rank_candidates"] = False
 
     end_location = dict()
     end_location["lat"] = job[7]
     end_location["lon"] = job[8]
-    end_location["radius"] = 10
+    # end_location["radius"] = 10
 
     # add parameters and start & end points to request
     input_points = list()
@@ -522,10 +522,10 @@ def route_trajectory(job):
     if r.status_code == 200:
         response_dict = r.json()
 
-        # # DEBUGGING
-        # response_file = open("/Users/s57405/tmp/valhalla_response.json", "w")
-        # response_file.writelines(json.dumps(response_dict))
-        # response_file.close()
+        # DEBUGGING
+        if segment_index == 81 and search_radius == 60:
+            with open("/Users/s57405/tmp/valhalla_response.json", "w") as response_file:
+                json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
         # output matched route geometry
         legs = response_dict.get("trip")["legs"]
