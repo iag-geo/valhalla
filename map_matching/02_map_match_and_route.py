@@ -510,13 +510,14 @@ def route_trajectory(job):
     start_location = dict()
     start_location["lat"] = job[5]
     start_location["lon"] = job[6]
-    # start_location["radius"] = 10
+    start_location["radius"] = 10
     start_location["rank_candidates"] = False
 
     end_location = dict()
     end_location["lat"] = job[7]
     end_location["lon"] = job[8]
-    # end_location["radius"] = 10
+    end_location["radius"] = 10
+    end_location["rank_candidates"] = False
 
     # add parameters and start & end points to request
     input_points = list()
