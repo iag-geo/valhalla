@@ -167,10 +167,10 @@ def main():
 
     # create job list for routing and process in parallel
     sql = """SELECT trip_id,
-                    search_radius, 
+                    search_radius,
                     segment_index,
                     distance_m,
-                    point_count,     
+                    point_count,
                     start_lat,
                     start_lon,
                     end_lat,
@@ -198,30 +198,42 @@ def main():
     logger.info("\t - all trajectories routed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # get table counts
+    # get map match table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
-    traj_count = pg_cur.fetchone()[0]
+    traj_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
-    edge_count = pg_cur.fetchone()[0]
+    edge_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
-    point_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
-    route_count = pg_cur.fetchone()[0]
+    point_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
-    fail_count = pg_cur.fetchone()[0]
+    fail_mm_count = pg_cur.fetchone()[0]
+
+    # get routing table counts
+    pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
+    route_to_do_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
+    traj_route_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
+    fail_route_count = pg_cur.fetchone()[0]
+
 
     # close postgres connection
     pg_cur.close()
     pg_pool.putconn(pg_conn)
 
-    logger.info("Row counts")
+    logger.info("Map Match results")
     logger.info("\t - {:,} input trajectories X {} search radii".format(job_count, iteration_count))
-    logger.info("\t - {:,} map matched trajectories".format(traj_count))
-    logger.info("\t\t - {:,} edges".format(edge_count))
-    logger.info("\t\t - {:,} points".format(point_count))
-    logger.info("\t - {:,} trajectory segments to route".format(route_count))
-    logger.info("\t\t - {:,} trajectory segments routed".format(route_count))
-    logger.warning("\t - {:,} trajectories FAILED".format(fail_count))
+    logger.info("\t - {:,} map matched trajectories".format(traj_mm_count))
+    logger.info("\t\t - {:,} edges".format(edge_mm_count))
+    logger.info("\t\t - {:,} points".format(point_mm_count))
+    if fail_mm_count > 0:
+        logger.warning("\t - {:,} trajectories FAILED".format(fail_mm_count))
+
+    logger.info("Routing results")
+    logger.info("\t - {:,} trajectory segments to route".format(route_to_do_count))
+    logger.info("\t - {:,} trajectory segments routed".format(traj_route_count))
+    if fail_route_count > 0:
+        logger.warning("\t - {:,} trajectories FAILED".format(fail_route_count))
 
 
 # edit these to taste
@@ -479,10 +491,13 @@ def route_trajectory(job):
     start_location = dict()
     start_location["lat"] = job[5]
     start_location["lon"] = job[6]
+    start_location["radius"] = 10
+    start_location["rank_candidates"] = False
 
     end_location = dict()
     end_location["lat"] = job[7]
     end_location["lon"] = job[8]
+    end_location["radius"] = 10
 
     # add parameters and start & end points to request
     input_points = list()
@@ -518,10 +533,10 @@ def route_trajectory(job):
         if legs is not None and len(legs) > 0:
             # for each route leg - construct postgis geometry string for insertion into postgres
             for leg in legs:
-
+                distance_m = float(leg["summary"]["length"]) * 1000.0
                 shape_coords = decode(leg["shape"])  # decode Google encoded polygon
                 point_list = list()
-                              
+
                 if len(shape_coords) > 1:
                     for coords in shape_coords:
                         point_list.append("{} {}".format(coords[0], coords[1]))
@@ -530,114 +545,15 @@ def route_trajectory(job):
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326)"
 
-                    shape_sql = """insert into testing.valhalla_map_match_shape
-                                         values ('{0}', {1}, st_length({2}::geography), {2})""" \
-                        .format(traj_id, search_radius, geom_string)
+                    shape_sql = """insert into testing.valhalla_route_shape
+                                         values ('{0}', {1}, {2}, {3}, {4})""" \
+                        .format(traj_id, search_radius, segment_index, distance_m, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
-                    fail_sql = """insert into testing.valhalla_map_match_fail (trip_id, search_radius, error)
-                                      values ('{}', {}, '{}')""" \
-                        .format(traj_id, search_radius, "Linestring only has one point")
+                    fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, segment_index, error)
+                                      values ('{}', {}, {}, '{}')""" \
+                        .format(traj_id, search_radius, segment_index, "Linestring only has one point")
                     pg_cur.execute(fail_sql)
-
-            # output edge information
-            edges = response_dict.get("edges")
-
-            if edges is not None:
-                edge_sql_list = list()
-                edge_index = 0
-
-                for edge in edges:
-                    edge[trajectory_id_field] = traj_id
-                    edge["search_radius"] = search_radius
-                    edge["osm_id"] = edge.pop("way_id")
-                    edge["edge_index"] = edge_index
-
-                    # bug in Valhalla(?) - occasionally returns empty dict "{}" for "sign" attribute
-                    if edge.get("sign") is not None:
-                        edge.pop("sign", None)
-
-                    columns = list(edge.keys())
-                    values = [edge[column] for column in columns]
-
-                    insert_statement = "INSERT INTO testing.valhalla_map_match_edge (%s) VALUES %s"
-                    sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
-                    edge_sql_list.append(sql)
-
-                    edge_index += 1
-
-                # insert all edges in a single go
-                pg_cur.execute(";".join(edge_sql_list))
-
-            # output point data
-            points = response_dict.get("matched_points")
-
-            matched_points = list()
-
-            if points is not None:
-                point_sql_list = list()
-                point_index = 0
-
-                for point in points:
-                    # get only matched points for use in the next iteration
-                    if point["type"] == "matched":
-                        matched_point = dict()
-                        # matched_point["traj_id"] = traj_id
-                        matched_point["point_index"] = point_index
-                        matched_point["lat"] = point["lat"]
-                        matched_point["lon"] = point["lon"]
-                        matched_point["search_radius"] = search_radius
-                        matched_point["distance"] = point["distance_from_trace_point"]
-                        matched_points.append(matched_point)
-
-                    # alter point dict for input into Postgres
-                    point[trajectory_id_field] = traj_id
-                    point["search_radius"] = search_radius
-                    point["point_type"] = point.pop("type")
-                    point[point_index_field] = point_index
-                    point["geom"] = "st_setsrid(st_makepoint({},{}),4326)" \
-                        .format(point["lon"], point["lat"])
-
-                    # drop coordinates to save table space
-                    point.pop("lat", None)
-                    point.pop("lon", None)
-
-                    columns = list(point.keys())
-                    values = [point[column] for column in columns]
-
-                    insert_statement = "INSERT INTO testing.valhalla_map_match_point (%s) VALUES %s"
-                    sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
-                        .decode("utf-8")
-                    sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
-                    point_sql_list.append(sql)
-
-                    point_index += 1
-
-                # insert all points in a single go
-                pg_cur.execute(";".join(point_sql_list))
-
-            # merge matched points with input points that couldn't be matched; as the input into the next iteration
-            new_points = list()
-            for point in input_points_with_index:
-                matched = False
-                # look for matched point and use its new coordinates
-                for matched_point in matched_points:
-                    if point["point_index"] == matched_point["point_index"]:
-                        new_points.append(matched_point)
-                        matched = True
-                        break
-                # if point not matched use current coordinates
-                if not matched:
-                    new_points.append(point)
-
-            # sort new list of points
-            sorted_new_points = sorted(new_points, key=lambda k: k["point_index"])
-
-            # create new input list for next iteration of map matching
-            if use_timestamps:
-                input_points = [{k: new_point[k] for k in ("lat", "lon", "time")} for new_point in sorted_new_points]
-            else:
-                input_points = [{k: new_point[k] for k in ("lat", "lon")} for new_point in sorted_new_points]
 
     else:
         # get error
@@ -646,9 +562,9 @@ def route_trajectory(job):
         curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
             .format(json_payload, routing_url)
 
-        sql = "insert into testing.valhalla_map_match_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
-            .format(traj_id, search_radius, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"],
-                    curl_command)
+        sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
+            .format(traj_id, search_radius, segment_index, e["error_code"], e["error"],
+                    str(e["status_code"]) + ":" + e["status"], curl_command)
 
         pg_cur.execute(sql)
 

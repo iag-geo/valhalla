@@ -6,7 +6,7 @@ create table testing.valhalla_map_match_shape
 (
     trip_id text,
     search_radius smallint,
-    distance float,
+    distance_m float,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_map_match_shape owner to postgres;
@@ -17,7 +17,7 @@ create table testing.valhalla_map_match_shape_non_pii
 (
     trip_id text,
     search_radius smallint,
-    distance float,
+    distance_m float,
     geom geometry(linestring, 4326)
 );
 alter table testing.valhalla_map_match_shape_non_pii owner to postgres;
@@ -71,3 +71,31 @@ create table testing.valhalla_map_match_fail
     curl_command text
 );
 alter table testing.valhalla_map_match_fail owner to postgres;
+
+
+-- routing outputs
+
+drop table if exists testing.valhalla_route_shape cascade;
+create table testing.valhalla_route_shape
+(
+    trip_id text,
+    search_radius smallint,
+    segment_index integer,
+    distance_m float,
+    geom geometry(linestring, 4326)
+);
+alter table testing.valhalla_route_shape owner to postgres;
+
+
+drop table if exists testing.valhalla_route_fail cascade;
+create table testing.valhalla_route_fail
+(
+    trip_id text,
+    search_radius smallint,
+    segment_index integer,
+    error_code smallint,
+    error text,
+    http_status text,
+    curl_command text
+);
+alter table testing.valhalla_route_fail owner to postgres;
