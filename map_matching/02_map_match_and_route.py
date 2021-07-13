@@ -158,6 +158,25 @@ def main():
         # meh!
         pass
 
+    # get map match table counts
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
+    traj_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
+    edge_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
+    point_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
+    fail_mm_count = pg_cur.fetchone()[0]
+
+    logger.info("\t - map match results")
+    logger.info("\t\t - {:,} input trajectories X {} search radii".format(job_count, iteration_count))
+    logger.info("\t\t - {:,} map matched trajectories".format(traj_mm_count))
+    logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
+    logger.info("\t\t\t - {:,} points".format(point_mm_count))
+    if fail_mm_count > 0:
+        logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
+
+
     # create trajectory segments to route
     sql_file = os.path.join(sql_directory, "04_split_routes.sql")
     sql = open(sql_file, "r").read()
@@ -196,7 +215,7 @@ def main():
         if mp_result is not None:
             print("WARNING: multiprocessing error : {}".format(mp_result))
 
-    logger.info("\t - all trajectories routed : {}".format(datetime.now() - start_time))
+    logger.info("\t - all segments routed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # update stats on route tables
@@ -217,16 +236,6 @@ def main():
         # meh!
         pass
 
-    # get map match table counts
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
-    traj_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
-    edge_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
-    point_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
-    fail_mm_count = pg_cur.fetchone()[0]
-
     # get routing table counts
     pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
     route_to_do_count = pg_cur.fetchone()[0]
@@ -235,24 +244,15 @@ def main():
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
     fail_route_count = pg_cur.fetchone()[0]
 
+    logger.info("\t - routing results")
+    logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
+    logger.info("\t\t - {:,} segments routed".format(traj_route_count))
+    if fail_route_count > 0:
+        logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
 
     # close postgres connection
     pg_cur.close()
     pg_pool.putconn(pg_conn)
-
-    logger.info("Map Match results")
-    logger.info("\t - {:,} input trajectories X {} search radii".format(job_count, iteration_count))
-    logger.info("\t - {:,} map matched trajectories".format(traj_mm_count))
-    logger.info("\t\t - {:,} edges".format(edge_mm_count))
-    logger.info("\t\t - {:,} points".format(point_mm_count))
-    if fail_mm_count > 0:
-        logger.warning("\t - {:,} trajectories FAILED".format(fail_mm_count))
-
-    logger.info("Routing results")
-    logger.info("\t - {:,} trajectory segments to route".format(route_to_do_count))
-    logger.info("\t - {:,} trajectory segments routed".format(traj_route_count))
-    if fail_route_count > 0:
-        logger.warning("\t - {:,} trajectories FAILED".format(fail_route_count))
 
 
 # edit these to taste
@@ -659,7 +659,7 @@ if __name__ == '__main__':
     # add the handler to the root logger
     logging.getLogger('').addHandler(console)
 
-    task_name = "Map match waypoints to OSM"
+    task_name = "Map match & route waypoints to OSM"
     system_name = "iag_geo"
 
     logger.info("{} started : {}".format(task_name, datetime.now()))
