@@ -17,6 +17,7 @@ import requests
 # import sys
 
 from datetime import datetime
+from pathlib import Path
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
@@ -326,7 +327,7 @@ def map_match_trajectory(job):
             response_dict = r.json()
 
             # # DEBUGGING
-            # response_file = open("/Users/s57405/tmp/valhalla_response.json", "w")
+            # response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
             # response_file.writelines(json.dumps(response_dict))
             # response_file.close()
 
@@ -524,7 +525,7 @@ def route_trajectory(job):
 
         # DEBUGGING
         if segment_index == 81 and search_radius == 60:
-            with open("/Users/s57405/tmp/valhalla_response.json", "w") as response_file:
+            with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
                 json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
         # output matched route geometry
