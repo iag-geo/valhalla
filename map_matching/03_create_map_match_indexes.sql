@@ -1,5 +1,5 @@
 
--- add indexes to Valhalla result tables
+-- add indexes to Valhalla map match output tables
 alter table testing.valhalla_map_match_shape add constraint valhalla_map_match_shape_pkey primary key (trip_id, search_radius);
 create index valhalla_map_match_shape_geom_idx on testing.valhalla_map_match_shape using gist (geom);
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;

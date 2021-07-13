@@ -138,7 +138,7 @@ def main():
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
-    # update stats on tables
+    # update stats on map match tables
     pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
@@ -148,7 +148,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "03_create_indexes.sql")
+        sql_file = os.path.join(sql_directory, "03_create_map_match_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
@@ -198,6 +198,24 @@ def main():
 
     logger.info("\t - all trajectories routed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
+
+    # update stats on route tables
+    pg_cur.execute("ANALYSE testing.valhalla_route_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_route_fail")
+    logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # optional: create indexes on output tables
+    try:
+        sql_file = os.path.join(sql_directory, "05_create_route_indexes.sql")
+        sql = open(sql_file, "r").read()
+        pg_cur.execute(sql)
+
+        logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+        start_time = datetime.now()
+    except:
+        # meh!
+        pass
 
     # get map match table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
