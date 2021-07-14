@@ -85,7 +85,11 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 
 -- DROP TABLE IF EXISTS testing.temp_split_shape;
 
-
+select *,
+       geometrytype(geom)
+from testing.valhalla_final_routes
+order by trip_id,
+         search_radius;
 
 
 
