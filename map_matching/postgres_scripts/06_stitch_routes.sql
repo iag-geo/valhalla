@@ -55,12 +55,13 @@ ANALYSE testing.valhalla_segments;
 
 
 -- stitch each route into a single linestring
+-- TODO: can they be merged into single linestrings?
 DROP TABLE IF EXISTS testing.valhalla_final_routes;
 CREATE TABLE testing.valhalla_final_routes AS
 WITH seg AS (
     SELECT trip_id,
            search_radius,
-           st_union(geom ORDER BY segment_index) AS geom
+           st_collect(geom ORDER BY segment_index) AS geom
     FROM testing.valhalla_segments
     GROUP BY trip_id,
              search_radius
