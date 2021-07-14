@@ -250,6 +250,11 @@ def main():
     if fail_route_count > 0:
         logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
 
+    # stitch results together
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
+
     # close postgres connection
     pg_cur.close()
     pg_pool.putconn(pg_conn)
