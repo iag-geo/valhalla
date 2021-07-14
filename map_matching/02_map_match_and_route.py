@@ -71,7 +71,7 @@ point_index_field = "point_index"
 trajectory_id_field = "trip_id"
 
 # # file path to SQL file the create non-PII trajectories geoms
-# non_pii_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "02_create_non_pii_trips_table.sql")
+# non_pii_sql_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "07_create_non_pii_trips_table.sql")
 
 
 def main():
@@ -87,7 +87,7 @@ def main():
     # --------------------------------------------------------------------------------------
 
     # optional: recreate output tables
-    sql_file = os.path.join(sql_directory, "01_create_tables.sql")
+    sql_file = os.path.join(sql_directory, "postgres_scripts/01_create_tables.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
 
@@ -148,7 +148,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "03_create_map_match_indexes.sql")
+        sql_file = os.path.join(sql_directory, "postgres_scripts/03_create_map_match_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
@@ -178,7 +178,7 @@ def main():
 
 
     # create trajectory segments to route
-    sql_file = os.path.join(sql_directory, "04_split_routes.sql")
+    sql_file = os.path.join(sql_directory, "postgres_scripts/04_split_routes.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
 
@@ -226,7 +226,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "05_create_route_indexes.sql")
+        sql_file = os.path.join(sql_directory, "postgres_scripts/05_create_route_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
@@ -511,7 +511,7 @@ def route_trajectory(job):
     start_location["lat"] = job[5]
     start_location["lon"] = job[6]
     start_location["radius"] = 10
-    start_location["rank_candidates"] = False
+    start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
 
     end_location = dict()
     end_location["lat"] = job[7]
