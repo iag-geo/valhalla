@@ -22,7 +22,7 @@ from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
 # this directory
-sql_directory = os.path.dirname(os.path.realpath(__file__))
+runtime_directory = os.path.dirname(os.path.realpath(__file__))
 
 # six degrees of precision used in Valhalla encoded polyline (DO NOT EDIT)
 inverse_precision = 1.0 / 1e6
@@ -87,7 +87,7 @@ def main():
     # --------------------------------------------------------------------------------------
 
     # optional: recreate output tables
-    sql_file = os.path.join(sql_directory, "postgres_scripts/01_create_tables.sql")
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "01_create_tables.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
 
@@ -148,7 +148,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "postgres_scripts/03_create_map_match_indexes.sql")
+        sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
@@ -178,7 +178,7 @@ def main():
 
 
     # create trajectory segments to route
-    sql_file = os.path.join(sql_directory, "postgres_scripts/04_split_routes.sql")
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
 
@@ -226,7 +226,7 @@ def main():
 
     # optional: create indexes on output tables
     try:
-        sql_file = os.path.join(sql_directory, "postgres_scripts/05_create_route_indexes.sql")
+        sql_file = os.path.join(runtime_directory, "postgres_scripts", "05_create_route_indexes.sql")
         sql = open(sql_file, "r").read()
         pg_cur.execute(sql)
 
