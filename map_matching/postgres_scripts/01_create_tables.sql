@@ -9,7 +9,7 @@ create table testing.valhalla_map_match_shape
     distance_m float,
     geom geometry(linestring, 4326)
 );
-alter table testing.valhalla_map_match_shape owner to postgres;
+ALTER TABLE testing.valhalla_map_match_shape owner to postgres;
 
 
 drop table if exists testing.valhalla_map_match_shape_non_pii cascade;
@@ -20,7 +20,7 @@ create table testing.valhalla_map_match_shape_non_pii
     distance_m float,
     geom geometry(linestring, 4326)
 );
-alter table testing.valhalla_map_match_shape_non_pii owner to postgres;
+ALTER TABLE testing.valhalla_map_match_shape_non_pii owner to postgres;
 
 
 -- create table for code to output osm_ids for route segments
@@ -37,7 +37,7 @@ create table testing.valhalla_map_match_edge
     begin_shape_index integer,
     end_shape_index integer
 );
-alter table testing.valhalla_map_match_edge owner to postgres;
+ALTER TABLE testing.valhalla_map_match_edge owner to postgres;
 
 
 -- create table for code to output osm_ids for route segments
@@ -56,7 +56,7 @@ create table testing.valhalla_map_match_point
     geom geometry(point, 4326)
 );
 
-alter table testing.valhalla_map_match_point owner to postgres;
+ALTER TABLE testing.valhalla_map_match_point owner to postgres;
 
 
 -- create table for code to output failed trip_ids to
@@ -70,7 +70,7 @@ create table testing.valhalla_map_match_fail
     http_status text,
     curl_command text
 );
-alter table testing.valhalla_map_match_fail owner to postgres;
+ALTER TABLE testing.valhalla_map_match_fail owner to postgres;
 
 
 -- routing outputs
@@ -82,9 +82,11 @@ create table testing.valhalla_route_shape
     search_radius smallint,
     segment_index integer,
     distance_m float,
+    point_count integer,
+    segment_type text,
     geom geometry(linestring, 4326)
 );
-alter table testing.valhalla_route_shape owner to postgres;
+ALTER TABLE testing.valhalla_route_shape owner to postgres;
 
 
 drop table if exists testing.valhalla_route_fail cascade;
@@ -98,4 +100,4 @@ create table testing.valhalla_route_fail
     http_status text,
     curl_command text
 );
-alter table testing.valhalla_route_fail owner to postgres;
+ALTER TABLE testing.valhalla_route_fail owner to postgres;

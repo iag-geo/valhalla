@@ -99,14 +99,14 @@ def main():
     # get trajectory data from postgres
     if use_timestamps:
         sql = """SELECT {0},
-                        count(*) as point_count,
+                        count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS points 
                  FROM {5} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
         sql = """SELECT {0},
-                        count(*) as point_count,
+                        count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS points 
                  FROM {4} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
@@ -138,7 +138,7 @@ def main():
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
-    # update stats on map match tables
+    # update stats ON map match tables
     pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
@@ -146,7 +146,7 @@ def main():
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # optional: create indexes on output tables
+    # optional: create indexes ON output tables
     try:
         sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
         sql = open(sql_file, "r").read()
@@ -189,8 +189,8 @@ def main():
     sql = """SELECT trip_id,
                     search_radius,
                     segment_index,
-                    distance_m,
-                    point_count,
+                    -- distance_m,
+                    -- point_count,
                     start_lat,
                     start_lon,
                     end_lat,
@@ -218,13 +218,13 @@ def main():
     logger.info("\t - all segments routed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # update stats on route tables
+    # update stats ON route tables
     pg_cur.execute("ANALYSE testing.valhalla_route_shape")
     pg_cur.execute("ANALYSE testing.valhalla_route_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # optional: create indexes on output tables
+    # optional: create indexes ON output tables
     try:
         sql_file = os.path.join(runtime_directory, "postgres_scripts", "05_create_route_indexes.sql")
         sql = open(sql_file, "r").read()
@@ -338,7 +338,7 @@ def map_match_trajectory(job):
             r = requests.post(map_matching_url, data=json_payload)
         except Exception as e:
             # if complete failure - Valhalla has possibly crashed
-            return "Valhalla routing failure on trajectory {} : {}".format(traj_id, e)
+            return "Valhalla routing failure ON trajectory {} : {}".format(traj_id, e)
 
         # add results to lists of shape, edge and point dicts for insertion into postgres
         if r.status_code == 200:
@@ -504,18 +504,16 @@ def route_trajectory(job):
     traj_id = job[0]
     search_radius = job[1]
     segment_index = job[2]
-    # traj_distance_m = float(job[3])
-    # traj_point_count = int(job[4])
 
     start_location = dict()
-    start_location["lat"] = job[5]
-    start_location["lon"] = job[6]
+    start_location["lat"] = job[3]
+    start_location["lon"] = job[4]
     start_location["radius"] = 10
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
 
     end_location = dict()
-    end_location["lat"] = job[7]
-    end_location["lon"] = job[8]
+    end_location["lat"] = job[5]
+    end_location["lon"] = job[6]
     end_location["radius"] = 10
     end_location["rank_candidates"] = False
 
@@ -536,7 +534,7 @@ def route_trajectory(job):
         r = requests.post(routing_url, data=json_payload)
     except Exception as e:
         # if complete failure - Valhalla has possibly crashed
-        return "Valhalla routing failure on trajectory {} : {}".format(traj_id, e)
+        return "Valhalla routing failure ON trajectory {} : {}".format(traj_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
@@ -558,16 +556,22 @@ def route_trajectory(job):
                 point_list = list()
 
                 if len(shape_coords) > 1:
+                    point_count = 0
+
                     for coords in shape_coords:
                         point_list.append("{} {}".format(coords[0], coords[1]))
+                        point_count +=1
 
                     geom_string = "ST_GeomFromText('LINESTRING("
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326)"
 
+                    segment_type = "route"
+
                     shape_sql = """insert into testing.valhalla_route_shape
-                                         values ('{0}', {1}, {2}, {3}, {4})""" \
-                        .format(traj_id, search_radius, segment_index, distance_m, geom_string)
+                                         values ('{}', {}, {}, {}, {}, '{}', {})"""\
+                        .format(traj_id, search_radius, segment_index, distance_m,
+                                point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
                     fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, segment_index, error)
@@ -627,7 +631,7 @@ def decode(encoded):
 
 
 def get_id_list(pg_cur, id_field, table_name):
-    pg_cur.execute("select {} from {}".format(id_field, table_name))
+    pg_cur.execute("SELECT {} FROM {}".format(id_field, table_name))
     rows = pg_cur.fetchall()
 
     output_list = list()
