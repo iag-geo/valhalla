@@ -93,6 +93,8 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 -- ;
 
 -- STEP 5 - get start and end points of segments that need to be routed (length > 1km)
+-- TODO: allow for the possible(?) scenario where 2 routes are done back to back, when 1 long one should be created.
+--   Check for end point = the next start point
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
 WITH pnt AS (
