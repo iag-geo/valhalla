@@ -72,8 +72,8 @@ order by distance_from_trace_point desc;
 
 
 -- create table for analysing map matching - look at how far waypoints moved to the road network
-drop table if exists testing.temp_waypoint_point_diff;
-create table testing.temp_waypoint_point_diff as
+DROP TABLE IF EXISTS testing.temp_waypoint_point_diff;
+CREATE TABLE testing.temp_waypoint_point_diff as
 with way AS (
     SELECT row_number() over (partition by trip_id order by time_local) - 1 AS point_index,
            trip_id,
