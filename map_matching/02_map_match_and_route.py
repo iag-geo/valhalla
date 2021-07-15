@@ -574,7 +574,7 @@ def route_trajectory(job):
                     segment_type = "route"
 
                     shape_sql = """insert into testing.valhalla_route_shape
-                                         values ('{}', {}, {}, {}, {}, '{}', {})"""\
+                                         values ('{}', {}, {}, {}, {}, '{}', {})""" \
                         .format(traj_id, search_radius, segment_index, distance_m,
                                 point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
