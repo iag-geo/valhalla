@@ -37,8 +37,7 @@ WITH seg AS (
            distance_m,
            point_count,
            segment_type,
-           st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as previous_end_geom,
-           st_startpoint(geom) as start_geom
+           st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as previous_end_geom
     FROM testing.valhalla_segments
 )
 UPDATE testing.valhalla_segments as rte
@@ -53,6 +52,29 @@ WHERE rte.trip_id = seg.trip_id
 ;
 ANALYSE testing.valhalla_segments;
 
+
+-- add new end point to a route segment where Valhalla used a different end point to the next map matched start point
+WITH seg AS (
+    SELECT trip_id,
+           search_radius,
+           segment_index,
+           distance_m,
+           point_count,
+           segment_type,
+           st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as next_start_geom
+    FROM testing.valhalla_segments
+)
+UPDATE testing.valhalla_segments as rte
+SET geom = st_addpoint(rte.geom, seg.next_start_geom),
+    distance_m = st_length(st_addpoint(rte.geom, seg.next_start_geom)::geography),
+    point_count = rte.point_count + 1
+FROM seg
+WHERE rte.trip_id = seg.trip_id
+  AND rte.search_radius = seg.search_radius
+  AND rte.segment_index = seg.segment_index
+  AND seg.segment_type = 'route'
+;
+ANALYSE testing.valhalla_segments;
 
 -- stitch each route into a single linestring
 -- TODO: can they be merged into single linestrings?
@@ -86,11 +108,11 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 
 -- DROP TABLE IF EXISTS testing.temp_split_shape;
 
-select *,
-       geometrytype(geom)
-from testing.valhalla_final_routes
-order by trip_id,
-         search_radius;
+-- select *,
+--        geometrytype(geom)
+-- from testing.valhalla_final_routes
+-- order by trip_id,
+--          search_radius;
 
 
 

@@ -504,19 +504,19 @@ def route_trajectory(job):
 
     # get inputs
     traj_id = job[0]
-    search_radius = job[1]
+    search_radius = float(job[1])
     segment_index = job[2]
 
     start_location = dict()
     start_location["lat"] = job[3]
     start_location["lon"] = job[4]
-    start_location["radius"] = 100
+    start_location["radius"] = search_radius
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
 
     end_location = dict()
     end_location["lat"] = job[5]
     end_location["lon"] = job[6]
-    end_location["radius"] = 100
+    end_location["radius"] = search_radius
     end_location["rank_candidates"] = False
 
     # add parameters and start & end points to request
