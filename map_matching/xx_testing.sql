@@ -1,5 +1,14 @@
 
+select *
+from testing.valhalla_route_fail;
 
+select *
+from testing.valhalla_route_shape;
+
+
+
+select count(*) from testing.waypoint
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 
 
 SELECT *

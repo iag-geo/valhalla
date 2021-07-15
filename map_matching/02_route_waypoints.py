@@ -1,13 +1,8 @@
 
-
-
 # TODO: look at using valhalla IDs for road segments
 #   - WARNING: IDs are transient and will change between OSM data versions
 
 # TODO: Avoid using latest Valhalla version until Edge ID issue is resolved
-
-# TODO: account for large gaps in waypoints due to GPS/data missing
-#  need to route these, not map match them - causes weird routes
 
 import json
 import logging
@@ -31,8 +26,7 @@ inverse_precision = 1.0 / 1e6
 
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [10, 20, 30, 40, 50, 60, 70]
-# search_radii = [70]
+search_radii = [50, 100, 150, 200, 300, 350]
 iteration_count = len(search_radii)
 
 # number of CPUs to use in processing (defaults to local CPU count)
@@ -52,7 +46,7 @@ map_matching_url =  valhalla_base_url + "trace_attributes"
 routing_url =  valhalla_base_url + "route"
 
 # input GPS points table
-input_table = "testing.waypoint"
+input_table = "testing.waypoint_thinned"
 
 # Does data have timestamps
 use_timestamps = False
@@ -196,95 +190,102 @@ def route_trajectory(job):
 
     # get inputs
     traj_id = job[0]
-    search_radius = job[1]
-    segment_index = job[2]
+    segment_index = 0  # placeholder
+    points = job[2]
 
-    start_location = dict()
-    start_location["lat"] = job[3]
-    start_location["lon"] = job[4]
-    start_location["radius"] = 300
-    start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
+    point_count = len(points)
 
-    end_location = dict()
-    end_location["lat"] = job[5]
-    end_location["lon"] = job[6]
-    end_location["radius"] = 300
-    end_location["rank_candidates"] = False
+    # print(point_count)
 
-    # add parameters and start & end points to request
-    input_points = list()
-    input_points.append(start_location)
-    input_points.append(end_location)
+    for search_radius in search_radii:
+        point_num = 0
+        input_points = list()
 
-    # TODO: this could be done better, instead of evaluating this every request
-    request_dict = get_routing_parameters()
-    request_dict["locations"] = input_points
+        # add routing parameters to each point and add to input list of locations
+        for point in points:
+            # make start and end point break points; the rest as through points
+            if point_num == 0 or point_num == point_count:
+                point["type"] = "break"
+            else:
+                point["type"] = "through"
 
-    # convert request data to JSON string
-    json_payload = json.dumps(request_dict)
+            point["radius"] = search_radius
+            point["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
+            input_points.append(point)
 
-    # get a route
-    try:
-        r = requests.post(routing_url, data=json_payload)
-    except Exception as e:
-        # if complete failure - Valhalla has possibly crashed
-        return "Valhalla routing failure ON trajectory {} : {}".format(traj_id, e)
+            point_num += 1
 
-    # add results to lists of shape, edge and point dicts for insertion into postgres
-    if r.status_code == 200:
-        response_dict = r.json()
+        print("{}".format(input_points))
 
-        # DEBUGGING
-        if segment_index == 81 and search_radius == 60:
-            with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
-                json.dump(response_dict, response_file, indent=4, sort_keys=True)
+        # TODO: this could be done better, instead of evaluating this every request
+        request_dict = get_routing_parameters()
+        request_dict["locations"] = input_points
 
-        # output matched route geometry
-        legs = response_dict.get("trip")["legs"]
+        # convert request data to JSON string
+        json_payload = json.dumps(request_dict)
 
-        if legs is not None and len(legs) > 0:
-            # for each route leg - construct postgis geometry string for insertion into postgres
-            for leg in legs:
-                distance_m = float(leg["summary"]["length"]) * 1000.0
-                shape_coords = decode(leg["shape"])  # decode Google encoded polygon
-                point_list = list()
+        # get a route
+        try:
+            r = requests.post(routing_url, data=json_payload)
+        except Exception as e:
+            # if complete failure - Valhalla has possibly crashed
+            return "Valhalla routing failure ON trajectory {} : {}".format(traj_id, e)
 
-                if len(shape_coords) > 1:
-                    point_count = 0
+        # add results to lists of shape, edge and point dicts for insertion into postgres
+        if r.status_code == 200:
+            response_dict = r.json()
 
-                    for coords in shape_coords:
-                        point_list.append("{} {}".format(coords[0], coords[1]))
-                        point_count +=1
+            # DEBUGGING
+            if segment_index == 81 and search_radius == 60:
+                with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
+                    json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
-                    geom_string = "ST_GeomFromText('LINESTRING("
-                    geom_string += ",".join(point_list)
-                    geom_string += ")', 4326)"
+            # output matched route geometry
+            legs = response_dict.get("trip")["legs"]
 
-                    segment_type = "route"
+            if legs is not None and len(legs) > 0:
+                # for each route leg - construct postgis geometry string for insertion into postgres
+                for leg in legs:
+                    distance_m = float(leg["summary"]["length"]) * 1000.0
+                    shape_coords = decode(leg["shape"])  # decode Google encoded polygon
+                    point_list = list()
 
-                    shape_sql = """insert into testing.valhalla_route_shape
-                                         values ('{}', {}, {}, {}, {}, '{}', {})""" \
-                        .format(traj_id, search_radius, segment_index, distance_m,
-                                point_count, segment_type, geom_string)
-                    pg_cur.execute(shape_sql)
-                else:
-                    fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, segment_index, error)
-                                      values ('{}', {}, {}, '{}')""" \
-                        .format(traj_id, search_radius, segment_index, "Linestring only has one point")
-                    pg_cur.execute(fail_sql)
+                    if len(shape_coords) > 1:
+                        point_count = 0
 
-    else:
-        # get error
-        e = json.loads(r.content)
+                        for coords in shape_coords:
+                            point_list.append("{} {}".format(coords[0], coords[1]))
+                            point_count +=1
 
-        curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
-            .format(json_payload, routing_url)
+                        geom_string = "ST_GeomFromText('LINESTRING("
+                        geom_string += ",".join(point_list)
+                        geom_string += ")', 4326)"
 
-        sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
-            .format(traj_id, search_radius, segment_index, e["error_code"], e["error"],
-                    str(e["status_code"]) + ":" + e["status"], curl_command)
+                        segment_type = "route"
 
-        pg_cur.execute(sql)
+                        shape_sql = """insert into testing.valhalla_route_shape
+                                             values ('{}', {}, {}, {}, {}, '{}', {})""" \
+                            .format(traj_id, search_radius, segment_index, distance_m,
+                                    point_count, segment_type, geom_string)
+                        pg_cur.execute(shape_sql)
+                    else:
+                        fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, segment_index, error)
+                                          values ('{}', {}, {}, '{}')""" \
+                            .format(traj_id, search_radius, segment_index, "Linestring only has one point")
+                        pg_cur.execute(fail_sql)
+
+        else:
+            # get error
+            e = json.loads(r.content)
+
+            curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
+                .format(json_payload, routing_url)
+
+            sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
+                .format(traj_id, search_radius, segment_index, e["error_code"], e["error"],
+                        str(e["status_code"]) + ":" + e["status"], curl_command)
+
+            pg_cur.execute(sql)
 
     # clean up
     pg_cur.close()

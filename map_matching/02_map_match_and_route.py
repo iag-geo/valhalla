@@ -4,9 +4,6 @@
 
 # TODO: Avoid using latest Valhalla version until Edge ID issue is resolved
 
-# TODO: account for large gaps in waypoints due to GPS/data missing
-#  need to route these, not map match them - causes weird routes
-
 import json
 import logging
 import multiprocessing
