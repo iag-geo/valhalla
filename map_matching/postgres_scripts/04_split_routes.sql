@@ -30,7 +30,7 @@ FROM temp_line_point
 ;
 ANALYSE temp_line_calc;
 
--- STEP 3 - create a line that crosses the map matched route using maths YEAH! (to be used to split the matched routes)
+-- STEP 3 - create a line that crosses the map matched route (to be used to split the matched routes)
 DROP TABLE IF EXISTS testing.temp_split_line;
 CREATE TABLE testing.temp_split_line AS
 SELECT DISTINCT trip_id,
@@ -106,7 +106,7 @@ WITH pnt AS (
            st_startpoint(geom) AS start_geom,
            st_endpoint(geom)   AS end_geom
     FROM testing.temp_split_shape
-    WHERE distance_m > 1000.0
+    WHERE distance_m > 400.0
 )
 SELECT *,
        st_y(start_geom) AS start_lat,

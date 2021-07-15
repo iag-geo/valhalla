@@ -264,8 +264,9 @@ def get_map_matching_parameters(search_radius):
 
     request_dict["costing"] = "auto"
     request_dict["directions_options"] = {"units": "kilometres"}
+    # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
-    request_dict["trace_options"] = {"search_radius": search_radius}
+    request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": search_radius}
 
     # # test parameters - yet to do anything
     # request_dict["gps_accuracy"] = 65
