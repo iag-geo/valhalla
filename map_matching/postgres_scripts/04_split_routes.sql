@@ -105,8 +105,7 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 -- ;
 
 -- STEP 5 - get start and end points of segments that need to be routed (length > 1km)
--- TODO: allow for the possible(?) scenario where 2 routes are done back to back, when 1 long one should be created.
---   Check for end point = the next start point
+-- Note: doesn't attempt to merge 2 routes back to back into 1 route - this could be a valid u-turn in the trip data
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
 WITH pnt AS (
@@ -171,6 +170,7 @@ WITH the_end AS (
 ), pnt AS (
     SELECT way.trip_id,
            way.geom
+--            way.point_index
     FROM testing.waypoint as way
     INNER JOIN the_end ON way.trip_id = the_end.trip_id
         AND way.point_index = the_end.point_index
@@ -178,6 +178,7 @@ WITH the_end AS (
     SELECT pnt.trip_id,
            search_radius,
            gps_accuracy,
+--            point_index,
            999999::integer                                                    AS segment_index,
            st_distance(pnt.geom::geography, st_endpoint(shp.geom)::geography) AS distance_m,
            2::integer                                                         AS point_count,
