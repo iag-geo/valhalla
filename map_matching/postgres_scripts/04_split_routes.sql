@@ -96,6 +96,8 @@ ALTER TABLE testing.temp_split_shape
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
+
+
 -- -- testing
 -- SELECT * FROM testing.temp_split_shape
 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
@@ -127,6 +129,41 @@ SELECT *,
 FROM pnt
 ;
 ANALYSE testing.temp_route_this;
+
+
+-- add start segments that aren't map matched (causes the entire route to be missing the start segment)
+INSERT INTO testing.temp_route_this
+WITH pnt AS (
+    SELECT trip_id,
+           geom
+    FROM testing.waypoint
+    WHERE point_index = 0
+), merge AS (
+    SELECT pnt.trip_id,
+           search_radius,
+           gps_accuracy,
+           0::integer AS segment_index,
+           st_distance(pnt.geom::geography, st_startpoint(shp.geom)::geography) AS distance_m,
+           2::integer AS point_count,
+           pnt.geom                                                             AS start_geom,
+           st_startpoint(shp.geom)                                              AS end_geom
+    FROM testing.valhalla_map_match_shape AS shp
+             INNER JOIN pnt ON shp.trip_id = pnt.trip_id
+)
+SELECT *,
+       st_y(start_geom) AS start_lat,
+       st_x(start_geom) AS start_lon,
+       st_y(end_geom) AS end_lat,
+       st_x(end_geom) AS end_lon
+FROM merge
+;
+ANALYSE testing.temp_route_this;
+
+
+
+
+
+
 
 
 DROP TABLE IF EXISTS temp_split_line;

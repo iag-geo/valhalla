@@ -26,7 +26,8 @@ inverse_precision = 1.0 / 1e6
 
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
+# search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
+search_radii = [7.5, 15.0, 30.0, 60.0]
 # search_radii = [70]
 iteration_count = pow(len(search_radii), 2)
 
@@ -515,14 +516,22 @@ def route_trajectory(job):
     start_location = dict()
     start_location["lat"] = job[4]
     start_location["lon"] = job[5]
-    start_location["radius"] = search_radius
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
+    # # if segment is the start of the route - double the radius to enable a wider search for a road
+    # if segment_index == 0:
+    start_location["radius"] = search_radius * 2
+    # else:
+    #     start_location["radius"] = search_radius
 
     end_location = dict()
     end_location["lat"] = job[6]
     end_location["lon"] = job[7]
-    end_location["radius"] = search_radius
     end_location["rank_candidates"] = False
+    # # if segment is the end of the route - double the radius to enable a wider search for a road
+    # if segment_index == 0:
+    end_location["radius"] = search_radius * 2
+    # else:
+    #     end_location["radius"] = search_radius
 
     # add parameters and start & end points to request
     input_points = list()

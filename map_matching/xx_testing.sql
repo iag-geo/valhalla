@@ -1,4 +1,39 @@
 
+
+
+
+
+
+select *
+from testing.valhalla_final_routes
+order by distance_m
+;
+
+
+
+select *
+from testing.temp_route_this
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+and search_radius = 5
+and gps_accuracy = 5
+;
+
+select *
+from testing.valhalla_route_shape
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+  and search_radius = 5
+  and gps_accuracy = 5
+;
+
+select *
+from testing.valhalla_segments
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+  and search_radius = 5
+  and gps_accuracy = 5
+;
+
+
+
 select *
 from testing.valhalla_route_fail;
 

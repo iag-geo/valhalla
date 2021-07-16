@@ -54,6 +54,7 @@ WHERE rte.trip_id = seg.trip_id
   AND rte.gps_accuracy = seg.gps_accuracy
   AND rte.segment_index = seg.segment_index
   AND seg.segment_type = 'route'
+  AND seg.segment_index > 0
 ;
 ANALYSE testing.valhalla_segments;
 
@@ -92,6 +93,10 @@ WITH seg AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
+           sum(CASE WHEN segment_type = 'map match' THEN 1 ELSE 0 END) AS map_match_segments,
+           sum(CASE WHEN segment_type = 'map match' THEN distance_m ELSE 0.0 END) / 1000.0 AS map_match_distance_km,
+           sum(CASE WHEN segment_type = 'route' THEN 1 ELSE 0 END) AS route_segments,
+           sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY segment_index) AS geom
     FROM testing.valhalla_segments
     GROUP BY trip_id,
@@ -101,7 +106,11 @@ WITH seg AS (
 SELECT trip_id,
        search_radius,
        gps_accuracy,
-       st_length(geom::geography) AS distance_m,
+       map_match_segments,
+       map_match_distance_km,
+       route_segments,
+       route_distance_km,
+       st_length(geom::geography) / 1000.0 AS distance_km,
        geom
 FROM seg
 ;
