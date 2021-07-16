@@ -82,6 +82,7 @@ WHERE rte.trip_id = seg.trip_id
   AND rte.gps_accuracy = seg.gps_accuracy
   AND rte.segment_index = seg.segment_index
   AND seg.segment_type = 'route'
+  AND seg.segment_index < 999999
 ;
 ANALYSE testing.valhalla_segments;
 

@@ -131,7 +131,7 @@ FROM pnt
 ANALYSE testing.temp_route_this;
 
 
--- add start segments that aren't map matched (causes the entire route to be missing the start segment)
+-- add start segments that aren't map matched (causes the entire route to be missing the first segment)
 INSERT INTO testing.temp_route_this
 WITH pnt AS (
     SELECT trip_id,
@@ -156,9 +156,45 @@ SELECT *,
        st_y(end_geom) AS end_lat,
        st_x(end_geom) AS end_lon
 FROM merge
+WHERE distance_m > 50.0
 ;
 ANALYSE testing.temp_route_this;
 
+
+-- add end segments that aren't map matched (causes the entire route to be missing the last segment)
+INSERT INTO testing.temp_route_this
+WITH the_end AS (
+    SELECT trip_id,
+           max(point_index) AS point_index
+    FROM testing.waypoint
+    GROUP BY trip_id
+), pnt AS (
+    SELECT way.trip_id,
+           way.geom
+    FROM testing.waypoint as way
+    INNER JOIN the_end ON way.trip_id = the_end.trip_id
+        AND way.point_index = the_end.point_index
+), merge AS (
+    SELECT pnt.trip_id,
+           search_radius,
+           gps_accuracy,
+           999999::integer                                                    AS segment_index,
+           st_distance(pnt.geom::geography, st_endpoint(shp.geom)::geography) AS distance_m,
+           2::integer                                                         AS point_count,
+           st_endpoint(shp.geom)                                              AS start_geom,
+           pnt.geom                                                           AS end_geom
+    FROM testing.valhalla_map_match_shape AS shp
+             INNER JOIN pnt ON shp.trip_id = pnt.trip_id
+)
+SELECT *,
+       st_y(start_geom) AS start_lat,
+       st_x(start_geom) AS start_lon,
+       st_y(end_geom) AS end_lat,
+       st_x(end_geom) AS end_lon
+FROM merge
+WHERE distance_m > 50.0
+;
+ANALYSE testing.temp_route_this;
 
 
 
