@@ -91,8 +91,8 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 -- remove duplicate points by grouping them by ~1m
 -- TODO: merge into single linestrings?
 -- TODO: fix gaps between map match and route segments
-DROP TABLE IF EXISTS testing.valhalla_final_routes;
-CREATE TABLE testing.valhalla_final_routes AS
+DROP TABLE IF EXISTS testing.valhalla_final_route;
+CREATE TABLE testing.valhalla_final_route AS
 WITH stats AS (
     SELECT trip_id,
            search_radius,
@@ -150,12 +150,12 @@ GROUP BY stats.trip_id,
          route_segments,
          route_distance_km
 ;
-ANALYSE testing.valhalla_final_routes;
+ANALYSE testing.valhalla_final_route;
 
-ALTER TABLE testing.valhalla_final_routes
-    ADD CONSTRAINT valhalla_final_routes_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
-CREATE INDEX valhalla_final_routes_geom_idx ON testing.valhalla_final_routes USING gist (geom);
-ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_idx;
+ALTER TABLE testing.valhalla_final_route
+    ADD CONSTRAINT valhalla_final_route_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
+CREATE INDEX valhalla_final_route_geom_idx ON testing.valhalla_final_route USING gist (geom);
+ALTER TABLE testing.valhalla_final_route CLUSTER ON valhalla_final_route_geom_idx;
 
 
 -- -- 1344 test rows
@@ -166,7 +166,7 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 
 -- select *,
 --        geometrytype(geom)
--- from testing.valhalla_final_routes
+-- from testing.valhalla_final_route
 -- order by trip_id,
 --          search_radius,
 --          gps_accuracy;

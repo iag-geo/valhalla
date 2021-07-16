@@ -27,8 +27,8 @@ inverse_precision = 1.0 / 1e6
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 # search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
-search_radii = [7.5, 15.0, 30.0, 60.0]
-# search_radii = [70]
+# search_radii = [7.5, 15.0, 30.0, 60.0]
+search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
 
 # number of CPUs to use in processing (defaults to local CPU count)
@@ -99,14 +99,16 @@ def main():
         sql = """SELECT {0},
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS points 
-                 FROM {5} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 FROM {5}
+                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
         sql = """SELECT {0},
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS points 
-                 FROM {4} WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 FROM {4}
+                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
@@ -237,15 +239,15 @@ def main():
         pass
 
     # get routing table counts
-    pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
-    route_to_do_count = pg_cur.fetchone()[0]
+    # pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
+    # route_to_do_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
     traj_route_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
     fail_route_count = pg_cur.fetchone()[0]
 
     logger.info("\t - routing results")
-    logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
+    # logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
     logger.info("\t\t - {:,} segments routed".format(traj_route_count))
     if fail_route_count > 0:
         logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
@@ -254,6 +256,11 @@ def main():
     sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
+
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_final_route")
+    final_route_count = pg_cur.fetchone()[0]
+
+    logger.info("\t\t - {:,} final routes created".format(traj_route_count))
 
     # close postgres connection
     pg_cur.close()
