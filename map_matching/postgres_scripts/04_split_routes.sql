@@ -68,7 +68,7 @@ WITH blade AS (
            trip.gps_accuracy,
            st_split(trip.geom, blade.geom) AS geom
     FROM testing.valhalla_map_match_shape AS trip
-             INNER JOIN blade ON trip.trip_id = blade.trip_id
+    INNER JOIN blade ON trip.trip_id = blade.trip_id
         AND trip.search_radius = blade.search_radius
         AND trip.gps_accuracy = blade.gps_accuracy
 ), lines AS (
