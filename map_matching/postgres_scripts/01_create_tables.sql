@@ -6,6 +6,7 @@ CREATE TABLE testing.valhalla_map_match_shape
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     distance_m float,
     geom geometry(linestring, 4326)
 );
@@ -17,6 +18,7 @@ CREATE TABLE testing.valhalla_map_match_shape_non_pii
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     distance_m float,
     geom geometry(linestring, 4326)
 );
@@ -29,6 +31,7 @@ CREATE TABLE testing.valhalla_map_match_edge
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     edge_index integer,
     osm_id integer,
     names text[],
@@ -46,6 +49,7 @@ CREATE TABLE testing.valhalla_map_match_point
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     point_index integer,
     distance_from_trace_point float,
     distance_along_edge float,
@@ -65,6 +69,7 @@ CREATE TABLE testing.valhalla_map_match_fail
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     error_code smallint,
     error text,
     http_status text,
@@ -80,6 +85,7 @@ CREATE TABLE testing.valhalla_route_shape
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     segment_index integer,
     distance_m float,
     point_count integer,
@@ -94,6 +100,7 @@ CREATE TABLE testing.valhalla_route_fail
 (
     trip_id text,
     search_radius smallint,
+    gps_accuracy smallint,
     segment_index integer,
     error_code smallint,
     error text,

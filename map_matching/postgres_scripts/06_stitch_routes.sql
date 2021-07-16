@@ -8,7 +8,7 @@ ANALYSE testing.valhalla_segments;
 
 -- create primary key to ensure uniqueness
 ALTER TABLE testing.valhalla_segments
-    ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, segment_index);
+    ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, segment_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.valhalla_segments
@@ -16,10 +16,12 @@ SELECT * FROM testing.temp_split_shape AS temp
 WHERE NOT EXISTS(
         SELECT trip_id,
                search_radius,
+               gps_accuracy,
                segment_index
         FROM testing.valhalla_segments AS seg
         WHERE seg.trip_id = temp.trip_id
           AND seg.search_radius = temp.search_radius
+          AND seg.gps_accuracy = temp.gps_accuracy
           AND seg.segment_index = temp.segment_index
     )
 ;
@@ -33,11 +35,13 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 WITH seg AS (
     SELECT trip_id,
            search_radius,
+           gps_accuracy,
            segment_index,
            distance_m,
            point_count,
            segment_type,
-           st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as previous_end_geom
+           st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
+               AS previous_end_geom
     FROM testing.valhalla_segments
 )
 UPDATE testing.valhalla_segments as rte
@@ -47,6 +51,7 @@ UPDATE testing.valhalla_segments as rte
 FROM seg
 WHERE rte.trip_id = seg.trip_id
   AND rte.search_radius = seg.search_radius
+  AND rte.gps_accuracy = seg.gps_accuracy
   AND rte.segment_index = seg.segment_index
   AND seg.segment_type = 'route'
 ;
@@ -57,11 +62,13 @@ ANALYSE testing.valhalla_segments;
 WITH seg AS (
     SELECT trip_id,
            search_radius,
+           gps_accuracy,
            segment_index,
            distance_m,
            point_count,
            segment_type,
-           st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as next_start_geom
+           st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
+               AS next_start_geom
     FROM testing.valhalla_segments
 )
 UPDATE testing.valhalla_segments as rte
@@ -71,6 +78,7 @@ SET geom = st_addpoint(rte.geom, seg.next_start_geom),
 FROM seg
 WHERE rte.trip_id = seg.trip_id
   AND rte.search_radius = seg.search_radius
+  AND rte.gps_accuracy = seg.gps_accuracy
   AND rte.segment_index = seg.segment_index
   AND seg.segment_type = 'route'
 ;
@@ -83,13 +91,16 @@ CREATE TABLE testing.valhalla_final_routes AS
 WITH seg AS (
     SELECT trip_id,
            search_radius,
+           gps_accuracy,
            st_collect(geom ORDER BY segment_index) AS geom
     FROM testing.valhalla_segments
     GROUP BY trip_id,
-             search_radius
+             search_radius,
+             gps_accuracy
 )
 SELECT trip_id,
        search_radius,
+       gps_accuracy,
        st_length(geom::geography) AS distance_m,
        geom
 FROM seg
@@ -97,7 +108,7 @@ FROM seg
 ANALYSE testing.valhalla_final_routes;
 
 ALTER TABLE testing.valhalla_final_routes
-    ADD CONSTRAINT valhalla_final_routes_pkey PRIMARY KEY (trip_id, search_radius);
+    ADD CONSTRAINT valhalla_final_routes_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
 CREATE INDEX valhalla_final_routes_geom_idx ON testing.valhalla_final_routes USING gist (geom);
 ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_idx;
 
@@ -112,7 +123,8 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 --        geometrytype(geom)
 -- from testing.valhalla_final_routes
 -- order by trip_id,
---          search_radius;
+--          search_radius,
+--          gps_accuracy;
 
 
 
@@ -122,16 +134,18 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 -- WITH seg AS (
 --     SELECT trip_id,
 --            search_radius,
+--            gps_accuracy,
 --            segment_index,
 --            distance_m,
 --            point_count,
 --            segment_type,
---            st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius ORDER BY segment_index)) as previous_end_geom,
+--            st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index)) as previous_end_geom,
 --            st_startpoint(geom) as start_geom,
 --     FROM testing.valhalla_segments
 -- )
 -- SELECT trip_id,
 --        search_radius,
+--        gps_accuracy,
 --        segment_index + 99999 AS segment_index,
 --        st_distance(previous_end_geom::geography, start_geom::geography) AS distance_m,
 --        2 AS point_count,
@@ -142,11 +156,3 @@ ALTER TABLE testing.valhalla_final_routes CLUSTER ON valhalla_final_routes_geom_
 --   AND NOT st_equals(previous_end_geom, start_geom)
 -- ;
 -- ANALYSE testing.valhalla_segments;
-
-
-
-
-
-
-
-
