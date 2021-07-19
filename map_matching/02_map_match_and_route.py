@@ -51,7 +51,7 @@ routing_url =  valhalla_base_url + "route"
 input_table = "testing.waypoint"
 
 # Does data have timestamps
-use_timestamps = True
+use_timestamps = False
 
 # latitude field
 lat_field = "latitude"
