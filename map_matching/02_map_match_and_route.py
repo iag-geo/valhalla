@@ -51,7 +51,7 @@ routing_url =  valhalla_base_url + "route"
 input_table = "testing.waypoint"
 
 # Does data have timestamps
-use_timestamps = False
+use_timestamps = True
 
 # latitude field
 lat_field = "latitude"
@@ -474,6 +474,8 @@ def map_match_trajectory(job):
                     # look for matched point and use its new coordinates
                     for matched_point in matched_points:
                         if point["point_index"] == matched_point["point_index"]:
+                            if use_timestamps:
+                                matched_point["time"] = point["time"]
                             new_points.append(matched_point)
                             matched = True
                             break
