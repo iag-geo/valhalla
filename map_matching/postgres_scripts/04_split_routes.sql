@@ -3,7 +3,14 @@
 --    and also get the point closest to the map matched route (points aren't ON the line accurately enough)
 DROP TABLE IF EXISTS temp_line_point;
 CREATE TEMPORARY TABLE temp_line_point AS
-WITH pnt as (
+WITH trip as (
+    SELECT trip_id,
+           search_radius,
+           gps_accuracy,
+           ST_OffsetCurve(geom, 0.00001, 'quad_segs=0 join=bevel') AS geom
+    FROM testing.valhalla_map_match_shape
+)
+   , pnt as (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
@@ -26,7 +33,7 @@ SELECT DISTINCT pnt.trip_id,
                 pnt.geom AS geomA,
                 ST_ClosestPoint(trip.geom, pnt.geom) AS geomB
 FROM pnt
-    INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
+    INNER JOIN trip ON trip.trip_id = pnt.trip_id
     AND trip.search_radius = pnt.search_radius
     AND trip.gps_accuracy = pnt.gps_accuracy
 WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))  -- start points
@@ -35,14 +42,14 @@ WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.b
 ANALYSE temp_line_point;
 
 
-select *
-from temp_line_point
-where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-  and search_radius = 7.5
-  and gps_accuracy = 7.5
-  and st_equals(geomA, geomB)
-order by point_index
-;
+-- select *
+-- from temp_line_point
+-- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+--   and search_radius = 7.5
+--   and gps_accuracy = 7.5
+--   and st_equals(geomA, geomB)
+-- order by point_index
+-- ;
 
 
 -- STEP 2 - calc bearing, reverse bearing and distance for extending a line beyond the 2 points we're interested in
