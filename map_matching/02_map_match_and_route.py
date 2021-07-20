@@ -27,8 +27,8 @@ inverse_precision = 1.0 / 1e6
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 # search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
-# search_radii = [7.5, 15.0, 30.0, 60.0]
-search_radii = [7.5]
+search_radii = [7.5, 15.0, 30.0, 60.0]
+# search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
 
 # number of CPUs to use in processing (defaults to local CPU count)
@@ -100,7 +100,7 @@ def main():
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS points 
                  FROM {5}
-                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
@@ -108,7 +108,7 @@ def main():
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS points 
                  FROM {4}
-                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 

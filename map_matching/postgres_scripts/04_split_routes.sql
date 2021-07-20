@@ -1,30 +1,58 @@
 
--- STEP 1 - get map matched points and the point closest to the map matched route (points aren't ON the line)
+-- STEP 1 - get map matched points where the route goes off the street network
+--    and also get the point closest to the map matched route (points aren't ON the line accurately enough)
 DROP TABLE IF EXISTS temp_line_point;
 CREATE TEMPORARY TABLE temp_line_point AS
+WITH pnt as (
+    SELECT trip_id,
+           search_radius,
+           gps_accuracy,
+           point_index,
+           begin_route_discontinuity,
+           end_route_discontinuity,
+           lag(point_type) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS previous_point_type,
+           point_type,
+           lead(point_type) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS next_point_type,
+           geom
+    FROM testing.valhalla_map_match_point
+)
 SELECT DISTINCT pnt.trip_id,
                 pnt.point_index,
+                CASE
+                    WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
+                        THEN 'start' ELSE 'end' END AS route_point_type,
                 pnt.search_radius,
                 pnt.gps_accuracy,
-                pnt.point_type,
                 pnt.geom AS geomA,
                 ST_ClosestPoint(trip.geom, pnt.geom) AS geomB
-FROM testing.valhalla_map_match_point AS pnt
+FROM pnt
     INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
     AND trip.search_radius = pnt.search_radius
     AND trip.gps_accuracy = pnt.gps_accuracy
-WHERE pnt.point_type = 'matched'
+WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))  -- start points
+    OR (pnt.point_type = 'matched' AND (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity))  -- end points
 ;
 ANALYSE temp_line_point;
+
+
+select *
+from temp_line_point
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
+  and st_equals(geomA, geomB)
+order by point_index
+;
+
 
 -- STEP 2 - calc bearing, reverse bearing and distance for extending a line beyond the 2 points we're interested in
 DROP TABLE IF EXISTS temp_line_calc;
 CREATE TEMPORARY TABLE temp_line_calc AS
 SELECT trip_id,
        point_index,
+       route_point_type,
        search_radius,
        gps_accuracy,
-       point_type,
        geomA AS geom,
        ST_Azimuth(geomA, geomB) AS azimuthAB,
        ST_Azimuth(geomB, geomA) AS azimuthBA,
@@ -38,9 +66,9 @@ DROP TABLE IF EXISTS testing.temp_split_line;
 CREATE TABLE testing.temp_split_line AS
 SELECT DISTINCT trip_id,
                 point_index,
+                route_point_type,
                 search_radius,
                 gps_accuracy,
-                point_type,
                 ST_MakeLine(ST_Translate(geom, sin(azimuthBA) * 0.00001, cos(azimuthBA) * 0.00001),
                     ST_Translate(geom, sin(azimuthAB) * dist, cos(azimuthAB) * dist))::geometry(Linestring, 4326) AS geom
 FROM temp_line_calc
