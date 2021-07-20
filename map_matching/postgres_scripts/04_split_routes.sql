@@ -9,21 +9,22 @@ WITH trip as (
            gps_accuracy,
            ST_OffsetCurve(geom, 0.00001, 'quad_segs=0 join=bevel') AS geom
     FROM testing.valhalla_map_match_shape
-)
-   , pnt as (
+), pnt as (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
            point_index,
            begin_route_discontinuity,
            end_route_discontinuity,
-           lag(point_type) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS previous_point_type,
+           lag(point_type)
+               OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS previous_point_type,
            point_type,
-           lead(point_type) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS next_point_type,
+           lead(point_type)
+               OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS next_point_type,
            geom
     FROM testing.valhalla_map_match_point
 )
-SELECT DISTINCT pnt.trip_id,
+SELECT pnt.trip_id,
                 pnt.point_index,
                 CASE
                     WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
@@ -47,7 +48,7 @@ ANALYSE temp_line_point;
 -- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
---   and st_equals(geomA, geomB)
+-- --   and st_equals(geomA, geomB)
 -- order by point_index
 -- ;
 
@@ -132,12 +133,12 @@ CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (g
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
 
-
 -- -- testing
 -- SELECT * FROM testing.temp_split_shape
 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 --   and search_radius = 60
 -- ;
+
 
 -- STEP 5 - get start and end points of segments that need to be routed (length > 1km)
 -- Note: doesn't attempt to merge 2 routes back to back into 1 route - this could be a valid u-turn in the trip data
@@ -153,7 +154,6 @@ WITH pnt AS (
            st_startpoint(geom) AS start_geom,
            st_endpoint(geom)   AS end_geom
     FROM testing.temp_split_shape
-    WHERE distance_m > 400.0
 )
 SELECT *,
        st_y(start_geom) AS start_lat,
