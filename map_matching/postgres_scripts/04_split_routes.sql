@@ -1,6 +1,6 @@
 
--- STEP 1 - get map matched points where the route goes off the street network
---    and also get the point closest to the map matched route (points aren't ON the line accurately enough)
+-- STEP 1 - get map matched points where the route goes off and back onto the street network
+--    and also get the point closest to the map matched route (points aren't necessarily on the line...)
 DROP TABLE IF EXISTS temp_line_point;
 CREATE TEMPORARY TABLE temp_line_point AS
 WITH trip as (
@@ -48,17 +48,17 @@ WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.b
 ANALYSE temp_line_point;
 
 
-select *
-from temp_line_point
-where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
---   and search_radius = 7.5
---   and gps_accuracy = 7.5
---   and st_equals(geomA, geomB)
-order by trip_point_percent
-;
+-- select *
+-- from temp_line_point
+-- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+-- --   and search_radius = 7.5
+-- --   and gps_accuracy = 7.5
+-- --   and st_equals(geomA, geomB)
+-- order by trip_point_percent
+-- ;
 
-
--- STEP 2 - calc bearing, reverse bearing and distance for extending a line beyond the 2 points we're interested in
+-- STEP 2 - calculate bearing, reverse bearing and distance to create a splitting line perpendicular to the trip at each waypoint
+--   Determine the azimuth based on +/- 90 degrees from trip direction at each waypoint
 DROP TABLE IF EXISTS temp_line_calc;
 CREATE TEMPORARY TABLE temp_line_calc AS
 WITH az AS (
@@ -68,7 +68,7 @@ WITH az AS (
     FROM temp_line_point
     WHERE trip_point_percent > 0.0
         AND trip_point_percent < 0.9999 -- don't want start or end points
-), fix AS ( -- fix azimuth if > 360 degress (2xPi radians)
+), fix AS ( -- fix azimuth if > 360 degrees (2xPi radians)
     SELECT *,
            CASE WHEN line_azimuth > pi() * 2.0 THEN line_azimuth - pi() * 2.0 ELSE line_azimuth END AS azimuthAB
     FROM az
@@ -86,7 +86,8 @@ FROM fix
 ;
 ANALYSE temp_line_calc;
 
--- STEP 3 - create a line that crosses the map matched route (to be used to split the matched routes)
+
+-- STEP 3 - create the splitting lines that cross the map matched route
 DROP TABLE IF EXISTS testing.temp_split_line;
 CREATE TABLE testing.temp_split_line AS
 SELECT DISTINCT trip_id,
@@ -100,8 +101,6 @@ FROM temp_line_calc
 ;
 ANALYSE testing.temp_split_line;
 
-DROP TABLE IF EXISTS temp_line_calc;
-DROP TABLE IF EXISTS temp_line_point;
 
 -- STEP 4 - split the matched routes into a new table
 DROP TABLE IF EXISTS testing.temp_split_shape;
@@ -157,8 +156,18 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 -- ;
 
 
--- STEP 5 - get start and end points of segments that need to be routed (length > 1km)
--- Note: doesn't attempt to merge 2 routes back to back into 1 route - this could be a valid u-turn in the trip data
+
+-- New STEP 5 - add start and end records to temp_points where start or end isn't map matched.
+--  then add to route input table
+
+
+
+-- STEP 5 - get start and end points of segments to be routed
+
+
+-- need to add
+
+
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
 WITH pnt AS (
@@ -250,10 +259,6 @@ WHERE distance_m > 50.0
 ANALYSE testing.temp_route_this;
 
 
-
-
-
-
-
-DROP TABLE IF EXISTS temp_split_line;
-
+-- DROP TABLE IF EXISTS testing.temp_split_line;
+DROP TABLE IF EXISTS temp_line_calc;
+DROP TABLE IF EXISTS temp_line_point;
