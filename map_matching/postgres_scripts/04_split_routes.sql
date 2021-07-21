@@ -64,7 +64,7 @@ SELECT trip_id,
        geomA AS geom,
        ST_Azimuth(geomA, geomB) AS azimuthAB,
        ST_Azimuth(geomB, geomA) AS azimuthBA,
-       ST_Distance(geomA, geomB) + 0.00001 AS dist
+       ST_Distance(geomA, geomB) + 0.00002 AS dist
 FROM temp_line_point
 ;
 ANALYSE temp_line_calc;
@@ -77,7 +77,7 @@ SELECT DISTINCT trip_id,
                 route_point_type,
                 search_radius,
                 gps_accuracy,
-                ST_MakeLine(ST_Translate(geom, sin(azimuthBA) * 0.00001, cos(azimuthBA) * 0.00001),
+                ST_MakeLine(ST_Translate(geom, sin(azimuthBA) * 0.00002, cos(azimuthBA) * 0.00002),
                     ST_Translate(geom, sin(azimuthAB) * dist, cos(azimuthAB) * dist))::geometry(Linestring, 4326) AS geom
 FROM temp_line_calc
 ;
