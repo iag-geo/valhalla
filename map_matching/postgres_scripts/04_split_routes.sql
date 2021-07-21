@@ -7,7 +7,9 @@ WITH trip as (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           ST_OffsetCurve(geom, 0.00001, 'quad_segs=0 join=bevel') AS geom
+           distance_m,
+           geom
+--            ST_OffsetCurve(geom, 0.00001, 'quad_segs=0 join=bevel') AS geom
     FROM testing.valhalla_map_match_shape
 ), pnt as (
     SELECT trip_id,
@@ -25,14 +27,17 @@ WITH trip as (
     FROM testing.valhalla_map_match_point
 )
 SELECT pnt.trip_id,
-                pnt.point_index,
-                CASE
-                    WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
-                        THEN 'start' ELSE 'end' END AS route_point_type,
-                pnt.search_radius,
-                pnt.gps_accuracy,
-                pnt.geom AS geomA,
-                ST_ClosestPoint(trip.geom, pnt.geom) AS geomB
+       pnt.point_index,
+       CASE
+           WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
+               THEN 'start' ELSE 'end' END AS route_point_type,
+       pnt.search_radius,
+       pnt.gps_accuracy,
+       trip.distance_m as trip_distance_m,
+       pnt.geom AS geomA,
+       ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
+       ST_LineLocatePoint(trip.geom, ST_ClosestPoint(trip.geom, pnt.geom)) As trip_point_percent,
+       trip.geom AS trip_geom
 FROM pnt
     INNER JOIN trip ON trip.trip_id = pnt.trip_id
     AND trip.search_radius = pnt.search_radius
@@ -43,29 +48,41 @@ WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.b
 ANALYSE temp_line_point;
 
 
--- select *
--- from temp_line_point
--- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+select *
+from temp_line_point
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
--- --   and st_equals(geomA, geomB)
--- order by point_index
--- ;
+--   and st_equals(geomA, geomB)
+order by trip_point_percent
+;
 
 
 -- STEP 2 - calc bearing, reverse bearing and distance for extending a line beyond the 2 points we're interested in
 DROP TABLE IF EXISTS temp_line_calc;
 CREATE TEMPORARY TABLE temp_line_calc AS
+WITH az AS (
+    SELECT *,
+           ST_Azimuth(trip_point_geom,
+               ST_LineInterpolatePoint(trip_geom, trip_point_percent + 0.0001)) + pi() / 2.0 AS line_azimuth
+    FROM temp_line_point
+    WHERE trip_point_percent > 0.0
+        AND trip_point_percent < 0.9999 -- don't want start or end points
+), fix AS ( -- fix azimuth if > 360 degress (2xPi radians)
+    SELECT *,
+           CASE WHEN line_azimuth > pi() * 2.0 THEN line_azimuth - pi() * 2.0 ELSE line_azimuth END AS azimuthAB
+    FROM az
+)
 SELECT trip_id,
        point_index,
        route_point_type,
        search_radius,
        gps_accuracy,
        geomA AS geom,
-       ST_Azimuth(geomA, geomB) AS azimuthAB,
-       ST_Azimuth(geomB, geomA) AS azimuthBA,
-       ST_Distance(geomA, geomB) + 0.00002 AS dist
-FROM temp_line_point
+       azimuthAB,
+       CASE WHEN azimuthAB >= pi() THEN azimuthAB - pi() ELSE azimuthAB + pi() END AS azimuthBA,
+       ST_Distance(geomA, trip_point_geom) + 0.00002 AS dist
+FROM fix
 ;
 ANALYSE temp_line_calc;
 
