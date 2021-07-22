@@ -3,7 +3,7 @@
 --    and also get the point closest to the map matched route (points aren't necessarily on the line...)
 DROP TABLE IF EXISTS temp_line_point;
 CREATE TEMPORARY TABLE temp_line_point AS
-WITH trip as (
+WITH trip AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
@@ -11,7 +11,7 @@ WITH trip as (
            geom
 --            ST_OffsetCurve(geom, 0.00001, 'quad_segs=0 join=bevel') AS geom
     FROM testing.valhalla_map_match_shape
-), pnt as (
+), pnt AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
@@ -25,25 +25,34 @@ WITH trip as (
                OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS next_point_type,
            geom
     FROM testing.valhalla_map_match_point
-)
-SELECT pnt.trip_id,
-       pnt.point_index,
-       CASE
-           WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
-               THEN 'start' ELSE 'end' END AS route_point_type,
-       pnt.search_radius,
-       pnt.gps_accuracy,
-       trip.distance_m as trip_distance_m,
-       pnt.geom AS geomA,
-       ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
-       ST_LineLocatePoint(trip.geom, ST_ClosestPoint(trip.geom, pnt.geom)) As trip_point_percent,
-       trip.geom AS trip_geom
-FROM pnt
+), pnt2 AS (
+    SELECT row_number()
+        OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS row_id,
+           pnt.trip_id,
+           pnt.point_index,
+           CASE
+               WHEN (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
+                   THEN 'start'
+               ELSE 'end' END                   AS route_point_type,
+           pnt.search_radius,
+           pnt.gps_accuracy,
+           trip.distance_m                      AS trip_distance_m,
+           pnt.geom                             AS geomA,
+           ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
+           trip.geom                            AS trip_geom
+    FROM pnt
     INNER JOIN trip ON trip.trip_id = pnt.trip_id
-    AND trip.search_radius = pnt.search_radius
-    AND trip.gps_accuracy = pnt.gps_accuracy
-WHERE (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))  -- start points
-    OR (pnt.point_type = 'matched' AND (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity))  -- end points
+        AND trip.search_radius = pnt.search_radius
+        AND trip.gps_accuracy = pnt.gps_accuracy
+    WHERE (pnt.point_type = 'matched' AND
+           (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity)) -- start points
+       OR (pnt.point_type = 'matched' AND
+           (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity)) -- end points
+)
+SELECT *,
+       ST_LineLocatePoint(trip_geom, trip_point_geom) AS trip_point_percent
+FROM pnt2
+
 ;
 ANALYSE temp_line_point;
 
@@ -166,6 +175,21 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
 
 -- need to add
+
+select *
+from temp_line_point
+order by trip_id,
+         search_radius,
+         gps_accuracy,
+         point_index
+;
+
+select *
+from testing.temp_split_line
+order by trip_id,
+         search_radius,
+         gps_accuracy;
+
 
 
 DROP TABLE IF EXISTS testing.temp_route_this;
