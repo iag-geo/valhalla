@@ -17,6 +17,15 @@ WITH pnt AS (
                OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index) AS next_point_type,
            geom
     FROM testing.valhalla_map_match_point
+), max_pnt AS (
+    SELECT trip_id,
+           search_radius,
+           gps_accuracy,
+           max(point_index) AS point_index
+    FROM testing.valhalla_map_match_point
+    GROUP BY trip_id,
+             search_radius,
+             gps_accuracy
 ), merge AS (
     SELECT row_number()
         OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS row_id,
@@ -37,9 +46,13 @@ WITH pnt AS (
     INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
         AND trip.search_radius = pnt.search_radius
         AND trip.gps_accuracy = pnt.gps_accuracy
-    WHERE (pnt.point_index = 0 AND point_type <> 'matched')  -- the first point -- need to include if unmatched
+    INNER JOIN max_pnt ON max_pnt.trip_id = pnt.trip_id
+        AND max_pnt.search_radius = pnt.search_radius
+        AND max_pnt.gps_accuracy = pnt.gps_accuracy
+    WHERE (pnt.point_index = 0 AND point_type <> 'matched')  -- the first trip point -- need to include if unmatched
        OR (pnt.point_type = 'matched' AND
               (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity)) -- start points
+       OR (pnt.point_index = max_pnt.point_index AND point_type <> 'matched')  -- the last trip point -- need to include if unmatched
        OR (pnt.point_type = 'matched' AND
               (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity)) -- end points
 )
@@ -55,7 +68,7 @@ select *
 from temp_line_point
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 7.5
-  and gps_accuracy = 15
+  and gps_accuracy = 7.5
 --   and st_equals(geomA, geomB)
 order by point_index
 ;
