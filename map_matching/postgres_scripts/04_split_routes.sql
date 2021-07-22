@@ -39,7 +39,7 @@ WITH pnt AS (
            pnt.search_radius,
            pnt.gps_accuracy,
            trip.distance_m                      AS trip_distance_m,
-           pnt.geom                             AS geomA,
+           pnt.geom                             AS geom,
            ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
            trip.geom                            AS trip_geom
     FROM pnt
@@ -64,14 +64,14 @@ FROM merge
 ANALYSE temp_line_point;
 
 
-select *
-from temp_line_point
-where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-  and search_radius = 7.5
-  and gps_accuracy = 7.5
---   and st_equals(geomA, geomB)
-order by point_index
-;
+-- select *
+-- from temp_line_point
+-- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+--   and search_radius = 7.5
+--   and gps_accuracy = 7.5
+-- --   and st_equals(geomA, geomB)
+-- order by point_index
+-- ;
 
 
 -- STEP 2 - calculate bearing, reverse bearing and distance to create a splitting line perpendicular to the trip at each waypoint
@@ -84,7 +84,7 @@ WITH az AS (
                ST_LineInterpolatePoint(trip_geom, trip_point_percent + 0.0001)) + pi() / 2.0 AS line_azimuth
     FROM temp_line_point
     WHERE trip_point_percent > 0.0
-        AND trip_point_percent < 0.9999 -- don't want start or end points
+        AND trip_point_percent < 0.9999 -- don't want start or end points of trip
 ), fix AS ( -- fix azimuth if > 360 degrees (2xPi radians)
     SELECT *,
            CASE WHEN line_azimuth > pi() * 2.0 THEN line_azimuth - pi() * 2.0 ELSE line_azimuth END AS azimuthAB
@@ -95,10 +95,10 @@ SELECT trip_id,
        route_point_type,
        search_radius,
        gps_accuracy,
-       geomA AS geom,
+       geom,
        azimuthAB,
        CASE WHEN azimuthAB >= pi() THEN azimuthAB - pi() ELSE azimuthAB + pi() END AS azimuthBA,
-       ST_Distance(geomA, trip_point_geom) + 0.00002 AS dist
+       ST_Distance(geom, trip_point_geom) + 0.00002 AS dist
 FROM fix
 ;
 ANALYSE temp_line_calc;
@@ -173,164 +173,74 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 -- ;
 
 
-
--- New STEP 5 - add start records to temp_points where start or end isn't map matched
---   Causes the entire route to be missing the first segment
-INSERT INTO temp_line_point
-WITH pnt AS (
-    SELECT trip_id,
-           geom
-    FROM testing.waypoint
-    WHERE point_index = 0
-), merge AS (
-    SELECT pnt.trip_id,
-           search_radius,
-           gps_accuracy,
-           0::integer AS segment_index,
-           st_distance(pnt.geom::geography, st_startpoint(shp.geom)::geography) AS distance_m,
-           2::integer AS point_count,
-           pnt.geom                                                             AS start_geom,
-           st_startpoint(shp.geom)                                              AS end_geom
-    FROM testing.valhalla_map_match_shape AS shp
-             INNER JOIN pnt ON shp.trip_id = pnt.trip_id
-)
-SELECT *,
-       st_y(start_geom) AS start_lat,
-       st_x(start_geom) AS start_lon,
-       st_y(end_geom) AS end_lat,
-       st_x(end_geom) AS end_lon
-FROM merge
-WHERE distance_m > 50.0
-;
-ANALYSE temp_line_point;
-
-
-
-
-select row_id,
-       trip_id,
-       point_index,
-       route_point_type,
-       search_radius,
-       gps_accuracy,
-       trip_distance_m,
-       geomA,
-       trip_point_geom,
-       trip_geom,
-       trip_point_percent
-from temp_line_point
-order by trip_id,
-         search_radius,
-         gps_accuracy,
-         row_id
-;
-
-
-select *
-from testing.waypoint
-where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-order by point_index
-;
-
-
-
-select *
-from testing.temp_split_line
-order by trip_id,
-         search_radius,
-         gps_accuracy;
+-- select *
+-- from testing.waypoint
+-- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+-- order by point_index
+-- ;
+--
+--
+-- select *
+-- from testing.temp_split_line
+-- order by trip_id,
+--          search_radius,
+--          gps_accuracy;
 
 
 -- STEP 5 - get start and end points of segments to be routed
+--   Do this by flattening pairs of start & end points
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
-WITH pnt AS (
-    SELECT trip_id,
+WITH starts AS (
+    SELECT row_id,
+           trip_id,
            search_radius,
            gps_accuracy,
-           segment_index,
-           distance_m,
-           point_count,
-           st_startpoint(geom) AS start_geom,
-           st_endpoint(geom)   AS end_geom
-    FROM testing.temp_split_shape
-)
-SELECT *,
-       st_y(start_geom) AS start_lat,
-       st_x(start_geom) AS start_lon,
-       st_y(end_geom) AS end_lat,
-       st_x(end_geom) AS end_lon
-FROM pnt
-;
-ANALYSE testing.temp_route_this;
-
-
--- add start segments that aren't map matched (causes the entire route to be missing the first segment)
-INSERT INTO testing.temp_route_this
-WITH pnt AS (
-    SELECT trip_id,
+           point_index,
            geom
-    FROM testing.waypoint
-    WHERE point_index = 0
-), merge AS (
-    SELECT pnt.trip_id,
+    FROM temp_line_point
+    WHERE route_point_type = 'start'
+), ends AS (
+    SELECT row_id,
+           trip_id,
            search_radius,
            gps_accuracy,
-           0::integer AS segment_index,
-           st_distance(pnt.geom::geography, st_startpoint(shp.geom)::geography) AS distance_m,
-           2::integer AS point_count,
-           pnt.geom                                                             AS start_geom,
-           st_startpoint(shp.geom)                                              AS end_geom
-    FROM testing.valhalla_map_match_shape AS shp
-             INNER JOIN pnt ON shp.trip_id = pnt.trip_id
+           point_index,
+           geom
+    FROM temp_line_point
+    WHERE route_point_type = 'start'
 )
-SELECT *,
-       st_y(start_geom) AS start_lat,
-       st_x(start_geom) AS start_lon,
-       st_y(end_geom) AS end_lat,
-       st_x(end_geom) AS end_lon
-FROM merge
-WHERE distance_m > 50.0
+SELECT starts.trip_id,
+       starts.search_radius,
+       starts.gps_accuracy,
+       starts.point_index AS start_point_index,
+       ends.point_index AS end_point_index,
+       st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
+       st_y(starts.geom) AS start_lat,
+       st_x(starts.geom) AS start_lon,
+       st_y(ends.geom) AS end_lat,
+       st_x(ends.geom) AS end_lon
+FROM starts
+INNER JOIN ends ON starts.trip_id = ends.trip_id
+    AND starts.search_radius = ends.search_radius
+    AND starts.gps_accuracy = ends.gps_accuracy
+    AND starts.row_id = ends.row_id - 1  -- get sequential pairs of start & end records
 ;
 ANALYSE testing.temp_route_this;
 
 
--- add end segments that aren't map matched (causes the entire route to be missing the last segment)
-INSERT INTO testing.temp_route_this
-WITH the_end AS (
-    SELECT trip_id,
-           max(point_index) AS point_index
-    FROM testing.waypoint
-    GROUP BY trip_id
-), pnt AS (
-    SELECT way.trip_id,
-           way.geom
---            way.point_index
-    FROM testing.waypoint as way
-    INNER JOIN the_end ON way.trip_id = the_end.trip_id
-        AND way.point_index = the_end.point_index
-), merge AS (
-    SELECT pnt.trip_id,
-           search_radius,
-           gps_accuracy,
---            point_index,
-           999999::integer                                                    AS segment_index,
-           st_distance(pnt.geom::geography, st_endpoint(shp.geom)::geography) AS distance_m,
-           2::integer                                                         AS point_count,
-           st_endpoint(shp.geom)                                              AS start_geom,
-           pnt.geom                                                           AS end_geom
-    FROM testing.valhalla_map_match_shape AS shp
-             INNER JOIN pnt ON shp.trip_id = pnt.trip_id
-)
-SELECT *,
-       st_y(start_geom) AS start_lat,
-       st_x(start_geom) AS start_lon,
-       st_y(end_geom) AS end_lat,
-       st_x(end_geom) AS end_lon
-FROM merge
-WHERE distance_m > 50.0
-;
-ANALYSE testing.temp_route_this;
+select trip_id,
+       search_radius,
+       gps_accuracy,
+       segment_index,
+       distance_m,
+       point_count,
+       start_lat,
+       start_lon,
+       end_lat,
+       end_lon
+from testing.temp_route_this;
+
 
 
 -- DROP TABLE IF EXISTS testing.temp_split_line;
