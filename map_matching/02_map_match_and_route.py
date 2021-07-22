@@ -190,7 +190,7 @@ def main():
     sql = """SELECT trip_id,
                     search_radius,
                     gps_accuracy,
-                    segment_index,
+                    99999 AS segment_index,
                     -- distance_m,
                     -- point_count,
                     start_lat,
