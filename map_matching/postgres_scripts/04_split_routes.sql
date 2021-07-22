@@ -57,30 +57,12 @@ WITH pnt AS (
        OR (pnt.point_index = max_pnt.point_index AND point_type <> 'matched')  -- the last trip point -- need to include if unmatched
        OR (pnt.point_type = 'matched' AND
               (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity)) -- end points
-), add_missing AS (
-    select trip_id,
-           point_index,
-           'end' AS route_point_type,
-           previous_point_type,
-           point_type,
-           next_point_type,
-           search_radius,
-           gps_accuracy,
-           trip_distance_m,
-           geom,
-           trip_point_geom,
-           trip_point_percent,
-           trip_geom
-    from merge
-    where previous_point_type <> 'matched'
-      and next_point_type <> 'matched'
-    UNION ALL
-    SELECT * FROM merge
-
 )
 SELECT row_number() OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index, route_point_type) AS row_id,
        *
-FROM add_missing
+FROM merge
+WHERE NOT (coalesce(previous_point_type, 'matched') <> 'matched'
+               AND coalesce(next_point_type, 'matched') <> 'matched') -- filter out unwanted, isolated, matched points
 ;
 ANALYSE testing.temp_line_point;
 
