@@ -97,60 +97,15 @@ WITH stats AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           start_point_index,
-           end_point_index,
            sum(CASE WHEN segment_type = 'map match' THEN 1 ELSE 0 END) AS map_match_segments,
            sum(CASE WHEN segment_type = 'map match' THEN distance_m ELSE 0.0 END) / 1000.0 AS map_match_distance_km,
            sum(CASE WHEN segment_type = 'route' THEN 1 ELSE 0 END) AS route_segments,
-           sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km
+           sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
+           st_collect(geom) AS geom
     FROM testing.valhalla_route_shape
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
-), pnt AS (
-    SELECT trip_id,
-           search_radius,
-           gps_accuracy,
-           segment_index,
-           (ST_DumpPoints(geom)).path[1] AS point_id,
-           (ST_DumpPoints(geom)).geom AS geom
-    FROM testing.valhalla_route_shape
-), pnt2 AS (
-    SELECT row_number() OVER (PARTITION BY trip_id ORDER BY segment_index, point_id) AS point_index,
-           *
-    FROM pnt
-), pnt3 AS (
-    SELECT max(point_index) AS point_index,
-           trip_id,
-           search_radius,
-           gps_accuracy,
-           st_centroid(st_collect(geom)) AS geom
-    FROM pnt2
-    GROUP BY trip_id,
-             search_radius,
-             gps_accuracy,
-             st_y(geom)::numeric(7, 5),
-             st_x(geom)::numeric(8, 5)
-), stats2 AS (
-    SELECT stats.trip_id,
-           stats.search_radius,
-           stats.gps_accuracy,
-           map_match_segments,
-           map_match_distance_km,
-           route_segments,
-           route_distance_km,
-           st_setsrid(st_makeline(pnt3.geom ORDER BY point_index), 4326) AS geom
-    FROM stats
-             INNER JOIN pnt3 ON stats.trip_id = pnt3.trip_id
-        AND stats.search_radius = pnt3.search_radius
-        AND stats.gps_accuracy = pnt3.gps_accuracy
-    GROUP BY stats.trip_id,
-             stats.search_radius,
-             stats.gps_accuracy,
-             map_match_segments,
-             map_match_distance_km,
-             route_segments,
-             route_distance_km
 )
 SELECT trip_id,
        search_radius,
@@ -166,7 +121,7 @@ SELECT trip_id,
        0::integer AS waypoint_count,
        st_numpoints(geom) as point_count,
        geom
-FROM stats2
+FROM stats
 ;
 ANALYSE testing.valhalla_final_route;
 
