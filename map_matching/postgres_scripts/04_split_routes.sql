@@ -156,15 +156,16 @@ SELECT trip.trip_id,
        trip.gps_accuracy,
 --            trip.segment_index,
        min(pnt.point_index) AS start_point_index,
+       max(pnt.point_index) AS end_point_index,
        trip.distance_m,
 --            st_npoints(trip.geom)           AS point_count,
        trip.segment_type,
        trip.geom
 FROM trip
-INNER JOIN testing.temp_line_point as pnt ON trip.trip_id = pnt.trip_id
+INNER JOIN testing.valhalla_map_match_point as pnt ON trip.trip_id = pnt.trip_id
     AND trip.search_radius = pnt.search_radius
     AND trip.gps_accuracy = pnt.gps_accuracy
-    AND st_intersects(trip.geom, st_buffer(pnt.geom, 0.0001))
+    AND st_intersects(trip.geom, st_buffer(pnt.geom, 0.00001))
 GROUP BY trip.trip_id,
          trip.search_radius,
          trip.gps_accuracy,
@@ -176,7 +177,8 @@ GROUP BY trip.trip_id,
 ANALYSE testing.temp_split_shape;
 
 ALTER TABLE testing.temp_split_shape
-    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, start_point_index);
+    ADD CONSTRAINT temp_split_shape_pkey
+        PRIMARY KEY (trip_id, search_radius, gps_accuracy, start_point_index, end_point_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
