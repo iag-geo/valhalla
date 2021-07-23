@@ -528,7 +528,7 @@ def route_trajectory(job):
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
     # # if segment is the start of the route - double the radius to enable a wider search for a road
     # if start_point_index == 0:
-    start_location["radius"] = search_radius * 2
+    start_location["radius"] = search_radius
     # else:
     #     start_location["radius"] = search_radius
 
@@ -538,7 +538,7 @@ def route_trajectory(job):
     end_location["rank_candidates"] = False
     # # if segment is the end of the route - double the radius to enable a wider search for a road
     # if start_point_index == 0:
-    end_location["radius"] = search_radius * 2
+    end_location["radius"] = search_radius
     # else:
     #     end_location["radius"] = search_radius
 
@@ -591,7 +591,10 @@ def route_trajectory(job):
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326)"
 
-                    segment_type = "route"
+                    if end_point_index - start_point_index > 1:
+                        segment_type = "map match"
+                    else:
+                        segment_type = "route"
 
                     shape_sql = """insert into testing.valhalla_route_shape
                                          values ('{}', {}, {}, {}, {}, {}, {}, '{}', {})""" \
