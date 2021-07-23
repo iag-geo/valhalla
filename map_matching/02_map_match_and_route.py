@@ -190,9 +190,8 @@ def main():
     sql = """SELECT trip_id,
                     search_radius,
                     gps_accuracy,
-                    segment_index,
-                    -- distance_m,
-                    -- point_count,
+                    start_point_index,
+                    end_point_index,
                     start_lat,
                     start_lon,
                     end_lat,
@@ -520,24 +519,25 @@ def route_trajectory(job):
     traj_id = job[0]
     search_radius = float(job[1])
     gps_accuracy = float(job[2])
-    segment_index = job[3]
+    start_point_index = job[3]
+    end_point_index = job[4]
 
     start_location = dict()
-    start_location["lat"] = job[4]
-    start_location["lon"] = job[5]
+    start_location["lat"] = job[5]
+    start_location["lon"] = job[6]
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
     # # if segment is the start of the route - double the radius to enable a wider search for a road
-    # if segment_index == 0:
+    # if start_point_index == 0:
     start_location["radius"] = search_radius * 2
     # else:
     #     start_location["radius"] = search_radius
 
     end_location = dict()
-    end_location["lat"] = job[6]
-    end_location["lon"] = job[7]
+    end_location["lat"] = job[7]
+    end_location["lon"] = job[8]
     end_location["rank_candidates"] = False
     # # if segment is the end of the route - double the radius to enable a wider search for a road
-    # if segment_index == 0:
+    # if start_point_index == 0:
     end_location["radius"] = search_radius * 2
     # else:
     #     end_location["radius"] = search_radius
@@ -566,7 +566,7 @@ def route_trajectory(job):
         response_dict = r.json()
 
         # # DEBUGGING
-        # if segment_index == 81 and search_radius == 60:
+        # if start_point_index == 81 and search_radius == 60:
         #     with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
         #         json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
@@ -594,15 +594,15 @@ def route_trajectory(job):
                     segment_type = "route"
 
                     shape_sql = """insert into testing.valhalla_route_shape
-                                         values ('{}', {}, {}, {}, {}, {}, '{}', {})""" \
-                        .format(traj_id, search_radius, gps_accuracy, segment_index, distance_m,
+                                         values ('{}', {}, {}, {}, {}, {}, {}, '{}', {})""" \
+                        .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, distance_m,
                                 point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
                     fail_sql = """insert into testing.valhalla_route_fail 
-                                      (trip_id, search_radius, gps_accuracy, segment_index, error)
-                                      values ('{}', {}, {}, '{}')""" \
-                        .format(traj_id, search_radius, gps_accuracy, segment_index, "Linestring only has one point")
+                                      (trip_id, search_radius, gps_accuracy, start_point_index, end_point_index, error)
+                                      values ('{}', {}, {}, {}, '{}')""" \
+                        .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, "Linestring only has one point")
                     pg_cur.execute(fail_sql)
 
     else:
@@ -612,8 +612,8 @@ def route_trajectory(job):
         curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
             .format(json_payload, routing_url)
 
-        sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, {}, '{}', '{}', '{}')" \
-            .format(traj_id, search_radius, gps_accuracy, segment_index, e["error_code"], e["error"],
+        sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, {}, {}, '{}', '{}', '{}')" \
+            .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, e["error_code"], e["error"],
                     str(e["status_code"]) + ":" + e["status"], curl_command)
 
         pg_cur.execute(sql)
