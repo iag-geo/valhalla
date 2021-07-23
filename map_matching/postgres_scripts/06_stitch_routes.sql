@@ -161,6 +161,8 @@ SELECT trip_id,
        route_segments,
        route_distance_km::numeric(8, 3) AS route_distance_km,
        0.0::double precision AS rmse_km,
+       0::integer AS waypoint_count,
+       st_numpoints(geom) as point_count,
        geom
 FROM stats2
 ;
@@ -181,22 +183,24 @@ WITH merge AS (
            st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m
     FROM testing.valhalla_final_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
-), stat AS (
+), stats AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km
+           sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km,
+           count(*) as waypoint_count
     FROM merge
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
 )
 UPDATE testing.valhalla_final_route as route
-    SET rmse_km = stat.rmse_km
-FROM stat
-WHERE route.trip_id = stat.trip_id
-  AND route.search_radius = stat.search_radius
-  AND route.gps_accuracy = stat.gps_accuracy
+    SET rmse_km = stats.rmse_km,
+        waypoint_count = stats.waypoint_count
+FROM stats
+WHERE route.trip_id = stats.trip_id
+  AND route.search_radius = stats.search_radius
+  AND route.gps_accuracy = stats.gps_accuracy
 ;
 
 

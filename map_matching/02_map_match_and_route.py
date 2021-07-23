@@ -100,7 +100,6 @@ def main():
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS points 
                  FROM {5}
-                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
@@ -108,7 +107,8 @@ def main():
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS points 
                  FROM {4}
-                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 WHERE trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
