@@ -185,21 +185,40 @@ WITH starts AS (
 SELECT starts.trip_id,
        starts.search_radius,
        starts.gps_accuracy,
-       row_number() OVER (PARTITION BY starts.trip_id, starts.search_radius, starts.gps_accuracy ORDER BY starts.point_index) * 2 AS segment_index,
+       row_number()
+       OVER (PARTITION BY starts.trip_id, starts.search_radius, starts.gps_accuracy ORDER BY starts.point_index) *
+       2                  AS segment_index,
        starts.point_index AS start_point_index,
-       ends.point_index AS end_point_index,
+       ends.point_index   AS end_point_index,
 --        st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
-       st_y(starts.geom) AS start_lat,
-       st_x(starts.geom) AS start_lon,
-       st_y(ends.geom) AS end_lat,
-       st_x(ends.geom) AS end_lon,
-       starts.geom AS start_geom,
-       ends.geom AS end_geom
+       st_y(starts.geom)  AS start_lat,
+       st_x(starts.geom)  AS start_lon,
+       st_y(ends.geom)    AS end_lat,
+       st_x(ends.geom)    AS end_lon,
+       starts.geom        AS start_geom,
+       ends.geom          AS end_geom
 FROM starts
-INNER JOIN ends ON starts.trip_id = ends.trip_id
+         INNER JOIN ends ON starts.trip_id = ends.trip_id
     AND starts.search_radius = ends.search_radius
     AND starts.gps_accuracy = ends.gps_accuracy
-    AND starts.row_id = ends.row_id - 1  -- get sequential pairs of start & end records
+    AND starts.row_id = ends.row_id - 1 -- get sequential pairs of start & end records
+;
+ANALYSE testing.temp_route_this;
+
+-- need to adjust segment indexes where first route segment is at the start of the trip
+WITH fix AS (
+    SELECT trip_id,
+           search_radius,
+           gps_accuracy
+    FROM testing.temp_route_this
+    WHERE start_point_index = 0
+)
+UPDATE testing.temp_route_this AS route
+    SET segment_index = segment_index - 2
+FROM fix
+WHERE route.trip_id = fix.trip_id
+  AND route.search_radius = fix.search_radius
+  AND route.gps_accuracy = fix.gps_accuracy
 ;
 ANALYSE testing.temp_route_this;
 

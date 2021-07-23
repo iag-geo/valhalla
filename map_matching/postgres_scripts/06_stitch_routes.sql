@@ -6,9 +6,9 @@ SELECT * FROM testing.valhalla_route_shape
 ;
 ANALYSE testing.valhalla_segments;
 
--- -- create primary key to ensure uniqueness
--- ALTER TABLE testing.valhalla_segments
---     ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, segment_index);
+-- create primary key to ensure uniqueness
+ALTER TABLE testing.valhalla_segments
+    ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, segment_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.valhalla_segments
