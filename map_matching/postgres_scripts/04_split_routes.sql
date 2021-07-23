@@ -137,48 +137,24 @@ WITH blade AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
---            (ST_Dump(geom)).path[1] AS segment_index,
+           (ST_Dump(geom)).path[1] AS segment_index,
            (ST_Dump(geom)).geom    AS geom
     FROM split
-), trip AS (
-    SELECT trip_id,
-           search_radius,
-           gps_accuracy,
---            segment_index,
-           st_length(geom::geography) AS distance_m,
---            st_npoints(geom)           AS point_count,
-           'map match'::text          AS segment_type,
-           geom
-    FROM lines
 )
-SELECT trip.trip_id,
-       trip.search_radius,
-       trip.gps_accuracy,
---            trip.segment_index,
-       min(pnt.point_index) AS start_point_index,
-       max(pnt.point_index) AS end_point_index,
-       trip.distance_m,
---            st_npoints(trip.geom)           AS point_count,
-       trip.segment_type,
-       trip.geom
-FROM trip
-INNER JOIN testing.valhalla_map_match_point as pnt ON trip.trip_id = pnt.trip_id
-    AND trip.search_radius = pnt.search_radius
-    AND trip.gps_accuracy = pnt.gps_accuracy
-    AND st_intersects(trip.geom, st_buffer(pnt.geom, 0.00001))
-GROUP BY trip.trip_id,
-         trip.search_radius,
-         trip.gps_accuracy,
---            trip.segment_index,
-         trip.distance_m,
-         trip.segment_type,
-         trip.geom
+SELECT trip_id,
+       search_radius,
+       gps_accuracy,
+       segment_index,
+       st_length(geom::geography) AS distance_m,
+       st_npoints(geom)           AS point_count,
+       'map match'::text          AS segment_type,
+       geom
+FROM lines
 ;
 ANALYSE testing.temp_split_shape;
 
 ALTER TABLE testing.temp_split_shape
-    ADD CONSTRAINT temp_split_shape_pkey
-        PRIMARY KEY (trip_id, search_radius, gps_accuracy, start_point_index, end_point_index);
+    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, segment_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
@@ -209,9 +185,10 @@ WITH starts AS (
 SELECT starts.trip_id,
        starts.search_radius,
        starts.gps_accuracy,
+       row_number() OVER (PARTITION BY starts.trip_id, starts.search_radius, starts.gps_accuracy ORDER BY starts.point_index) * 2 AS segment_index,
        starts.point_index AS start_point_index,
        ends.point_index AS end_point_index,
-       st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
+--        st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
        st_y(starts.geom) AS start_lat,
        st_x(starts.geom) AS start_lon,
        st_y(ends.geom) AS end_lat,
@@ -232,7 +209,7 @@ ANALYSE testing.temp_route_this;
 --        gps_accuracy,
 --        segment_index,
 --        distance_m,
---        point_count,
+-- --        point_count,
 --        start_lat,
 --        start_lon,
 --        end_lat,
@@ -240,16 +217,16 @@ ANALYSE testing.temp_route_this;
 -- from testing.temp_route_this;
 
 
--- select *
--- from testing.temp_route_this
--- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
---   and search_radius = 7.5
---   and gps_accuracy = 15
--- order by trip_id,
---          search_radius,
---          gps_accuracy,
---          start_point_index
--- ;
+select *
+from testing.temp_route_this
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
+order by trip_id,
+         search_radius,
+         gps_accuracy,
+         start_point_index
+;
 --
 --
 -- select *
