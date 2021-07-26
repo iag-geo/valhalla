@@ -366,20 +366,35 @@ def map_match_trajectory(job):
                 if shape is not None:
                     # construct postgis geometry string for insertion into postgres
                     shape_coords = decode(shape)  # decode Google encoded polygon
-                    point_list = list()
+                    # point_list = list()
+
+                    shape_index = 0
 
                     if len(shape_coords) > 1:
                         for coords in shape_coords:
-                            point_list.append("{} {}".format(coords[0], coords[1]))
+                            # point = "{} {}".format(coords[0], coords[1])
+                            # point_list.append(point)
 
-                        geom_string = "ST_GeomFromText('LINESTRING("
-                        geom_string += ",".join(point_list)
-                        geom_string += ")', 4326)"
+                            geom_string = "ST_SetSRID(ST_MakePoint({},{}), 4326)".format(coords[0], coords[1])
 
-                        shape_sql = """insert into testing.valhalla_map_match_shape
-                                             values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
-                            .format(traj_id, search_radius, gps_accuracy, geom_string)
-                        pg_cur.execute(shape_sql)
+                            # print(geom_string)
+
+                            # insert each point into valhalla_map_match_shape_point table
+                            point_sql = """insert into testing.valhalla_map_match_shape_point
+                                             values ('{0}', {1}, {2}, {3}, st_length({4}::geography), {4})""" \
+                                .format(traj_id, shape_index, search_radius, gps_accuracy, geom_string)
+                            pg_cur.execute(point_sql)
+
+                            shape_index += 1
+
+                        # geom_string = "ST_GeomFromText('LINESTRING("
+                        # geom_string += ",".join(point_list)
+                        # geom_string += ")', 4326)"
+                        #
+                        # shape_sql = """insert into testing.valhalla_map_match_shape
+                        #                      values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
+                        #     .format(traj_id, search_radius, gps_accuracy, geom_string)
+                        # pg_cur.execute(shape_sql)
                     else:
                         fail_sql = """insert into testing.valhalla_map_match_fail 
                                           (trip_id, search_radius, gps_accuracy, error) 

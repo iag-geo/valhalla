@@ -1,3 +1,43 @@
+
+-- create map matched shape based on edge table point indexes
+INSERT INTO testing.valhalla_map_match_shape
+WITH shape AS (
+    SELECT pnt.trip_id,
+           edge.begin_shape_index,
+           edge.end_shape_index,
+           pnt.search_radius,
+           pnt.gps_accuracy,
+           st_makeline(pnt.geom ORDER BY shape_index) AS geom
+    FROM testing.valhalla_map_match_shape_point AS pnt
+             INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
+        AND pnt.search_radius = edge.search_radius
+        AND pnt.gps_accuracy = edge.gps_accuracy
+        AND pnt.shape_index >= edge.begin_shape_index
+        AND pnt.shape_index <= edge.end_shape_index
+    GROUP BY pnt.trip_id,
+             edge.begin_shape_index,
+             edge.end_shape_index,
+             pnt.search_radius,
+             pnt.gps_accuracy
+)
+SELECT trip_id,
+       begin_shape_index,
+       end_shape_index,
+       search_radius,
+       gps_accuracy,
+       st_length(geom::geography) AS distance_m,
+       geom
+FROM shape
+;
+ANALYSE testing.valhalla_map_match_shape;
+
+ALTER TABLE testing.valhalla_map_match_shape
+    ADD CONSTRAINT valhalla_map_match_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape USING gist (geom);
+ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
+
+
+
 --
 -- -- STEP 1 - get map matched points where the route goes off and back onto the street network
 -- --    and also get the point closest to the map matched route (points aren't necessarily on the line...)

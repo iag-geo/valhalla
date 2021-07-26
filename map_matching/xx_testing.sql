@@ -6,15 +6,17 @@ from testing.valhalla_map_match_point
 ;
 
 select *
-from testing.valhalla_edge
+from testing.valhalla_map_match_edge
 where search_radius = 7.5
   and gps_accuracy = 7.5
+order by begin_shape_index
 ;
 
 
 select *
-from testing.valhalla_final_routes
-order by distance_m
+from testing.valhalla_map_match_shape_point
+where search_radius = 7.5
+  and gps_accuracy = 7.5
 ;
 
 

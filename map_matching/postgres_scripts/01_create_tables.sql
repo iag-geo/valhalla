@@ -5,12 +5,28 @@ DROP TABLE IF EXISTS testing.valhalla_map_match_shape CASCADE;
 CREATE TABLE testing.valhalla_map_match_shape
 (
     trip_id text,
+    begin_shape_index integer,
+    end_shape_index integer,
     search_radius double precision,
     gps_accuracy double precision,
     distance_m float,
     geom geometry(linestring, 4326)
 );
 ALTER TABLE testing.valhalla_map_match_shape OWNER TO postgres;
+
+
+DROP TABLE IF EXISTS testing.valhalla_map_match_shape_point CASCADE;
+CREATE TABLE testing.valhalla_map_match_shape_point
+(
+    trip_id text,
+    shape_index integer,
+    search_radius double precision,
+    gps_accuracy double precision,
+    distance_m float,
+    geom geometry(point, 4326)
+);
+ALTER TABLE testing.valhalla_map_match_shape_point OWNER TO postgres;
+
 
 
 DROP TABLE IF EXISTS testing.valhalla_map_match_shape_non_pii CASCADE;
