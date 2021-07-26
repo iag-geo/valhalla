@@ -14,6 +14,7 @@ import requests
 # import sys
 
 from datetime import datetime
+# from pathlib import Path
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
@@ -43,7 +44,7 @@ pg_pool = psycopg2.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
 
 # valhalla URLs
 valhalla_base_url = "http://localhost:8002/"
-map_matching_url = valhalla_base_url + "trace_route"
+map_matching_url = valhalla_base_url + "trace_attributes"
 routing_url = valhalla_base_url + "route"
 
 # input GPS points table
@@ -132,133 +133,133 @@ def main():
     logger.info("\t - all trajectories map matched : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
-    # # # create anonymous trajectories
-    # # sql = open(non_pii_sql_file, "r").read()
-    # # pg_cur.execute(sql)
-    # # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
-    #
-    # # update stats ON map match tables
-    # pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
-    # pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
-    # pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
-    # pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
-    # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
-    # start_time = datetime.now()
-    #
-    # # optional: create indexes ON output tables
-    # try:
-    #     sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
-    #     sql = open(sql_file, "r").read()
-    #     pg_cur.execute(sql)
-    #
-    #     logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
-    #     start_time = datetime.now()
-    # except:
-    #     # meh!
-    #     pass
-    #
-    # # get map match table counts
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
-    # traj_mm_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
-    # edge_mm_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
-    # point_mm_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
-    # fail_mm_count = pg_cur.fetchone()[0]
-    #
-    # logger.info("\t - map match results")
-    # logger.info("\t\t - {0:,} input trajectories X {1} search radii X {1} gps_accuracies"
-    #             .format(job_count, iteration_count))
-    # logger.info("\t\t - {:,} map matched trajectories".format(traj_mm_count))
-    # logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
-    # logger.info("\t\t\t - {:,} points".format(point_mm_count))
-    # if fail_mm_count > 0:
-    #     logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
-    #
-    #
-    # # create trajectory segments to route
-    # sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
-    # sql = open(sql_file, "r").read()
+    # # create anonymous trajectories
+    # sql = open(non_pii_sql_file, "r").read()
     # pg_cur.execute(sql)
-    #
-    # # logger.info("\t - created segments to route : {}".format(datetime.now() - start_time))
-    # # start_time = datetime.now()
-    #
-    # # create job list for routing and process in parallel
-    # sql = """SELECT trip_id,
-    #                 search_radius,
-    #                 gps_accuracy,
-    #                 start_point_index,
-    #                 end_point_index,
-    #                 start_lat,
-    #                 start_lon,
-    #                 end_lat,
-    #                 end_lon
-    #          FROM testing.temp_route_this"""
-    # pg_cur.execute(sql)
-    # job_list = pg_cur.fetchall()
-    # job_count = len(job_list)
-    #
-    # logger.info("Got {} trajectory segments to route, starting routing : {}"
-    #             .format(len(job_list), datetime.now() - start_time))
+    # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
+
+    # update stats ON map match tables
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
+    logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # optional: create indexes ON output tables
+    try:
+        sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
+        sql = open(sql_file, "r").read()
+        pg_cur.execute(sql)
+
+        logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+        start_time = datetime.now()
+    except:
+        # meh!
+        pass
+
+    # get map match table counts
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
+    traj_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
+    edge_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
+    point_mm_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
+    fail_mm_count = pg_cur.fetchone()[0]
+
+    logger.info("\t - map match results")
+    logger.info("\t\t - {0:,} input trajectories X {1} search radii X {1} gps_accuracies"
+                .format(job_count, iteration_count))
+    logger.info("\t\t - {:,} map matched trajectories".format(traj_mm_count))
+    logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
+    logger.info("\t\t\t - {:,} points".format(point_mm_count))
+    if fail_mm_count > 0:
+        logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
+
+
+    # create trajectory segments to route
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
+
+    # logger.info("\t - created segments to route : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
-    #
-    # # for each trajectory - send a map match request to Valhalla using multiprocessing
-    # mp_pool = multiprocessing.Pool(cpu_count)
-    # mp_results = mp_pool.imap_unordered(route_trajectory, job_list)
-    # mp_pool.close()
-    # mp_pool.join()
-    #
-    # # check parallel processing results
-    # for mp_result in mp_results:
-    #     if mp_result is not None:
-    #         print("WARNING: multiprocessing error : {}".format(mp_result))
-    #
-    # logger.info("\t - all segments routed : {}".format(datetime.now() - start_time))
-    # start_time = datetime.now()
-    #
-    # # update stats ON route tables
-    # pg_cur.execute("ANALYSE testing.valhalla_route_shape")
-    # pg_cur.execute("ANALYSE testing.valhalla_route_fail")
-    # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
-    # start_time = datetime.now()
-    #
-    # # optional: create indexes ON output tables
-    # try:
-    #     sql_file = os.path.join(runtime_directory, "postgres_scripts", "05_create_route_indexes.sql")
-    #     sql = open(sql_file, "r").read()
-    #     pg_cur.execute(sql)
-    #
-    #     logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
-    #     start_time = datetime.now()
-    # except:
-    #     # meh!
-    #     pass
-    #
-    # # get routing table counts
-    # # pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
-    # # route_to_do_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
-    # traj_route_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
-    # fail_route_count = pg_cur.fetchone()[0]
-    #
-    # logger.info("\t - routing results")
-    # # logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
-    # logger.info("\t\t - {:,} segments routed".format(traj_route_count))
-    # if fail_route_count > 0:
-    #     logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
-    #
-    # # stitch results together
-    # sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
-    # sql = open(sql_file, "r").read()
-    # pg_cur.execute(sql)
-    #
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_final_route")
-    # final_route_count = pg_cur.fetchone()[0]
-    #
-    # logger.info("\t\t - {:,} final routes created".format(final_route_count))
+
+    # create job list for routing and process in parallel
+    sql = """SELECT trip_id,
+                    search_radius,
+                    gps_accuracy,
+                    start_point_index,
+                    end_point_index,
+                    start_lat,
+                    start_lon,
+                    end_lat,
+                    end_lon
+             FROM testing.temp_route_this"""
+    pg_cur.execute(sql)
+    job_list = pg_cur.fetchall()
+    job_count = len(job_list)
+
+    logger.info("Got {} trajectory segments to route, starting routing : {}"
+                .format(len(job_list), datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # for each trajectory - send a map match request to Valhalla using multiprocessing
+    mp_pool = multiprocessing.Pool(cpu_count)
+    mp_results = mp_pool.imap_unordered(route_trajectory, job_list)
+    mp_pool.close()
+    mp_pool.join()
+
+    # check parallel processing results
+    for mp_result in mp_results:
+        if mp_result is not None:
+            print("WARNING: multiprocessing error : {}".format(mp_result))
+
+    logger.info("\t - all segments routed : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # update stats ON route tables
+    pg_cur.execute("ANALYSE testing.valhalla_route_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_route_fail")
+    logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+
+    # optional: create indexes ON output tables
+    try:
+        sql_file = os.path.join(runtime_directory, "postgres_scripts", "05_create_route_indexes.sql")
+        sql = open(sql_file, "r").read()
+        pg_cur.execute(sql)
+
+        logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+        start_time = datetime.now()
+    except:
+        # meh!
+        pass
+
+    # get routing table counts
+    # pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
+    # route_to_do_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
+    traj_route_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
+    fail_route_count = pg_cur.fetchone()[0]
+
+    logger.info("\t - routing results")
+    # logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
+    logger.info("\t\t - {:,} segments routed".format(traj_route_count))
+    if fail_route_count > 0:
+        logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
+
+    # stitch results together
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
+
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_final_route")
+    final_route_count = pg_cur.fetchone()[0]
+
+    logger.info("\t\t - {:,} final routes created".format(final_route_count))
 
     # close postgres connection
     pg_cur.close()
@@ -274,8 +275,7 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     request_dict["directions_options"] = {"units": "kilometres"}
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
-    # request_dict["shape_match"] = "edge_walk"
-    # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
+    request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
     # # test parameters - yet to do anything
     # request_dict["gps_accuracy"] = 65
@@ -355,74 +355,52 @@ def map_match_trajectory(job):
             if r.status_code == 200:
                 response_dict = r.json()
 
-                # DEBUGGING
-                from pathlib import Path
-                response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
-                response_file.writelines(json.dumps(response_dict))
-                response_file.close()
+                # # DEBUGGING
+                # response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
+                # response_file.writelines(json.dumps(response_dict))
+                # response_file.close()
 
-                # output matched route geometries
-                shape_list = list()
-                shape = response_dict.get("trip").get("legs")[0].get("shape")
+                # output matched route geometry
+                shape = response_dict.get("shape")
+
                 if shape is not None:
-                    shape_list.append(shape)
-
-                alternative_trips = response_dict.get("alternates")
-
-                for alternate_dict in alternative_trips:
-                    shape = alternate_dict.get("trip").get("legs")[0].get("shape")
-                    if shape is not None:
-                        shape_list.append(shape)
-
-                trip_index = 0
-
-                # insert trip shapes into table
-                for shape in shape_list:
                     # construct postgis geometry string for insertion into postgres
                     shape_coords = decode(shape)  # decode Google encoded polygon
+                    # point_list = list()
 
-                    point_list = list()
-                    # shape_index = 0
+                    shape_index = 0
 
                     if len(shape_coords) > 1:
                         for coords in shape_coords:
-                            point = "{} {}".format(coords[0], coords[1])
-                            point_list.append(point)
+                            # point = "{} {}".format(coords[0], coords[1])
+                            # point_list.append(point)
 
-                            # geom_string = "ST_SetSRID(ST_MakePoint({},{}), 4326)".format(coords[0], coords[1])
-                            #
-                            # # print(geom_string)
-                            #
-                            # # insert each point into valhalla_map_match_shape_point table
-                            # point_sql = """insert into testing.valhalla_map_match_shape_point
-                            #                  values ('{0}', {1}, {2}, {3}, {4})""" \
-                            #     .format(traj_id, shape_index, search_radius, gps_accuracy, geom_string)
-                            # pg_cur.execute(point_sql)
-                            #
-                            # shape_index += 1
+                            geom_string = "ST_SetSRID(ST_MakePoint({},{}), 4326)".format(coords[0], coords[1])
 
-                        geom_string = "ST_GeomFromText('LINESTRING("
-                        geom_string += ",".join(point_list)
-                        geom_string += ")', 4326)"
+                            # print(geom_string)
 
-                        if trip_index == 0:
-                            trip_type = "main"
-                        else:
-                            trip_type = "alternate {}".format(trip_index)
+                            # insert each point into valhalla_map_match_shape_point table
+                            point_sql = """insert into testing.valhalla_map_match_shape_point
+                                             values ('{0}', {1}, {2}, {3}, {4})""" \
+                                .format(traj_id, shape_index, search_radius, gps_accuracy, geom_string)
+                            pg_cur.execute(point_sql)
 
-                        shape_sql = """insert into testing.valhalla_map_match_route_shape
-                                             values ('{0}', '{1}', {2}, {3}, st_length({4}::geography) / 1000.0, {4})""" \
-                            .format(traj_id, trip_type, 0, 0, geom_string)
-                        pg_cur.execute(shape_sql)
+                            shape_index += 1
+
+                        # geom_string = "ST_GeomFromText('LINESTRING("
+                        # geom_string += ",".join(point_list)
+                        # geom_string += ")', 4326)"
+                        #
+                        # shape_sql = """insert into testing.valhalla_map_match_shape
+                        #                      values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
+                        #     .format(traj_id, search_radius, gps_accuracy, geom_string)
+                        # pg_cur.execute(shape_sql)
                     else:
                         fail_sql = """insert into testing.valhalla_map_match_fail 
                                           (trip_id, search_radius, gps_accuracy, error) 
                                           values ('{}', {}, {}, '{}')""" \
                             .format(traj_id, search_radius, gps_accuracy, "Linestring only has one point")
                         pg_cur.execute(fail_sql)
-
-                    trip_index += 1
-
 
                 # output edge information
                 edges = response_dict.get("edges")
