@@ -14,7 +14,7 @@ import requests
 # import sys
 
 from datetime import datetime
-from pathlib import Path
+# from pathlib import Path
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
@@ -44,8 +44,8 @@ pg_pool = psycopg2.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
 
 # valhalla URLs
 valhalla_base_url = "http://localhost:8002/"
-map_matching_url =  valhalla_base_url + "trace_attributes"
-routing_url =  valhalla_base_url + "route"
+map_matching_url = valhalla_base_url + "trace_attributes"
+routing_url = valhalla_base_url + "route"
 
 # input GPS points table
 input_table = "testing.waypoint"
@@ -109,7 +109,7 @@ def main():
                  FROM {4}
                  -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  WHERE trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
-                 GROUP BY {0}""" \
+                 GROUP BY {0}"""\
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
     pg_cur.execute(sql)
@@ -259,7 +259,7 @@ def main():
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_final_route")
     final_route_count = pg_cur.fetchone()[0]
 
-    logger.info("\t\t - {:,} final routes created".format(traj_route_count))
+    logger.info("\t\t - {:,} final routes created".format(final_route_count))
 
     # close postgres connection
     pg_cur.close()
@@ -585,7 +585,7 @@ def route_trajectory(job):
 
                     for coords in shape_coords:
                         point_list.append("{} {}".format(coords[0], coords[1]))
-                        point_count +=1
+                        point_count += 1
 
                     geom_string = "ST_GeomFromText('LINESTRING("
                     geom_string += ",".join(point_list)
@@ -605,7 +605,8 @@ def route_trajectory(job):
                     fail_sql = """insert into testing.valhalla_route_fail 
                                       (trip_id, search_radius, gps_accuracy, start_point_index, end_point_index, error)
                                       values ('{}', {}, {}, {}, '{}')""" \
-                        .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, "Linestring only has one point")
+                        .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index,
+                                "Linestring only has one point")
                     pg_cur.execute(fail_sql)
 
     else:
@@ -616,8 +617,8 @@ def route_trajectory(job):
             .format(json_payload, routing_url)
 
         sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, {}, {}, '{}', '{}', '{}')" \
-            .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, e["error_code"], e["error"],
-                    str(e["status_code"]) + ":" + e["status"], curl_command)
+            .format(traj_id, search_radius, gps_accuracy, start_point_index, end_point_index, e["error_code"],
+                    e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 
         pg_cur.execute(sql)
 

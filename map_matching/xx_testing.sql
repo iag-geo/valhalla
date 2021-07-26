@@ -1,7 +1,15 @@
 
 
 
+select *
+from testing.valhalla_map_match_point
+;
 
+select *
+from testing.valhalla_edge
+where search_radius = 7.5
+  and gps_accuracy = 7.5
+;
 
 
 select *
