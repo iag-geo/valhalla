@@ -22,7 +22,6 @@ CREATE TABLE testing.valhalla_map_match_shape_point
     shape_index integer,
     search_radius double precision,
     gps_accuracy double precision,
-    distance_m float,
     geom geometry(point, 4326)
 );
 ALTER TABLE testing.valhalla_map_match_shape_point OWNER TO postgres;

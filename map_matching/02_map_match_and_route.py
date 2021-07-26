@@ -27,8 +27,8 @@ inverse_precision = 1.0 / 1e6
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 # search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
-search_radii = [7.5, 15.0, 30.0, 60.0]
-# search_radii = [7.5]
+# search_radii = [0.0, 7.5, 15.0, 30.0, 60.0]
+search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
 
 # number of CPUs to use in processing (defaults to local CPU count)
@@ -381,7 +381,7 @@ def map_match_trajectory(job):
 
                             # insert each point into valhalla_map_match_shape_point table
                             point_sql = """insert into testing.valhalla_map_match_shape_point
-                                             values ('{0}', {1}, {2}, {3}, st_length({4}::geography), {4})""" \
+                                             values ('{0}', {1}, {2}, {3}, {4})""" \
                                 .format(traj_id, shape_index, search_radius, gps_accuracy, geom_string)
                             pg_cur.execute(point_sql)
 
