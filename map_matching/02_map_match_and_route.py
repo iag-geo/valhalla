@@ -14,7 +14,6 @@ import requests
 # import sys
 
 from datetime import datetime
-# from pathlib import Path
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
@@ -44,7 +43,7 @@ pg_pool = psycopg2.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
 
 # valhalla URLs
 valhalla_base_url = "http://localhost:8002/"
-map_matching_url = valhalla_base_url + "trace_attributes"
+map_matching_url = valhalla_base_url + "trace_route"
 routing_url = valhalla_base_url + "route"
 
 # input GPS points table
@@ -275,7 +274,8 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     request_dict["directions_options"] = {"units": "kilometres"}
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
-    request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
+    # request_dict["shape_match"] = "edge_walk"
+    # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
     # # test parameters - yet to do anything
     # request_dict["gps_accuracy"] = 65
@@ -355,25 +355,26 @@ def map_match_trajectory(job):
             if r.status_code == 200:
                 response_dict = r.json()
 
-                # # DEBUGGING
-                # response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
-                # response_file.writelines(json.dumps(response_dict))
-                # response_file.close()
+                # DEBUGGING
+                from pathlib import Path
+                response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
+                response_file.writelines(json.dumps(response_dict))
+                response_file.close()
 
                 # output matched route geometry
-                shape = response_dict.get("shape")
+                shape = response_dict.get("trip").get("legs")[0].get("shape")
 
                 if shape is not None:
                     # construct postgis geometry string for insertion into postgres
                     shape_coords = decode(shape)  # decode Google encoded polygon
-                    # point_list = list()
 
+                    point_list = list()
                     shape_index = 0
 
                     if len(shape_coords) > 1:
                         for coords in shape_coords:
-                            # point = "{} {}".format(coords[0], coords[1])
-                            # point_list.append(point)
+                            point = "{} {}".format(coords[0], coords[1])
+                            point_list.append(point)
 
                             geom_string = "ST_SetSRID(ST_MakePoint({},{}), 4326)".format(coords[0], coords[1])
 
@@ -387,14 +388,14 @@ def map_match_trajectory(job):
 
                             shape_index += 1
 
-                        # geom_string = "ST_GeomFromText('LINESTRING("
-                        # geom_string += ",".join(point_list)
-                        # geom_string += ")', 4326)"
-                        #
-                        # shape_sql = """insert into testing.valhalla_map_match_shape
-                        #                      values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
-                        #     .format(traj_id, search_radius, gps_accuracy, geom_string)
-                        # pg_cur.execute(shape_sql)
+                        geom_string = "ST_GeomFromText('LINESTRING("
+                        geom_string += ",".join(point_list)
+                        geom_string += ")', 4326)"
+
+                        shape_sql = """insert into testing.valhalla_map_match_route_shape
+                                             values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
+                            .format(traj_id, search_radius, gps_accuracy, geom_string)
+                        pg_cur.execute(shape_sql)
                     else:
                         fail_sql = """insert into testing.valhalla_map_match_fail 
                                           (trip_id, search_radius, gps_accuracy, error) 

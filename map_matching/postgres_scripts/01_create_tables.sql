@@ -1,6 +1,19 @@
 
 -- create tables for Python script to output to
 
+-- TEST MM ROUTE TABLE
+DROP TABLE IF EXISTS testing.valhalla_map_match_route_shape CASCADE;
+CREATE TABLE testing.valhalla_map_match_route_shape
+(
+    trip_id text,
+    cost double precision,
+    time_s double precision,
+    distance_km double precision,
+    geom geometry(linestring, 4326)
+);
+ALTER TABLE testing.valhalla_map_match_route_shape OWNER TO postgres;
+
+
 DROP TABLE IF EXISTS testing.valhalla_map_match_shape CASCADE;
 CREATE TABLE testing.valhalla_map_match_shape
 (
@@ -9,7 +22,7 @@ CREATE TABLE testing.valhalla_map_match_shape
     end_shape_index integer,
     search_radius double precision,
     gps_accuracy double precision,
-    distance_m float,
+    distance_m double precision,
     geom geometry(linestring, 4326)
 );
 ALTER TABLE testing.valhalla_map_match_shape OWNER TO postgres;
@@ -34,7 +47,7 @@ CREATE TABLE testing.valhalla_map_match_shape_non_pii
     trip_id text,
     search_radius double precision,
     gps_accuracy double precision,
-    distance_m float,
+    distance_m double precision,
     geom geometry(linestring, 4326)
 );
 ALTER TABLE testing.valhalla_map_match_shape_non_pii OWNER TO postgres;
@@ -51,7 +64,7 @@ CREATE TABLE testing.valhalla_map_match_edge
     osm_id integer,
     names text[],
     road_class text,
-    speed float,
+    speed double precision,
     begin_shape_index integer,
     end_shape_index integer
 );
@@ -66,8 +79,8 @@ CREATE TABLE testing.valhalla_map_match_point
     search_radius double precision,
     gps_accuracy double precision,
     point_index integer,
-    distance_from_trace_point float,
-    distance_along_edge float,
+    distance_from_trace_point double precision,
+    distance_along_edge double precision,
     begin_route_discontinuity boolean,
     end_route_discontinuity boolean,
     edge_index integer,
@@ -103,7 +116,7 @@ CREATE TABLE testing.valhalla_route_shape
     gps_accuracy double precision,
     start_point_index integer,
     end_point_index integer,
-    distance_m float,
+    distance_m double precision,
     point_count integer,
     segment_type text,
     geom geometry(linestring, 4326)
