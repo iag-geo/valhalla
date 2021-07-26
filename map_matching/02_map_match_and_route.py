@@ -14,7 +14,7 @@ import requests
 # import sys
 
 from datetime import datetime
-# from pathlib import Path
+from pathlib import Path
 from psycopg2 import pool
 from psycopg2.extensions import AsIs
 
@@ -275,7 +275,7 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     request_dict["directions_options"] = {"units": "kilometres"}
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
-    request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
+    # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
     # # test parameters - yet to do anything
     # request_dict["gps_accuracy"] = 65
@@ -291,6 +291,8 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
                                               "edge.speed",
                                               "edge.begin_shape_index",
                                               "edge.end_shape_index",
+                                              "edge.traversability",
+                                              "edge.use",
                                               "matched.point",
                                               "matched.type",
                                               "matched.edge_index",
@@ -355,10 +357,10 @@ def map_match_trajectory(job):
             if r.status_code == 200:
                 response_dict = r.json()
 
-                # # DEBUGGING
-                # response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
-                # response_file.writelines(json.dumps(response_dict))
-                # response_file.close()
+                # DEBUGGING
+                response_file = open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w")
+                response_file.writelines(json.dumps(response_dict))
+                response_file.close()
 
                 # output matched route geometry
                 shape = response_dict.get("shape")

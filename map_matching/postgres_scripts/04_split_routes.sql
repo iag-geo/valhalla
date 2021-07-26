@@ -1,12 +1,21 @@
 
 -- create map matched shape based on edge table point indexes
-INSERT INTO testing.valhalla_map_match_shape
+DROP TABLE IF EXISTS testing.valhalla_map_match_shape;
+CREATE TABLE testing.valhalla_map_match_shape AS
+-- INSERT INTO testing.valhalla_map_match_shape
 WITH shape AS (
     SELECT pnt.trip_id,
            edge.begin_shape_index,
            edge.end_shape_index,
            pnt.search_radius,
            pnt.gps_accuracy,
+           edge.edge_index,
+           edge.osm_id,
+           edge.names,
+           edge.road_class,
+           edge.speed,
+           edge.traversability,
+           edge.use,
            st_makeline(pnt.geom ORDER BY shape_index) AS geom
     FROM testing.valhalla_map_match_shape_point AS pnt
              INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
@@ -17,6 +26,13 @@ WITH shape AS (
     GROUP BY pnt.trip_id,
              edge.begin_shape_index,
              edge.end_shape_index,
+             edge.edge_index,
+             edge.osm_id,
+             edge.names,
+             edge.road_class,
+             edge.speed,
+             edge.traversability,
+             edge.use,
              pnt.search_radius,
              pnt.gps_accuracy
 )
@@ -25,6 +41,13 @@ SELECT trip_id,
        end_shape_index,
        search_radius,
        gps_accuracy,
+       edge_index,
+       osm_id,
+       names,
+       road_class,
+       speed,
+       traversability,
+       use,
        st_length(geom::geography) AS distance_m,
        geom
 FROM shape
@@ -36,6 +59,8 @@ ALTER TABLE testing.valhalla_map_match_shape
 CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape USING gist (geom);
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
 
+
+-- select * from testing.valhalla_map_match_shape;
 
 
 --

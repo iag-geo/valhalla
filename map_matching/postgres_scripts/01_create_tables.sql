@@ -15,18 +15,18 @@
 -- ALTER TABLE testing.valhalla_map_match_route_shape OWNER TO postgres;
 
 
-DROP TABLE IF EXISTS testing.valhalla_map_match_shape CASCADE;
-CREATE TABLE testing.valhalla_map_match_shape
-(
-    trip_id text,
-    begin_shape_index integer,
-    end_shape_index integer,
-    search_radius double precision,
-    gps_accuracy double precision,
-    distance_m double precision,
-    geom geometry(linestring, 4326)
-);
-ALTER TABLE testing.valhalla_map_match_shape OWNER TO postgres;
+-- DROP TABLE IF EXISTS testing.valhalla_map_match_shape CASCADE;
+-- CREATE TABLE testing.valhalla_map_match_shape
+-- (
+--     trip_id text,
+--     begin_shape_index integer,
+--     end_shape_index integer,
+--     search_radius double precision,
+--     gps_accuracy double precision,
+--     distance_m double precision,
+--     geom geometry(linestring, 4326)
+-- );
+-- ALTER TABLE testing.valhalla_map_match_shape OWNER TO postgres;
 
 
 DROP TABLE IF EXISTS testing.valhalla_map_match_shape_point CASCADE;
@@ -67,7 +67,9 @@ CREATE TABLE testing.valhalla_map_match_edge
     road_class text,
     speed double precision,
     begin_shape_index integer,
-    end_shape_index integer
+    end_shape_index integer,
+    traversability text,
+    use text
 );
 ALTER TABLE testing.valhalla_map_match_edge OWNER TO postgres;
 
