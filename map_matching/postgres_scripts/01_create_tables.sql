@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS testing.valhalla_map_match_route_shape CASCADE;
 CREATE TABLE testing.valhalla_map_match_route_shape
 (
     trip_id text,
+    trip_type text,
     cost double precision,
     time_s double precision,
     distance_km double precision,
