@@ -303,41 +303,79 @@ select * from testing.temp_line_point;
 -- ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
 
+select trip_id,
+       st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) as start_geom,
+       begin_shape_index,
+       end_shape_index,
+       search_radius,
+       gps_accuracy,
+       edge_index,
+       osm_id,
+       names,
+       road_class,
+       speed,
+       traversability,
+       use,
+       distance_m,
+       geom
+from testing.valhalla_map_match_shape
+order by begin_shape_index;
+
+
 -- STEP 5 - get start and end points of segments to be routed
 --   Do this by flattening pairs of start & end points
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
-WITH starts AS (
+WITH start_trip AS (
+    select trip_id,
+           begin_shape_index,
+           search_radius,
+           gps_accuracy,
+           st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS geom
+    from testing.valhalla_map_match_shape
+), end_trip AS (
+    select trip_id,
+           begin_shape_index,
+           search_radius,
+           gps_accuracy,
+           st_endpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS geom
+    from testing.valhalla_map_match_shape
+), starts AS (
     SELECT pnt.trip_id,
            pnt.search_radius,
            pnt.gps_accuracy,
            pnt.point_index,
+           lead(point_index) OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS next_point_index,
            pnt.begin_shape_index,
-           pnt.end_shape_index,
-           st_endpoint(trip.geom) AS geom
+           pnt.route_point_type,
+           trip.geom
     FROM testing.temp_line_point AS pnt
-             INNER JOIN testing.valhalla_map_match_shape AS trip
+             INNER JOIN start_trip AS trip
                         ON pnt.trip_id = trip.trip_id
                             AND pnt.search_radius = trip.search_radius
                             AND pnt.gps_accuracy = trip.gps_accuracy
-                            AND pnt.begin_shape_index = trip.end_shape_index
-    WHERE pnt.route_point_type = 'start'
+                            AND pnt.begin_shape_index = trip.begin_shape_index
+--     WHERE pnt.route_point_type = 'start'
 ), ends AS (
     SELECT pnt.trip_id,
            pnt.search_radius,
            pnt.gps_accuracy,
            pnt.point_index,
-           pnt.begin_shape_index,
+           lag(point_index) OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS previous_point_index,
            pnt.end_shape_index,
-           st_startpoint(trip.geom) AS geom
+           pnt.route_point_type,
+           trip.geom
     FROM testing.temp_line_point AS pnt
-             INNER JOIN testing.valhalla_map_match_shape AS trip
+             INNER JOIN end_trip AS trip
                         ON pnt.trip_id = trip.trip_id
                             AND pnt.search_radius = trip.search_radius
                             AND pnt.gps_accuracy = trip.gps_accuracy
-                            AND pnt.end_shape_index = trip.begin_shape_index
-    WHERE pnt.route_point_type = 'end'
+                            AND pnt.begin_shape_index = trip.begin_shape_index
+--     WHERE pnt.route_point_type = 'end'
 )
+-- select * from starts
+-- union all
+-- select * from ends;
 SELECT starts.trip_id,
        starts.search_radius,
        starts.gps_accuracy,
@@ -347,7 +385,7 @@ SELECT starts.trip_id,
        starts.point_index AS start_point_index,
        ends.point_index   AS end_point_index,
        starts.begin_shape_index,
-       starts.end_shape_index,
+       ends.end_shape_index,
 --        st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
        st_y(starts.geom)  AS start_lat,
        st_x(starts.geom)  AS start_lon,
@@ -357,9 +395,12 @@ SELECT starts.trip_id,
        ends.geom          AS end_geom
 FROM starts
          INNER JOIN ends ON starts.trip_id = ends.trip_id
-    AND starts.search_radius = ends.search_radius
-    AND starts.gps_accuracy = ends.gps_accuracy
-    AND starts.begin_shape_index = ends.begin_shape_index
+            AND starts.search_radius = ends.search_radius
+            AND starts.gps_accuracy = ends.gps_accuracy
+            AND starts.next_point_index = ends.point_index
+            AND starts.point_index = ends.previous_point_index
+WHERE starts.route_point_type = 'start'
+    AND ends.route_point_type = 'end'
 ;
 ANALYSE testing.temp_route_this;
 
