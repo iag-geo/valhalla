@@ -63,7 +63,6 @@ ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape
 -- select * from testing.valhalla_map_match_shape;
 
 
-
 -- STEP 1 - get map matched points where the route goes off and back onto the street network
 --    and also get the point closest to the map matched route (points aren't necessarily on the line...)
 DROP TABLE IF EXISTS testing.temp_line_point;
@@ -91,55 +90,67 @@ WITH pnt AS (
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
-), trip as (
-    SELECT trip_id,
-           search_radius,
-           gps_accuracy,
-           st_union(geom) as geom
---            st_geometrytype(st_collect(geom))
-    FROM testing.valhalla_map_match_shape
-    GROUP BY trip_id,
-             search_radius,
-             gps_accuracy
+-- ), trip as (
+--     SELECT trip_id,
+--            search_radius,
+--            gps_accuracy,
+--            st_union(geom) as geom
+-- --            st_geometrytype(st_collect(geom))
+--     FROM testing.valhalla_map_match_shape
+--     GROUP BY trip_id,
+--              search_radius,
+--              gps_accuracy
 ) , merge AS (
     SELECT pnt.trip_id,
            pnt.point_index,
---            trip.begin_shape_index,
---            trip.end_shape_index,
+           trip.begin_shape_index,
+           trip.end_shape_index,
            CASE
                WHEN (pnt.point_index = 0 AND point_type <> 'matched')
-                        OR (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
+                   OR
+                    (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
                    THEN 'start'
-               ELSE 'end' END                   AS route_point_type,
+               ELSE 'end' END                                                  AS route_point_type,
            pnt.previous_point_type,
            pnt.point_type,
            pnt.next_point_type,
            pnt.search_radius,
            pnt.gps_accuracy,
 --            trip.distance_m                      AS trip_distance_m,
-           pnt.geom                             AS geom,
-           ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
-           ST_LineLocatePoint(trip.geom, ST_ClosestPoint(trip.geom, pnt.geom)) AS trip_point_percent,
-           trip.geom                            AS trip_geom
+           pnt.geom                                                            AS geom,
+           ST_ClosestPoint(trip.geom, pnt.geom)                                AS trip_point_geom,
+           trip.geom                                                           AS trip_geom
     FROM pnt
-    INNER JOIN trip ON trip.trip_id = pnt.trip_id
+    INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
         AND trip.search_radius = pnt.search_radius
         AND trip.gps_accuracy = pnt.gps_accuracy
     INNER JOIN max_pnt ON max_pnt.trip_id = pnt.trip_id
         AND max_pnt.search_radius = pnt.search_radius
         AND max_pnt.gps_accuracy = pnt.gps_accuracy
-    WHERE (pnt.point_index = 0 AND point_type <> 'matched')  -- the first trip point -- need to include if unmatched
+    WHERE (pnt.point_index = 0 AND point_type <> 'matched')  -- the first trip point -- need to include if not matched
        OR (pnt.point_type = 'matched' AND
-              (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity)) -- start points
-       OR (pnt.point_index = max_pnt.point_index AND point_type <> 'matched')  -- the last trip point -- need to include if unmatched
+           (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity)) -- start points
+       OR (pnt.point_index = max_pnt.point_index AND point_type <> 'matched')   -- the last trip point -- need to include if not matched
        OR (pnt.point_type = 'matched' AND
-              (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity)) -- end points
+           (pnt.previous_point_type <> 'matched' OR pnt.end_route_discontinuity)) -- end points
+), dist AS (
+    SELECT *,
+           ST_LineLocatePoint(trip_geom, trip_point_geom)          AS trip_point_percent,
+           ST_Distance(geom::geography, trip_point_geom::geography) AS trip_point_distance
+    FROM merge
+    WHERE NOT (coalesce(previous_point_type, 'matched') <> 'matched'
+        AND coalesce(next_point_type, 'matched') <> 'matched') -- filter out unwanted, isolated, matched points
+), rank AS (
+    SELECT row_number() OVER (PARTITION BY trip_id, search_radius, gps_accuracy, point_index
+        ORDER BY trip_point_distance) AS rank,
+           *
+    FROM dist
 )
-SELECT row_number() OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY point_index, route_point_type) AS row_id,
+SELECT row_number() OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+    ORDER BY point_index, route_point_type) AS row_id,
        *
-FROM merge
-WHERE NOT (coalesce(previous_point_type, 'matched') <> 'matched'
-               AND coalesce(next_point_type, 'matched') <> 'matched') -- filter out unwanted, isolated, matched points
+FROM rank
+WHERE rank = 1
 ;
 ANALYSE testing.temp_line_point;
 
@@ -149,13 +160,20 @@ ANALYSE testing.temp_line_point;
 --   Determine the azimuth based on +/- 90 degrees from trip direction at each waypoint
 DROP TABLE IF EXISTS temp_line_calc;
 CREATE TEMPORARY TABLE temp_line_calc AS
-WITH az AS (
+WITH adjust AS (
+    SELECT *,
+           CASE WHEN trip_point_percent = 1.0 THEN trip_point_percent - 0.0001 ELSE
+               CASE WHEN trip_point_percent = 0.0 THEN trip_point_percent + 0.0001 ELSE trip_point_percent END
+           END AS trip_point_percent_fix
+    FROM testing.temp_line_point
+
+), az AS (
     SELECT *,
            ST_Azimuth(trip_point_geom,
-               ST_LineInterpolatePoint(trip_geom, trip_point_percent + 0.0001)) + pi() / 2.0 AS line_azimuth
-    FROM testing.temp_line_point
-    WHERE trip_point_percent > 0.0
-        AND trip_point_percent < 0.9999 -- don't want start or end points of trip
+               ST_LineInterpolatePoint(trip_geom, trip_point_percent_fix)) + pi() / 2.0 AS line_azimuth
+    FROM adjust
+--     WHERE trip_point_percent > 0.0
+--         AND trip_point_percent < 0.9999 -- don't want start or end points of trip
 ), fix AS ( -- fix azimuth if > 360 degrees (2xPi radians)
     SELECT *,
            CASE WHEN line_azimuth > pi() * 2.0 THEN line_azimuth - pi() * 2.0 ELSE line_azimuth END AS azimuthAB
@@ -194,6 +212,13 @@ FROM temp_line_calc
 ANALYSE testing.temp_split_line;
 
 
+select * from testing.temp_line_point;
+select * from temp_line_calc;
+
+select * from testing.temp_split_line;
+
+
+
 -- STEP 4 - split the matched routes into a new table
 DROP TABLE IF EXISTS testing.temp_split_shape;
 CREATE TABLE testing.temp_split_shape AS
@@ -201,11 +226,13 @@ WITH blade AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
+           begin_shape_index,
            st_collect(geom) AS geom
     FROM testing.temp_split_line
     GROUP BY trip_id,
              search_radius,
-             gps_accuracy
+             gps_accuracy,
+             begin_shape_index
 ), split AS (
     SELECT trip.trip_id,
            trip.begin_shape_index,
@@ -222,6 +249,8 @@ WITH blade AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
+           begin_shape_index,
+           end_shape_index,
            (ST_Dump(geom)).path[1] AS segment_index,
            (ST_Dump(geom)).geom    AS geom
     FROM split
@@ -229,6 +258,8 @@ WITH blade AS (
 SELECT trip_id,
        search_radius,
        gps_accuracy,
+       begin_shape_index,
+       end_shape_index,
        segment_index,
        st_length(geom::geography) AS distance_m,
        st_npoints(geom)           AS point_count,
@@ -239,7 +270,7 @@ FROM lines
 ANALYSE testing.temp_split_shape;
 
 ALTER TABLE testing.temp_split_shape
-    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, segment_index);
+    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 

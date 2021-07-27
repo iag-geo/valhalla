@@ -1,5 +1,21 @@
 
 
+-- copy mapmatch & routing results to permanent table
+DROP TABLE IF EXISTS carbar.mm_routes_202105;
+CREATE TABLE carbar.mm_routes_202105 AS
+SELECT * FROM testing.valhalla_final_route
+;
+ANALYSE carbar.mm_routes_202105;
+
+-- create primary key to ensure uniqueness
+ALTER TABLE carbar.mm_routes_202105
+    ADD CONSTRAINT mm_routes_202105_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
+
+CREATE INDEX mm_routes_202105_geom_idx ON carbar.mm_routes_202105 USING gist (geom);
+ALTER TABLE carbar.mm_routes_202105 CLUSTER ON mm_routes_202105_geom_idx;
+
+
+
 
 select *
 from testing.valhalla_map_match_point
