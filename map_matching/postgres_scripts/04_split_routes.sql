@@ -60,6 +60,30 @@ CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_sha
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
 
 
+-- -- create a single linestring
+-- WITH pnt AS (
+--     SELECT trip_id,
+--            search_radius,
+--            gps_accuracy,
+--            begin_shape_index,
+--            end_shape_index,
+--            (ST_DumpPoints(geom)).path[1] AS point_id,
+--            (ST_DumpPoints(geom)).geom    AS geom
+--     FROM testing.valhalla_map_match_shape
+-- )
+-- SELECT trip_id,
+--        search_radius,
+--        gps_accuracy,
+--        st_makeline(geom ORDER BY begin_shape_index, point_id) AS geom
+-- FROM pnt
+-- GROUP BY trip_id,
+--          search_radius,
+--          gps_accuracy
+-- ;
+
+
+
+
 -- select * from testing.valhalla_map_match_shape;
 
 
@@ -162,7 +186,7 @@ DROP TABLE IF EXISTS temp_line_calc;
 CREATE TEMPORARY TABLE temp_line_calc AS
 WITH adjust AS (
     SELECT *,
-           CASE WHEN trip_point_percent = 1.0 THEN trip_point_percent - 0.0001 ELSE
+           CASE WHEN trip_point_percent = 1.0 THEN trip_point_percent - 0.00011 ELSE
                CASE WHEN trip_point_percent = 0.0 THEN trip_point_percent + 0.0001 ELSE trip_point_percent END
            END AS trip_point_percent_fix
     FROM testing.temp_line_point
@@ -170,11 +194,11 @@ WITH adjust AS (
 ), az AS (
     SELECT *,
            ST_Azimuth(trip_point_geom,
-               ST_LineInterpolatePoint(trip_geom, trip_point_percent_fix)) + pi() / 2.0 AS line_azimuth
+               ST_LineInterpolatePoint(trip_geom, trip_point_percent_fix + 0.0001)) + pi() / 2.0 AS line_azimuth
     FROM adjust
 --     WHERE trip_point_percent > 0.0
 --         AND trip_point_percent < 0.9999 -- don't want start or end points of trip
-), fix AS ( -- fix azimuth if > 360 degrees (2xPi radians)
+), fix AS ( -- fix azimuth if > 360 degrees (2 x Pi radians)
     SELECT *,
            CASE WHEN line_azimuth > pi() * 2.0 THEN line_azimuth - pi() * 2.0 ELSE line_azimuth END AS azimuthAB
     FROM az
@@ -186,6 +210,8 @@ SELECT trip_id,
        route_point_type,
        search_radius,
        gps_accuracy,
+       trip_point_percent,
+       trip_point_percent_fix,
        geom,
        azimuthAB,
        CASE WHEN azimuthAB >= pi() THEN azimuthAB - pi() ELSE azimuthAB + pi() END AS azimuthBA,
@@ -226,13 +252,13 @@ WITH blade AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           begin_shape_index,
+--            begin_shape_index,
            st_collect(geom) AS geom
     FROM testing.temp_split_line
     GROUP BY trip_id,
              search_radius,
-             gps_accuracy,
-             begin_shape_index
+             gps_accuracy
+--              begin_shape_index
 ), split AS (
     SELECT trip.trip_id,
            trip.begin_shape_index,
@@ -244,7 +270,7 @@ WITH blade AS (
     INNER JOIN blade ON trip.trip_id = blade.trip_id
         AND trip.search_radius = blade.search_radius
         AND trip.gps_accuracy = blade.gps_accuracy
-        AND trip.begin_shape_index = blade.begin_shape_index
+--         AND trip.begin_shape_index = blade.begin_shape_index
 ), lines AS (
     SELECT trip_id,
            search_radius,
@@ -270,7 +296,7 @@ FROM lines
 ANALYSE testing.temp_split_shape;
 
 ALTER TABLE testing.temp_split_shape
-    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+    ADD CONSTRAINT temp_split_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index, segment_index);
 CREATE INDEX temp_split_shape_geom_idx ON testing.temp_split_shape USING gist (geom);
 ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
@@ -279,69 +305,64 @@ ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 --   Do this by flattening pairs of start & end points
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
-WITH max_pnt AS (
-    SELECT trip_id,
+WITH starts AS (
+    SELECT row_id,
+           trip_id,
            search_radius,
            gps_accuracy,
-           max(point_index) AS point_index
-    FROM testing.valhalla_map_match_point
-    GROUP BY trip_id,
-             search_radius,
-             gps_accuracy
-), pnts AS (
-    SELECT pnt.trip_id,
-           pnt.search_radius,
-           pnt.gps_accuracy,
-           pnt.point_index AS start_point_index,
-           pnt.point_type AS start_point_type,
-           geom AS start_geom,
-           lead(pnt.point_index)
-           OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS end_point_index,
-           lead(pnt.point_type)
-           OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS end_point_type,
-           lead(pnt.geom)
-           OVER (PARTITION BY pnt.trip_id, pnt.search_radius, pnt.gps_accuracy ORDER BY pnt.point_index) AS end_geom
-    FROM testing.valhalla_map_match_point as pnt
-    INNER JOIN max_pnt ON max_pnt.trip_id = pnt.trip_id
-        AND max_pnt.search_radius = pnt.search_radius
-        AND max_pnt.gps_accuracy = pnt.gps_accuracy
-    WHERE pnt.point_type = 'matched'
-       OR pnt.point_index = 0
-       OR pnt.point_index = max_pnt.point_index
+           point_index,
+           geom
+    FROM testing.temp_line_point
+    WHERE route_point_type = 'start'
+), ends AS (
+    SELECT row_id,
+           trip_id,
+           search_radius,
+           gps_accuracy,
+           point_index,
+           geom
+    FROM testing.temp_line_point
+    WHERE route_point_type = 'end'
 )
-SELECT trip_id,
-       search_radius,
-       gps_accuracy,
-       start_point_index,
-       end_point_index,
-       st_y(start_geom)  AS start_lat,
-       st_x(start_geom)  AS start_lon,
-       st_y(end_geom)    AS end_lat,
-       st_x(end_geom)    AS end_lon,
-       start_geom,
-       end_geom
-FROM pnts
-WHERE end_point_type = 'matched'
+SELECT starts.trip_id,
+       starts.search_radius,
+       starts.gps_accuracy,
+       row_number()
+       OVER (PARTITION BY starts.trip_id, starts.search_radius, starts.gps_accuracy ORDER BY starts.point_index) *
+       2                  AS segment_index,
+       starts.point_index AS start_point_index,
+       ends.point_index   AS end_point_index,
+--        st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
+       st_y(starts.geom)  AS start_lat,
+       st_x(starts.geom)  AS start_lon,
+       st_y(ends.geom)    AS end_lat,
+       st_x(ends.geom)    AS end_lon,
+       starts.geom        AS start_geom,
+       ends.geom          AS end_geom
+FROM starts
+         INNER JOIN ends ON starts.trip_id = ends.trip_id
+    AND starts.search_radius = ends.search_radius
+    AND starts.gps_accuracy = ends.gps_accuracy
+    AND starts.row_id = ends.row_id - 1 -- get sequential pairs of start & end records
 ;
 ANALYSE testing.temp_route_this;
 
--- -- need to adjust segment indexes where first route segment is at the start of the trip
--- WITH fix AS (
---     SELECT trip_id,
---            search_radius,
---            gps_accuracy
---     FROM testing.temp_route_this
---     WHERE start_point_index = 0
--- )
--- UPDATE testing.temp_route_this AS route
---     SET segment_index = segment_index - 2
--- FROM fix
--- WHERE route.trip_id = fix.trip_id
---   AND route.search_radius = fix.search_radius
---   AND route.gps_accuracy = fix.gps_accuracy
--- ;
--- ANALYSE testing.temp_route_this;
-
+-- need to adjust segment indexes where first route segment is at the start of the trip
+WITH fix AS (
+    SELECT trip_id,
+           search_radius,
+           gps_accuracy
+    FROM testing.temp_route_this
+    WHERE start_point_index = 0
+)
+UPDATE testing.temp_route_this AS route
+SET segment_index = segment_index - 2
+FROM fix
+WHERE route.trip_id = fix.trip_id
+  AND route.search_radius = fix.search_radius
+  AND route.gps_accuracy = fix.gps_accuracy
+;
+ANALYSE testing.temp_route_this;
 
 -- select trip_id,
 --        search_radius,
