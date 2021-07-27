@@ -252,13 +252,13 @@ WITH blade AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
---            begin_shape_index,
+           begin_shape_index,
            st_collect(geom) AS geom
     FROM testing.temp_split_line
     GROUP BY trip_id,
              search_radius,
-             gps_accuracy
---              begin_shape_index
+             gps_accuracy,
+             begin_shape_index
 ), split AS (
     SELECT trip.trip_id,
            trip.begin_shape_index,
@@ -270,7 +270,7 @@ WITH blade AS (
     INNER JOIN blade ON trip.trip_id = blade.trip_id
         AND trip.search_radius = blade.search_radius
         AND trip.gps_accuracy = blade.gps_accuracy
---         AND trip.begin_shape_index = blade.begin_shape_index
+        AND trip.begin_shape_index = blade.begin_shape_index
 ), lines AS (
     SELECT trip_id,
            search_radius,
