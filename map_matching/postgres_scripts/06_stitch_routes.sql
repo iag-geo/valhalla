@@ -10,7 +10,7 @@ ANALYSE testing.valhalla_segments;
 ALTER TABLE testing.valhalla_segments
     ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
 
-CREATE UNIQUE INDEX valhalla_segments_end_shape_index_idx ON testing.valhalla_segments USING btree (end_shape_index);
+CREATE UNIQUE INDEX valhalla_segments_end_shape_index_idx ON testing.valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.valhalla_segments

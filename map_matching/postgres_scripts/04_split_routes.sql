@@ -179,6 +179,19 @@ WHERE rank = 1
 ANALYSE testing.temp_line_point;
 
 
+-- DETAIL:  Key (trip_id, search_radius, gps_accuracy, begin_shape_index)=(918E16D3-709F-44DE-8D9B-78F8C6981122, 7.5, 7.5, 212) is duplicated.
+
+
+select * from testing.temp_line_point
+    where begin_shape_index = 212
+        and search_radius = 7.5
+        and gps_accuracy = 7.5
+;
+
+
+
+
+
 
 -- -- STEP 2 - calculate bearing, reverse bearing and distance to create a splitting line perpendicular to the trip at each waypoint
 -- --   Determine the azimuth based on +/- 90 degrees from trip direction at each waypoint
@@ -386,6 +399,38 @@ WHERE starts.route_point_type = 'start'
 ;
 ANALYSE testing.temp_route_this;
 
+
+select * from testing.temp_route_this
+where begin_shape_index = 212
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
+;
+
+with fred as (
+    select trip_id,
+           search_radius,
+           gps_accuracy,
+           int4range(begin_shape_index, end_shape_index) as ranger
+    from testing.temp_route_this
+    where search_radius = 7.5
+      and gps_accuracy = 7.5
+--       and begin_shape_index = 212
+)
+select trip_id,
+       search_radius,
+       gps_accuracy,
+       sum(ranger) as big_range
+from fred
+group by trip_id,
+         search_radius,
+         gps_accuracy
+;
+
+
+CREATE AGGREGATE sum(anyrange) (
+    stype = anyrange,
+    sfunc = range_union
+    );
 
 -- -- STEP 5 - get start and end points of segments to be routed
 -- --   Do this by flattening pairs of start & end points
