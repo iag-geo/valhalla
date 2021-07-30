@@ -189,7 +189,7 @@ def route_trajectory(job):
     pg_cur = pg_conn.cursor()
 
     # get inputs
-    traj_id = job[0]
+    trip_id = job[0]
     segment_index = 0  # placeholder
     points = job[2]
 
@@ -229,7 +229,7 @@ def route_trajectory(job):
             r = requests.post(routing_url, data=json_payload)
         except Exception as e:
             # if complete failure - Valhalla has possibly crashed
-            return "Valhalla routing failure ON trajectory {} : {}".format(traj_id, e)
+            return "Valhalla routing failure ON trajectory {} : {}".format(trip_id, e)
 
         # add results to lists of shape, edge and point dicts for insertion into postgres
         if r.status_code == 200:
@@ -265,13 +265,13 @@ def route_trajectory(job):
 
                         shape_sql = """insert into testing.valhalla_route_shape
                                              values ('{}', {}, {}, {}, {}, '{}', {})""" \
-                            .format(traj_id, search_radius, segment_index, distance_m,
+                            .format(trip_id, search_radius, segment_index, distance_m,
                                     point_count, segment_type, geom_string)
                         pg_cur.execute(shape_sql)
                     else:
                         fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, segment_index, error)
                                           values ('{}', {}, {}, '{}')""" \
-                            .format(traj_id, search_radius, segment_index, "Linestring only has one point")
+                            .format(trip_id, search_radius, segment_index, "Linestring only has one point")
                         pg_cur.execute(fail_sql)
 
         else:
@@ -282,7 +282,7 @@ def route_trajectory(job):
                 .format(json_payload, routing_url)
 
             sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, '{}', '{}', '{}')" \
-                .format(traj_id, search_radius, segment_index, e["error_code"], e["error"],
+                .format(trip_id, search_radius, segment_index, e["error_code"], e["error"],
                         str(e["status_code"]) + ":" + e["status"], curl_command)
 
             pg_cur.execute(sql)

@@ -177,7 +177,7 @@ def map_match_trajectory(job):
   pg_cur = pg_conn.cursor()
 
   # trajectory ID
-  traj_id = job[0]
+  trip_id = job[0]
   # traj_point_count = job[1]
 
   # add parameters and trajectory to request
@@ -193,7 +193,7 @@ def map_match_trajectory(job):
     r = requests.post(valhalla_server_url, data=json_payload)
   except Exception as e:
     # if complete failure - Valhalla has possibly crashed
-    return "Valhalla routing failure on trajectory {} : {}".format(traj_id, e)
+    return "Valhalla routing failure on trajectory {} : {}".format(trip_id, e)
 
   # add results to lists of shape, edge and point dicts for insertion into postgres
   if r.status_code == 200:
@@ -222,11 +222,11 @@ def map_match_trajectory(job):
 
         shape_sql = """insert into testing.valhalla_map_match_shape
                                      values ('{0}', st_length({1}::geography), {1})""" \
-          .format(traj_id, geom_string)
+          .format(trip_id, geom_string)
         pg_cur.execute(shape_sql)
       else:
         fail_sql = "insert into testing.valhalla_map_match_fail (trip_id, error) values ('{}', '{}')" \
-          .format(traj_id, "Linestring only has one point")
+          .format(trip_id, "Linestring only has one point")
         pg_cur.execute(fail_sql)
 
     # output edge information
@@ -237,7 +237,7 @@ def map_match_trajectory(job):
       edge_index = 0
 
       for edge in edges:
-        edge[trajectory_id_field] = traj_id
+        edge[trajectory_id_field] = trip_id
         edge["osm_id"] = edge.pop("way_id")
         edge["edge_index"] = edge_index
 
@@ -265,7 +265,7 @@ def map_match_trajectory(job):
       point_index = 0
 
       for point in points:
-        point[trajectory_id_field] = traj_id
+        point[trajectory_id_field] = trip_id
         point["point_type"] = point.pop("type")
         point[point_index_field] = point_index
         point["geom"] = "st_setsrid(st_makepoint({},{}),4326)" \
@@ -297,7 +297,7 @@ def map_match_trajectory(job):
       .format(json_payload, valhalla_server_url)
 
     sql = "insert into testing.valhalla_map_match_fail values ('{}', {}, '{}', '{}', '{}')" \
-      .format(traj_id, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
+      .format(trip_id, e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 
     pg_cur.execute(sql)
 

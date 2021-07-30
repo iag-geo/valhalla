@@ -134,24 +134,24 @@ WITH pnt AS (
                    OR
                     (pnt.point_type = 'matched' AND (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity))
                    THEN 'start'
-               ELSE 'end' END                                                  AS route_point_type,
+               ELSE 'end' END                   AS route_point_type,
            pnt.previous_point_type,
            pnt.point_type,
            pnt.next_point_type,
            pnt.search_radius,
            pnt.gps_accuracy,
 --            trip.distance_m                      AS trip_distance_m,
-           pnt.geom                                                            AS geom,
-           ST_ClosestPoint(trip.geom, pnt.geom)                                AS trip_point_geom,
-           trip.geom                                                           AS trip_geom
+           pnt.geom                             AS geom,
+           ST_ClosestPoint(trip.geom, pnt.geom) AS trip_point_geom,
+           trip.geom                            AS trip_geom
     FROM pnt
-    INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
+             INNER JOIN testing.valhalla_map_match_shape AS trip ON trip.trip_id = pnt.trip_id
         AND trip.search_radius = pnt.search_radius
         AND trip.gps_accuracy = pnt.gps_accuracy
-    INNER JOIN max_pnt ON max_pnt.trip_id = pnt.trip_id
+             INNER JOIN max_pnt ON max_pnt.trip_id = pnt.trip_id
         AND max_pnt.search_radius = pnt.search_radius
         AND max_pnt.gps_accuracy = pnt.gps_accuracy
-    WHERE (pnt.point_index = 0 AND point_type <> 'matched')  -- the first trip point -- need to include if not matched
+    WHERE (pnt.point_index = 0 AND point_type <> 'matched')                     -- the first trip point -- need to include if not matched
        OR (pnt.point_type = 'matched' AND
            (pnt.next_point_type <> 'matched' OR pnt.begin_route_discontinuity)) -- start points
        OR (pnt.point_index = max_pnt.point_index AND point_type <> 'matched')   -- the last trip point -- need to include if not matched
@@ -238,7 +238,7 @@ ANALYSE testing.temp_line_point;
 -- ANALYSE testing.temp_split_line;
 --
 
-select * from testing.temp_line_point;
+-- select * from testing.temp_line_point;
 
 
 -- select * from temp_line_calc;
@@ -303,27 +303,9 @@ select * from testing.temp_line_point;
 -- ALTER TABLE testing.temp_split_shape CLUSTER ON temp_split_shape_geom_idx;
 
 
-select trip_id,
-       st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) as start_geom,
-       begin_shape_index,
-       end_shape_index,
-       search_radius,
-       gps_accuracy,
-       edge_index,
-       osm_id,
-       names,
-       road_class,
-       speed,
-       traversability,
-       use,
-       distance_m,
-       geom
-from testing.valhalla_map_match_shape
-order by begin_shape_index;
-
-
 -- STEP 5 - get start and end points of segments to be routed
 --   Do this by flattening pairs of start & end points
+-- TODO: add not matched trip start and end points
 DROP TABLE IF EXISTS testing.temp_route_this;
 CREATE TABLE testing.temp_route_this AS
 WITH start_trip AS (
@@ -483,7 +465,19 @@ ANALYSE testing.temp_route_this;
 -- from testing.temp_route_this;
 
 
-select *
+select trip_id,
+       search_radius,
+       gps_accuracy,
+       start_point_index,
+       end_point_index,
+       begin_shape_index,
+       end_shape_index,
+       start_lat,
+       start_lon,
+       end_lat,
+       end_lon,
+       start_geom,
+       end_geom
 from testing.temp_route_this
 -- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 where search_radius = 7.5
@@ -493,8 +487,8 @@ order by trip_id,
          gps_accuracy,
          start_point_index
 ;
---
---
+
+
 -- select *
 -- from testing.temp_line_point
 -- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
