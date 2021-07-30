@@ -1,34 +1,50 @@
 
--- -- create table of routed segments and unrouted, map matched segments
--- DROP TABLE IF EXISTS testing.valhalla_segments;
--- CREATE TABLE testing.valhalla_segments AS
--- SELECT * FROM testing.valhalla_route_shape
--- ;
--- ANALYSE testing.valhalla_segments;
---
--- -- create primary key to ensure uniqueness
--- ALTER TABLE testing.valhalla_segments
---     ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, start_point_index);
---
--- -- Add map matched segments that haven't been fixed by routed
--- INSERT INTO testing.valhalla_segments
--- SELECT * FROM testing.temp_split_shape AS temp
--- WHERE NOT EXISTS(
---         SELECT trip_id,
---                search_radius,
---                gps_accuracy,
---                segment_index
---         FROM testing.valhalla_segments AS seg
---         WHERE seg.trip_id = temp.trip_id
---           AND seg.search_radius = temp.search_radius
---           AND seg.gps_accuracy = temp.gps_accuracy
---           AND seg.segment_index = temp.segment_index
---     )
--- ;
--- ANALYSE testing.valhalla_segments;
---
--- CREATE INDEX valhalla_segments_geom_idx ON testing.valhalla_segments USING gist (geom);
--- ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
+-- create table of routed segments and unrouted, map matched segments
+DROP TABLE IF EXISTS testing.valhalla_segments;
+CREATE TABLE testing.valhalla_segments AS
+SELECT * FROM testing.valhalla_route_shape
+;
+ANALYSE testing.valhalla_segments;
+
+-- create primary key to ensure uniqueness
+ALTER TABLE testing.valhalla_segments
+    ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+
+CREATE UNIQUE INDEX valhalla_segments_end_shape_index_idx ON testing.valhalla_segments USING btree (end_shape_index);
+
+-- Add map matched segments that haven't been fixed by routed
+INSERT INTO testing.valhalla_segments
+SELECT trip_id,
+       search_radius,
+       gps_accuracy,
+       null::integer AS start_point_index,
+       null::integer AS end_point_index,
+       begin_shape_index,
+       end_shape_index,
+       distance_m,
+       st_numpoints(geom) as point_count,
+       'map match' AS segment_type,
+       geom
+FROM testing.valhalla_map_match_shape AS temp
+WHERE NOT EXISTS(
+        SELECT trip_id,
+               search_radius,
+               gps_accuracy,
+               begin_shape_index,
+               end_shape_index
+        FROM testing.valhalla_segments AS seg
+        WHERE seg.trip_id = temp.trip_id
+          AND seg.search_radius = temp.search_radius
+          AND seg.gps_accuracy = temp.gps_accuracy
+          AND temp.begin_shape_index >= seg.begin_shape_index
+          AND temp.end_shape_index <= seg.end_shape_index
+    )
+;
+ANALYSE testing.valhalla_segments;
+
+CREATE INDEX valhalla_segments_geom_idx ON testing.valhalla_segments USING gist (geom);
+ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
+
 
 
 -- -- add new start point to a route segment where Valhalla used a different start point to the previous map matched end point

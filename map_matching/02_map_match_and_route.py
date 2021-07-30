@@ -607,10 +607,10 @@ def route_trajectory(job):
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326)"
 
-                    if end_point_index - start_point_index > 1:
-                        segment_type = "map match"
-                    else:
-                        segment_type = "route"
+                    # if end_point_index - start_point_index > 1:
+                    #     segment_type = "map match"
+                    # else:
+                    segment_type = "route"
 
                     shape_sql = """insert into testing.valhalla_route_shape
                                          values ('{}', {}, {}, {}, {}, {}, {}, {}, {}, '{}', {})""" \

@@ -465,28 +465,28 @@ ANALYSE testing.temp_route_this;
 -- from testing.temp_route_this;
 
 
-select trip_id,
-       search_radius,
-       gps_accuracy,
-       start_point_index,
-       end_point_index,
-       begin_shape_index,
-       end_shape_index,
-       start_lat,
-       start_lon,
-       end_lat,
-       end_lon,
-       start_geom,
-       end_geom
-from testing.temp_route_this
--- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-where search_radius = 7.5
-  and gps_accuracy = 7.5
-order by trip_id,
-         search_radius,
-         gps_accuracy,
-         start_point_index
-;
+-- select trip_id,
+--        search_radius,
+--        gps_accuracy,
+--        start_point_index,
+--        end_point_index,
+--        begin_shape_index,
+--        end_shape_index,
+--        start_lat,
+--        start_lon,
+--        end_lat,
+--        end_lon,
+--        start_geom,
+--        end_geom
+-- from testing.temp_route_this
+-- -- where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+-- where search_radius = 7.5
+--   and gps_accuracy = 7.5
+-- order by trip_id,
+--          search_radius,
+--          gps_accuracy,
+--          start_point_index
+-- ;
 
 
 -- select *
