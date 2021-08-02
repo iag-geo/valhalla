@@ -406,31 +406,54 @@ where begin_shape_index = 212
   and gps_accuracy = 7.5
 ;
 
-with fred as (
-    select trip_id,
+
+
+WITH rte AS (
+    SELECT trip_id,
            search_radius,
            gps_accuracy,
-           int4range(begin_shape_index, end_shape_index) as ranger
-    from testing.temp_route_this
-    where search_radius = 7.5
+           start_point_index,
+           end_point_index,
+           begin_shape_index,
+           end_shape_index,
+           lead(end_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+               ORDER BY begin_shape_index, end_shape_index) AS next_end_shape_index,
+           start_lat,
+           start_lon,
+           end_lat,
+           end_lon,
+           lead(end_lat) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+               ORDER BY begin_shape_index, end_shape_index) AS next_end_lat,
+           lead(end_lon) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+               ORDER BY begin_shape_index, end_shape_index) AS next_end_lon,
+           start_geom,
+           end_geom,
+           lead(end_geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+               ORDER BY begin_shape_index, end_shape_index) AS next_end_geom
+    FROM testing.temp_route_this
+    where begin_shape_index = 212
+      and search_radius = 7.5
       and gps_accuracy = 7.5
---       and begin_shape_index = 212
 )
-select trip_id,
+SELECT trip_id,
        search_radius,
        gps_accuracy,
-       sum(ranger) as big_range
-from fred
-group by trip_id,
-         search_radius,
-         gps_accuracy
+       start_point_index,
+       end_point_index,
+       begin_shape_index,
+       end_shape_index,
+       next_end_shape_index,
+       CASE WHEN next_end_shape_index > end_shape_index THEN next_end_shape_index
+           ELSE end_shape_index END AS final_end_shape_index,
+       start_lat,
+       start_lon,
+       end_lat,
+       end_lon
+FROM rte
 ;
 
 
-CREATE AGGREGATE sum(anyrange) (
-    stype = anyrange,
-    sfunc = range_union
-    );
+
 
 -- -- STEP 5 - get start and end points of segments to be routed
 -- --   Do this by flattening pairs of start & end points
