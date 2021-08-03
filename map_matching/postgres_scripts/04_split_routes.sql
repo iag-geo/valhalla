@@ -60,6 +60,18 @@ CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_sha
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
 
 
+-- select * from testing.valhalla_map_match_shape
+-- order by trip_id,
+--          search_radius,
+--          gps_accuracy,
+--          begin_shape_index
+-- ;
+
+
+
+
+
+
 -- -- create a single linestring
 -- WITH pnt AS (
 --     SELECT trip_id,
@@ -183,9 +195,10 @@ ANALYSE testing.temp_line_point;
 
 
 select * from testing.temp_line_point
-    where begin_shape_index = 212
-        and search_radius = 7.5
+    where search_radius = 7.5
         and gps_accuracy = 7.5
+order by trip_id,
+         point_index
 ;
 
 

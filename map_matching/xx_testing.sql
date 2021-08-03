@@ -30,9 +30,11 @@ order by begin_shape_index
 
 
 select *
-from testing.valhalla_map_match_shape_point
+from testing.valhalla_map_match_point
 where search_radius = 7.5
   and gps_accuracy = 7.5
+  and trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+order by point_index
 ;
 
 
