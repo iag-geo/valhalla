@@ -18,7 +18,7 @@ WITH shape AS (
            edge.use,
            st_makeline(pnt.geom ORDER BY shape_index) AS geom
     FROM testing.valhalla_map_match_shape_point AS pnt
-             INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
+    INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
         AND pnt.search_radius = edge.search_radius
         AND pnt.gps_accuracy = edge.gps_accuracy
         AND pnt.shape_index >= edge.begin_shape_index
@@ -36,36 +36,58 @@ WITH shape AS (
              pnt.search_radius,
              pnt.gps_accuracy
 )
-SELECT trip_id,
-       begin_shape_index,
-       end_shape_index,
-       search_radius,
-       gps_accuracy,
-       edge_index,
-       osm_id,
-       names,
-       road_class,
-       speed,
-       traversability,
-       use,
-       st_length(geom::geography) AS distance_m,
-       geom
+SELECT shape.trip_id,
+--        CASE WHEN coalesce(pnt2.edge_index, 0) > 0 THEN false ELSE true END AS use_segment,
+       true::boolean as use_segment,
+       shape.begin_shape_index,
+       shape.end_shape_index,
+       shape.search_radius,
+       shape.gps_accuracy,
+       shape.edge_index,
+       shape.osm_id,
+       shape.names,
+       shape.road_class,
+       shape.speed,
+       shape.traversability,
+       shape.use,
+       st_length(shape.geom::geography) AS distance_m,
+       shape.geom
 FROM shape
+-- LEFT OUTER JOIN testing.valhalla_map_match_point as pnt2 ON shape.trip_id = pnt2.trip_id
+--     AND shape.search_radius = pnt2.search_radius
+--     AND shape.gps_accuracy = pnt2.gps_accuracy
+--     AND shape.edge_index = pnt2.edge_index
+-- WHERE pnt2.edge_index > 0
 ;
 ANALYSE testing.valhalla_map_match_shape;
 
 ALTER TABLE testing.valhalla_map_match_shape
-    ADD CONSTRAINT valhalla_map_match_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+    ADD CONSTRAINT valhalla_map_match_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, edge_index);
 CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape USING gist (geom);
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
 
+-- flag bad map match segments
+UPDATE testing.valhalla_map_match_shape AS shape
+    SET use_segment = false
+FROM testing.valhalla_map_match_point as pnt2
+WHERE shape.trip_id = pnt2.trip_id
+    AND shape.search_radius = pnt2.search_radius
+    AND shape.gps_accuracy = pnt2.gps_accuracy
+    AND shape.edge_index = pnt2.edge_index
+    AND pnt2.edge_index > 0
+;
+ANALYSE testing.valhalla_map_match_shape;
 
--- select * from testing.valhalla_map_match_shape
--- order by trip_id,
---          search_radius,
---          gps_accuracy,
---          begin_shape_index
--- ;
+
+select * from testing.valhalla_map_match_shape
+where search_radius = 7.5
+  and gps_accuracy = 7.5
+  and trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+order by trip_id,
+         search_radius,
+         gps_accuracy,
+         begin_shape_index
+;
 
 
 
