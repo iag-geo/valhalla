@@ -416,8 +416,10 @@ WITH rte AS (
            end_point_index,
            begin_shape_index,
            end_shape_index,
+           lead(begin_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
+               ORDER BY begin_shape_index, end_shape_index) AS next_begin_shape_index,
            lead(end_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-               ORDER BY begin_shape_index, end_shape_index) AS next_end_shape_index,
+        ORDER BY begin_shape_index, end_shape_index) AS next_end_shape_index,
            start_lat,
            start_lon,
            end_lat,
@@ -431,24 +433,33 @@ WITH rte AS (
            lead(end_geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
                ORDER BY begin_shape_index, end_shape_index) AS next_end_geom
     FROM testing.temp_route_this
-    where begin_shape_index = 212
-      and search_radius = 7.5
+    where search_radius = 7.5
       and gps_accuracy = 7.5
+      and trip_id <> 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+--       and begin_shape_index = 212
 )
 SELECT trip_id,
        search_radius,
        gps_accuracy,
-       start_point_index,
-       end_point_index,
+--        start_point_index,
+--        end_point_index,
        begin_shape_index,
        end_shape_index,
+       next_begin_shape_index,
        next_end_shape_index,
-       CASE WHEN next_end_shape_index > end_shape_index THEN next_end_shape_index
+       CASE WHEN next_begin_shape_index <= end_shape_index
+           AND next_end_shape_index > end_shape_index THEN next_end_shape_index
            ELSE end_shape_index END AS final_end_shape_index,
        start_lat,
        start_lon,
        end_lat,
-       end_lon
+       end_lon,
+       CASE WHEN next_begin_shape_index <= end_shape_index
+           AND next_end_shape_index > end_shape_index THEN next_end_lat
+            ELSE end_lat END AS final_end_lat,
+       CASE WHEN next_begin_shape_index <= end_shape_index
+           AND next_end_shape_index > end_shape_index THEN next_end_lon
+            ELSE end_lon END AS final_lon
 FROM rte
 ;
 
