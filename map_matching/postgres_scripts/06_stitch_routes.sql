@@ -1,19 +1,19 @@
 
 -- create table of routed segments and unrouted, map matched segments
-DROP TABLE IF EXISTS testing.valhalla_segments;
-CREATE TABLE testing.valhalla_segments AS
+DROP TABLE IF EXISTS testing.temp_valhalla_segments;
+CREATE TABLE testing.temp_valhalla_segments AS
 SELECT * FROM testing.valhalla_route_shape
 ;
-ANALYSE testing.valhalla_segments;
+ANALYSE testing.temp_valhalla_segments;
 
 -- create primary key to ensure uniqueness
-ALTER TABLE testing.valhalla_segments
-    ADD CONSTRAINT valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+ALTER TABLE testing.temp_valhalla_segments
+    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
 
-CREATE UNIQUE INDEX valhalla_segments_end_shape_index_idx ON testing.valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
+CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
 
 -- Add map matched segments that haven't been fixed by routed
-INSERT INTO testing.valhalla_segments
+INSERT INTO testing.temp_valhalla_segments
 SELECT trip_id,
        search_radius,
        gps_accuracy,
@@ -32,7 +32,7 @@ WHERE NOT EXISTS(
                gps_accuracy,
                begin_shape_index,
                end_shape_index
-        FROM testing.valhalla_segments AS seg
+        FROM testing.temp_valhalla_segments AS seg
         WHERE seg.trip_id = temp.trip_id
           AND seg.search_radius = temp.search_radius
           AND seg.gps_accuracy = temp.gps_accuracy
@@ -40,10 +40,10 @@ WHERE NOT EXISTS(
           AND temp.end_shape_index <= seg.end_shape_index
     )
 ;
-ANALYSE testing.valhalla_segments;
+ANALYSE testing.temp_valhalla_segments;
 
-CREATE INDEX valhalla_segments_geom_idx ON testing.valhalla_segments USING gist (geom);
-ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
+CREATE INDEX temp_valhalla_segments_geom_idx ON testing.temp_valhalla_segments USING gist (geom);
+ALTER TABLE testing.temp_valhalla_segments CLUSTER ON temp_valhalla_segments_geom_idx;
 
 
 
@@ -58,9 +58,9 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 --            segment_type,
 --            st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
 --                AS previous_end_geom
---     FROM testing.valhalla_segments
+--     FROM testing.temp_valhalla_segments
 -- )
--- UPDATE testing.valhalla_segments as rte
+-- UPDATE testing.temp_valhalla_segments as rte
 --     SET geom = st_addpoint(rte.geom, seg.previous_end_geom, 0),
 --         distance_m = st_length(st_addpoint(rte.geom, seg.previous_end_geom, 0)::geography),
 --         point_count = rte.point_count + 1
@@ -72,7 +72,7 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 --   AND seg.segment_type = 'route'
 --   AND seg.segment_index > 0
 -- ;
--- ANALYSE testing.valhalla_segments;
+-- ANALYSE testing.temp_valhalla_segments;
 --
 --
 -- -- add new end point to a route segment where Valhalla used a different end point to the next map matched start point
@@ -86,9 +86,9 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 --            segment_type,
 --            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
 --                AS next_start_geom
---     FROM testing.valhalla_segments
+--     FROM testing.temp_valhalla_segments
 -- )
--- UPDATE testing.valhalla_segments as rte
+-- UPDATE testing.temp_valhalla_segments as rte
 -- SET geom = st_addpoint(rte.geom, seg.next_start_geom),
 --     distance_m = st_length(st_addpoint(rte.geom, seg.next_start_geom)::geography),
 --     point_count = rte.point_count + 1
@@ -100,7 +100,7 @@ ALTER TABLE testing.valhalla_segments CLUSTER ON valhalla_segments_geom_idx;
 --   AND seg.segment_type = 'route'
 --   AND seg.segment_index < 999999
 -- ;
--- ANALYSE testing.valhalla_segments;
+-- ANALYSE testing.temp_valhalla_segments;
 
 
 -- stitch each route into a single linestring
@@ -118,7 +118,7 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'route' THEN 1 ELSE 0 END) AS route_segments,
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY begin_edge_index) AS geom
-    FROM testing.valhalla_segments
+    FROM testing.temp_valhalla_segments
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
@@ -183,7 +183,7 @@ WHERE route.trip_id = stats.trip_id
 
 -- -- 1344 test rows
 -- SELECT count(*) FROM testing.temp_split_shape;
--- SELECT count(*) FROM testing.valhalla_segments;
+-- SELECT count(*) FROM testing.temp_valhalla_segments;
 
 
 

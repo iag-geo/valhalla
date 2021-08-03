@@ -55,7 +55,7 @@ where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 ;
 
 select *
-from testing.valhalla_segments
+from testing.temp_valhalla_segments
 where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
   and search_radius = 7.5
   and gps_accuracy = 7.5
