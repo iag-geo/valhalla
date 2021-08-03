@@ -102,9 +102,6 @@ WITH trip AS (
     FROM testing.valhalla_map_match_shape
     WHERE use_segment
 )
--- select * from starts
--- union all
--- select * from ends;
 SELECT trip_id,
        search_radius,
        gps_accuracy,
@@ -124,135 +121,54 @@ WHERE end_edge_index - begin_edge_index > 1
 ANALYSE testing.temp_route_this;
 
 
-select * from testing.temp_route_this
-where begin_shape_index = 212
-  and search_radius = 7.5
-  and gps_accuracy = 7.5
-;
+-- select * from testing.temp_route_this
+-- where begin_shape_index = 212
+--   and search_radius = 7.5
+--   and gps_accuracy = 7.5
+-- ;
 
 
-
-WITH rte AS (
+-- need to add a route at the start if first map matched segment doesn't start at the first waypoint
+INSERT INTO testing.temp_route_this
+WITH pnt AS (
+    SELECT trip_id,
+           geom
+    FROM testing.waypoint
+    WHERE point_index = 0
+), trip AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           start_point_index,
-           end_point_index,
-           begin_shape_index,
-           end_shape_index,
-           lead(begin_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-               ORDER BY begin_shape_index, end_shape_index) AS next_begin_shape_index,
-           lead(end_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-        ORDER BY begin_shape_index, end_shape_index) AS next_end_shape_index,
-           start_lat,
-           start_lon,
-           end_lat,
-           end_lon,
-           lead(end_lat) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-               ORDER BY begin_shape_index, end_shape_index) AS next_end_lat,
-           lead(end_lon) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-               ORDER BY begin_shape_index, end_shape_index) AS next_end_lon,
-           start_geom,
-           end_geom,
-           lead(end_geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy
-               ORDER BY begin_shape_index, end_shape_index) AS next_end_geom
-    FROM testing.temp_route_this
-    where search_radius = 7.5
-      and gps_accuracy = 7.5
-      and trip_id <> 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
---       and begin_shape_index = 212
+           geom
+    FROM testing.valhalla_map_match_shape_point
+    WHERE shape_index = 0
+), merge AS (
+    SELECT trip.trip_id,
+           search_radius,
+           gps_accuracy,
+           pnt.geom AS start_geom,
+           trip.geom AS end_geom,
+           st_distance(pnt.geom::geography, trip.geom::geography) AS distance_m
+    FROM pnt
+             INNER JOIN trip ON pnt.trip_id = trip.trip_id
 )
 SELECT trip_id,
        search_radius,
        gps_accuracy,
---        start_point_index,
---        end_point_index,
-       begin_shape_index,
-       end_shape_index,
-       next_begin_shape_index,
-       next_end_shape_index,
-       CASE WHEN next_begin_shape_index <= end_shape_index
-           AND next_end_shape_index > end_shape_index THEN next_end_shape_index
-           ELSE end_shape_index END AS final_end_shape_index,
-       start_lat,
-       start_lon,
-       end_lat,
-       end_lon,
-       CASE WHEN next_begin_shape_index <= end_shape_index
-           AND next_end_shape_index > end_shape_index THEN next_end_lat
-            ELSE end_lat END AS final_end_lat,
-       CASE WHEN next_begin_shape_index <= end_shape_index
-           AND next_end_shape_index > end_shape_index THEN next_end_lon
-            ELSE end_lon END AS final_lon
-FROM rte
+       -1 AS begin_edge_index,
+       0 AS end_edge_index,
+       -1 AS begin_shape_index,
+       0 AS end_shape_index,
+       st_y(start_geom) AS start_lat,
+       st_x(start_geom) AS start_lon,
+       st_y(end_geom)   AS end_lat,
+       st_x(end_geom)   AS end_lon,
+       start_geom,
+       end_geom
+FROM merge
+WHERE distance_m > 50
 ;
-
-
-
-
--- -- STEP 5 - get start and end points of segments to be routed
--- --   Do this by flattening pairs of start & end points
--- DROP TABLE IF EXISTS testing.temp_route_this;
--- CREATE TABLE testing.temp_route_this AS
--- WITH starts AS (
---     SELECT row_id,
---            trip_id,
---            search_radius,
---            gps_accuracy,
---            point_index,
---            geom
---     FROM testing.temp_line_point
---     WHERE route_point_type = 'start'
--- ), ends AS (
---     SELECT row_id,
---            trip_id,
---            search_radius,
---            gps_accuracy,
---            point_index,
---            geom
---     FROM testing.temp_line_point
---     WHERE route_point_type = 'end'
--- )
--- SELECT starts.trip_id,
---        starts.search_radius,
---        starts.gps_accuracy,
---        row_number()
---        OVER (PARTITION BY starts.trip_id, starts.search_radius, starts.gps_accuracy ORDER BY starts.point_index) *
---        2                  AS segment_index,
---        starts.point_index AS start_point_index,
---        ends.point_index   AS end_point_index,
--- --        st_distance(starts.geom::geography, ends.geom::geography) AS distance_m,
---        st_y(starts.geom)  AS start_lat,
---        st_x(starts.geom)  AS start_lon,
---        st_y(ends.geom)    AS end_lat,
---        st_x(ends.geom)    AS end_lon,
---        starts.geom        AS start_geom,
---        ends.geom          AS end_geom
--- FROM starts
---          INNER JOIN ends ON starts.trip_id = ends.trip_id
---     AND starts.search_radius = ends.search_radius
---     AND starts.gps_accuracy = ends.gps_accuracy
---     AND starts.row_id = ends.row_id - 1 -- get sequential pairs of start & end records
--- ;
--- ANALYSE testing.temp_route_this;
-
-
--- -- need to adjust segment indexes where first route segment is at the start of the trip
--- WITH fix AS (
---     SELECT trip_id,
---            search_radius,
---            gps_accuracy
---     FROM testing.temp_route_this
---     WHERE start_point_index = 0
--- )
--- UPDATE testing.temp_route_this AS route
--- SET segment_index = segment_index - 2
--- FROM fix
--- WHERE route.trip_id = fix.trip_id
---   AND route.search_radius = fix.search_radius
---   AND route.gps_accuracy = fix.gps_accuracy
--- ;
--- ANALYSE testing.temp_route_this;
+ANALYSE testing.temp_route_this;
 
 
 -- select trip_id,
@@ -321,5 +237,5 @@ FROM rte
 
 
 -- DROP TABLE IF EXISTS testing.temp_split_line;
-DROP TABLE IF EXISTS temp_line_calc;
+-- DROP TABLE IF EXISTS temp_line_calc;
 -- DROP TABLE IF EXISTS testing.temp_line_point;

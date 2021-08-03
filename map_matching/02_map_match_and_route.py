@@ -189,8 +189,8 @@ def main():
     sql = """SELECT trip_id,
                     search_radius,
                     gps_accuracy,
-                    start_point_index,
-                    end_point_index,
+                    begin_edge_index,
+                    end_edge_index,
                     begin_shape_index,
                     end_shape_index,
                     start_lat,
@@ -533,8 +533,8 @@ def route_trajectory(job):
     # get inputs
     search_radius = float(job["search_radius"])
     gps_accuracy = float(job["gps_accuracy"])
-    start_point_index = int(job["start_point_index"])
-    end_point_index = int(job["end_point_index"])
+    begin_edge_index = int(job["begin_edge_index"])
+    end_edge_index = int(job["end_edge_index"])
     begin_shape_index = int(job["begin_shape_index"])
     end_shape_index = int(job["end_shape_index"])
 
@@ -543,7 +543,7 @@ def route_trajectory(job):
     start_location["lon"] = job["start_lon"]
     start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
     # # if segment is the start of the route - double the radius to enable a wider search for a road
-    # if start_point_index == 0:
+    # if begin_edge_index == 0:
     start_location["radius"] = search_radius
     # else:
     #     start_location["radius"] = search_radius
@@ -553,7 +553,7 @@ def route_trajectory(job):
     end_location["lon"] = job["end_lon"]
     end_location["rank_candidates"] = False
     # # if segment is the end of the route - double the radius to enable a wider search for a road
-    # if start_point_index == 0:
+    # if begin_edge_index == 0:
     end_location["radius"] = search_radius
     # else:
     #     end_location["radius"] = search_radius
@@ -582,7 +582,7 @@ def route_trajectory(job):
         response_dict = r.json()
 
         # # DEBUGGING
-        # if start_point_index == 81 and search_radius == 60:
+        # if begin_edge_index == 81 and search_radius == 60:
         #     with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
         #         json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
@@ -607,21 +607,21 @@ def route_trajectory(job):
                     geom_string += ",".join(point_list)
                     geom_string += ")', 4326)"
 
-                    # if end_point_index - start_point_index > 1:
+                    # if end_edge_index - begin_edge_index > 1:
                     #     segment_type = "map match"
                     # else:
                     segment_type = "route"
 
                     shape_sql = """insert into testing.valhalla_route_shape
                                          values ('{}', {}, {}, {}, {}, {}, {}, {}, {}, '{}', {})""" \
-                        .format(job["trip_id"], search_radius, gps_accuracy, start_point_index, end_point_index,
+                        .format(job["trip_id"], search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, distance_m, point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
-                    fail_sql = """insert into testing.valhalla_route_fail 
-                                      (trip_id, search_radius, gps_accuracy, start_point_index, end_point_index, error)
+                    fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, gps_accuracy, 
+                                          begin_edge_index, end_edge_index, begin_shape_index, end_shape_index, error)
                                       values ('{}', {}, {}, {}, {}, {}, '{}')""" \
-                        .format(job["trip_id"], search_radius, gps_accuracy, start_point_index, end_point_index,
+                        .format(job["trip_id"], search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, "Linestring only has one point")
                     pg_cur.execute(fail_sql)
 
@@ -633,7 +633,7 @@ def route_trajectory(job):
             .format(json_payload, routing_url)
 
         sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, {}, {}, {}, {}, '{}', '{}', '{}')" \
-            .format(job["trip_id"], search_radius, gps_accuracy, start_point_index, end_point_index,
+            .format(job["trip_id"], search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                     begin_shape_index, end_shape_index,
                     e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 

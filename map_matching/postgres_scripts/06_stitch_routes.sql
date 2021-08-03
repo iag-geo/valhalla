@@ -17,8 +17,8 @@ INSERT INTO testing.valhalla_segments
 SELECT trip_id,
        search_radius,
        gps_accuracy,
-       null::integer AS start_point_index,
-       null::integer AS end_point_index,
+       edge_index AS begin_edge_index,
+       edge_index AS end_edge_index,
        begin_shape_index,
        end_shape_index,
        distance_m,
@@ -117,8 +117,8 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'map match' THEN distance_m ELSE 0.0 END) / 1000.0 AS map_match_distance_km,
            sum(CASE WHEN segment_type = 'route' THEN 1 ELSE 0 END) AS route_segments,
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
-           st_collect(geom) AS geom
-    FROM testing.valhalla_route_shape
+           st_collect(geom ORDER BY begin_edge_index) AS geom
+    FROM testing.valhalla_segments
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
