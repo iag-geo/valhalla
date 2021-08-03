@@ -119,6 +119,7 @@ SELECT trip_id,
        start_geom,
        end_geom
 FROM trip
+WHERE end_edge_index - begin_edge_index > 1
 ;
 ANALYSE testing.temp_route_this;
 
