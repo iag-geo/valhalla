@@ -541,20 +541,20 @@ def route_trajectory(job):
     start_location = dict()
     start_location["lat"] = job["start_lat"]
     start_location["lon"] = job["start_lon"]
-    start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
+    # start_location["rank_candidates"] = False  # allows the best road to be chosen, not necessarily the closest road
     # # if segment is the start of the route - double the radius to enable a wider search for a road
     # if begin_edge_index == 0:
-    start_location["radius"] = search_radius
+    # start_location["radius"] = search_radius
     # else:
     #     start_location["radius"] = search_radius
 
     end_location = dict()
     end_location["lat"] = job["end_lat"]
     end_location["lon"] = job["end_lon"]
-    end_location["rank_candidates"] = False
+    # end_location["rank_candidates"] = False
     # # if segment is the end of the route - double the radius to enable a wider search for a road
     # if begin_edge_index == 0:
-    end_location["radius"] = search_radius
+    # end_location["radius"] = search_radius
     # else:
     #     end_location["radius"] = search_radius
 
