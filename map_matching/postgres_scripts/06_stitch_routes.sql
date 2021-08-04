@@ -8,7 +8,7 @@ ANALYSE testing.temp_valhalla_segments;
 
 -- create primary key to ensure uniqueness
 ALTER TABLE testing.temp_valhalla_segments
-    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_shape_index);
+    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index);
 
 CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
 
@@ -36,8 +36,7 @@ WHERE NOT EXISTS(
         WHERE seg.trip_id = temp.trip_id
           AND seg.search_radius = temp.search_radius
           AND seg.gps_accuracy = temp.gps_accuracy
-          AND temp.begin_shape_index >= seg.begin_shape_index
-          AND temp.end_shape_index <= seg.end_shape_index
+          AND temp.edge_index BETWEEN seg.begin_edge_index AND seg.end_edge_index
     )
 ;
 ANALYSE testing.temp_valhalla_segments;

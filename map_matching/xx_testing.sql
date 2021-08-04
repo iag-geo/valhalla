@@ -23,10 +23,14 @@ order by trip_id,
 ;
 
 
-
-
 select *
-from testing.valhalla_map_match_point
+from testing.vw_valhalla_final_route
+;
+
+
+select count(distinct trip_id)
+select *
+from testing.valhalla_route_shape
 ;
 
 select *
