@@ -14,30 +14,22 @@ ALTER TABLE testing.temp_valhalla_segments
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.temp_valhalla_segments
-SELECT trip_id,
-       search_radius,
-       gps_accuracy,
-       edge_index AS begin_edge_index,
-       edge_index AS end_edge_index,
-       begin_shape_index,
-       end_shape_index,
-       distance_m,
-       st_numpoints(geom) as point_count,
+SELECT temp.trip_id,
+       temp.search_radius,
+       temp.gps_accuracy,
+       temp.edge_index AS begin_edge_index,
+       temp.edge_index AS end_edge_index,
+       temp.begin_shape_index,
+       temp.end_shape_index,
+       temp.distance_m,
+       st_numpoints(temp.geom) as point_count,
        'map match' AS segment_type,
-       geom
+       temp.geom
 FROM testing.valhalla_map_match_shape AS temp
-WHERE EXISTS(
-        SELECT trip_id,
-               search_radius,
-               gps_accuracy,
-               begin_shape_index,
-               end_shape_index
-        FROM testing.temp_valhalla_segments AS seg
-        WHERE seg.trip_id = temp.trip_id
-          AND seg.search_radius = temp.search_radius
-          AND seg.gps_accuracy = temp.gps_accuracy
-          AND temp.edge_index NOT BETWEEN seg.begin_edge_index AND seg.end_edge_index
-    )
+INNER JOIN testing.temp_valhalla_segments AS seg ON seg.trip_id = temp.trip_id
+    AND seg.search_radius = temp.search_radius
+    AND seg.gps_accuracy = temp.gps_accuracy
+    AND temp.edge_index NOT BETWEEN seg.begin_edge_index AND seg.end_edge_index
 ;
 ANALYSE testing.temp_valhalla_segments;
 

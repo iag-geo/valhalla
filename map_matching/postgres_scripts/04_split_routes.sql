@@ -75,13 +75,13 @@ ANALYSE testing.valhalla_map_match_shape;
 
 
 -- select * from testing.valhalla_map_match_shape
--- where search_radius = 7.5
+-- where search_radius = 15
 --   and gps_accuracy = 7.5
---   and trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+-- --   and trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 -- order by trip_id,
 --          search_radius,
 --          gps_accuracy,
---          begin_shape_index
+--          edge_index
 -- ;
 
 
@@ -105,8 +105,8 @@ WITH trip AS (
 SELECT trip_id,
        search_radius,
        gps_accuracy,
-       begin_edge_index,
-       end_edge_index,
+       begin_edge_index + 1 AS begin_edge_index,  -- correct value to edge index(es) to route
+       end_edge_index - 1 AS end_edge_index,  -- correct value to edge index(es) to route
        begin_shape_index,
        end_shape_index,
        st_y(start_geom) AS start_lat,
@@ -122,8 +122,7 @@ ANALYSE testing.temp_route_this;
 
 
 -- select * from testing.temp_route_this
--- where begin_shape_index = 212
---   and search_radius = 7.5
+-- where search_radius = 15
 --   and gps_accuracy = 7.5
 -- ;
 
