@@ -119,8 +119,8 @@ WHERE route.trip_id = stats.trip_id
 
 
 
-DROP VIEW IF EXISTS testing.valhalla_final_route;
-CREATE VIEW testing.valhalla_final_route AS
+DROP VIEW IF EXISTS testing.vw_valhalla_final_route;
+CREATE VIEW testing.vw_valhalla_final_route AS
 SELECT *
 FROM testing.valhalla_final_route
 WHERE rank = 1
