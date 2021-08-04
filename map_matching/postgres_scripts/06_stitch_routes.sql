@@ -47,7 +47,7 @@ ALTER TABLE testing.temp_valhalla_segments CLUSTER ON temp_valhalla_segments_geo
 
 
 -- stitch each route into a single linestring
-DROP TABLE IF EXISTS testing.valhalla_final_route;
+DROP TABLE IF EXISTS testing.valhalla_final_route CASCADE;
 CREATE TABLE testing.valhalla_final_route AS
 WITH stats AS (
     SELECT trip_id,
