@@ -1,8 +1,8 @@
 # edit and cut & paste this script into the QGIS Python window
 
 # ignore_layers = ["Google Satellite Hybrid", "CartoDb Dark Matter", "CartoDb Positron", ]
-layer_prefixes = ["valhalla_", "temp_"]
-filter_text = "trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03' and search_radius = 15 and gps_accuracy = 7.5"
+layer_prefixes = ["vw_valhalla_", "valhalla_", "temp_"]
+filter_text = "trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC' and search_radius = 15 and gps_accuracy = 7.5"
 
 extent = QgsRectangle()
 extent.setMinimal()

@@ -23,14 +23,28 @@ order by trip_id,
 ;
 
 
-select *
-from testing.vw_valhalla_final_route
+select trip_id,
+       search_radius,
+       gps_accuracy,
+       begin_edge_index,
+       end_edge_index,
+       begin_shape_index,
+       end_shape_index,
+       distance_m,
+       point_count,
+       segment_type,
+       geom
+from testing.temp_valhalla_segments
+where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
+  and search_radius = 15
+  and gps_accuracy = 7.5
+order by begin_edge_index
 ;
 
 
 select count(distinct trip_id)
-select *
-from testing.valhalla_route_shape
+-- select *
+from testing.vw_valhalla_final_route
 ;
 
 select *

@@ -8,9 +8,9 @@ ANALYSE testing.temp_valhalla_segments;
 
 -- create primary key to ensure uniqueness
 ALTER TABLE testing.temp_valhalla_segments
-    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index);
+    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index);
 
-CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
+-- CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.temp_valhalla_segments
@@ -26,7 +26,7 @@ SELECT trip_id,
        'map match' AS segment_type,
        geom
 FROM testing.valhalla_map_match_shape AS temp
-WHERE NOT EXISTS(
+WHERE EXISTS(
         SELECT trip_id,
                search_radius,
                gps_accuracy,
@@ -36,7 +36,7 @@ WHERE NOT EXISTS(
         WHERE seg.trip_id = temp.trip_id
           AND seg.search_radius = temp.search_radius
           AND seg.gps_accuracy = temp.gps_accuracy
-          AND temp.edge_index BETWEEN seg.begin_edge_index AND seg.end_edge_index
+          AND temp.edge_index NOT BETWEEN seg.begin_edge_index AND seg.end_edge_index
     )
 ;
 ANALYSE testing.temp_valhalla_segments;
