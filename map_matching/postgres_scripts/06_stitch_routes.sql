@@ -46,67 +46,7 @@ CREATE INDEX temp_valhalla_segments_geom_idx ON testing.temp_valhalla_segments U
 ALTER TABLE testing.temp_valhalla_segments CLUSTER ON temp_valhalla_segments_geom_idx;
 
 
-
--- -- add new start point to a route segment where Valhalla used a different start point to the previous map matched end point
--- WITH seg AS (
---     SELECT trip_id,
---            search_radius,
---            gps_accuracy,
---            segment_index,
---            distance_m,
---            point_count,
---            segment_type,
---            st_endpoint(lag(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
---                AS previous_end_geom
---     FROM testing.temp_valhalla_segments
--- )
--- UPDATE testing.temp_valhalla_segments as rte
---     SET geom = st_addpoint(rte.geom, seg.previous_end_geom, 0),
---         distance_m = st_length(st_addpoint(rte.geom, seg.previous_end_geom, 0)::geography),
---         point_count = rte.point_count + 1
--- FROM seg
--- WHERE rte.trip_id = seg.trip_id
---   AND rte.search_radius = seg.search_radius
---   AND rte.gps_accuracy = seg.gps_accuracy
---   AND rte.segment_index = seg.segment_index
---   AND seg.segment_type = 'route'
---   AND seg.segment_index > 0
--- ;
--- ANALYSE testing.temp_valhalla_segments;
---
---
--- -- add new end point to a route segment where Valhalla used a different end point to the next map matched start point
--- WITH seg AS (
---     SELECT trip_id,
---            search_radius,
---            gps_accuracy,
---            segment_index,
---            distance_m,
---            point_count,
---            segment_type,
---            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY segment_index))
---                AS next_start_geom
---     FROM testing.temp_valhalla_segments
--- )
--- UPDATE testing.temp_valhalla_segments as rte
--- SET geom = st_addpoint(rte.geom, seg.next_start_geom),
---     distance_m = st_length(st_addpoint(rte.geom, seg.next_start_geom)::geography),
---     point_count = rte.point_count + 1
--- FROM seg
--- WHERE rte.trip_id = seg.trip_id
---   AND rte.search_radius = seg.search_radius
---   AND rte.gps_accuracy = seg.gps_accuracy
---   AND rte.segment_index = seg.segment_index
---   AND seg.segment_type = 'route'
---   AND seg.segment_index < 999999
--- ;
--- ANALYSE testing.temp_valhalla_segments;
-
-
 -- stitch each route into a single linestring
--- remove duplicate points by grouping them by ~1m
--- TODO: merge into single linestrings?
--- TODO: fix gaps between map match and route segments
 DROP TABLE IF EXISTS testing.valhalla_final_route;
 CREATE TABLE testing.valhalla_final_route AS
 WITH stats AS (
@@ -124,6 +64,7 @@ WITH stats AS (
              gps_accuracy
 )
 SELECT trip_id,
+       row_number() over (PARTITION BY trip_id ORDER BY (map_match_distance_km + route_distance_km)) AS rank,
        search_radius,
        gps_accuracy,
        map_match_segments + route_segments AS total_segments,
@@ -175,6 +116,17 @@ WHERE route.trip_id = stats.trip_id
   AND route.search_radius = stats.search_radius
   AND route.gps_accuracy = stats.gps_accuracy
 ;
+
+
+
+DROP VIEW IF EXISTS testing.valhalla_final_route;
+CREATE VIEW testing.valhalla_final_route AS
+SELECT *
+FROM testing.valhalla_final_route
+WHERE rank = 1
+;
+
+
 
 
 

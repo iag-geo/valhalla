@@ -2,7 +2,7 @@
 
 # ignore_layers = ["Google Satellite Hybrid", "CartoDb Dark Matter", "CartoDb Positron", ]
 layer_prefixes = ["valhalla_", "temp_"]
-filter_text = "trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122' and and search_radius = 15 and gps_accuracy = 7.5"
+filter_text = "trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03' and search_radius = 15 and gps_accuracy = 7.5"
 
 extent = QgsRectangle()
 extent.setMinimal()
@@ -15,7 +15,7 @@ for layer in layers:
         layer.setSubsetString(filter_text)
         extent.combineExtentWith( layer.extent() )
 
-# update extents of filtered datasets for "Zoom to Layer" to work
+# set map extents to filtered datasets
 sourceCrs = QgsCoordinateReferenceSystem("EPSG:4283")
 destCrs = QgsCoordinateReferenceSystem("EPSG:900913")
 tr = QgsCoordinateTransform(sourceCrs, destCrs, QgsProject.instance())
