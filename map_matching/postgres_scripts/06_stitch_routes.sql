@@ -23,7 +23,7 @@ SELECT trip_id,
        begin_shape_index,
        end_shape_index,
        distance_m,
-       st_numpoints(geom) as point_count,
+       st_npoints(geom) as point_count,
        'map match' AS segment_type,
        geom
 FROM testing.valhalla_map_match_shape
@@ -79,7 +79,7 @@ SELECT trip_id,
        route_distance_km::numeric(8, 3) AS route_distance_km,
        0.0::double precision AS rmse_km,
        0::integer AS waypoint_count,
-       st_numpoints(geom) as point_count,
+       st_npoints(geom) as point_count,
        geom
 FROM stats
 ;

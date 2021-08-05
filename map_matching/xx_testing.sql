@@ -59,8 +59,8 @@ order by begin_edge_index
 
 
 
-select count(distinct trip_id)
--- select *
+-- select count(distinct trip_id)
+select *
 from testing.vw_valhalla_final_route
 ;
 
