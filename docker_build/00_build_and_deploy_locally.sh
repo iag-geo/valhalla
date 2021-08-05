@@ -10,21 +10,23 @@ cd $HOME
 # 1. go to Dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
-## 2. build the image
-## note: --squash is still an experimental docker feature (removes intermediate layers from final image)
-#docker build --squash --tag minus34/valhalla:latest .
-#
+# 2. build the image
+# note: --squash is still an experimental docker feature (removes intermediate layers from final image)
+docker build --squash --tag minus34/valhalla:latest .
+
 ### 3. run a container
-##docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
-#
-## 4. push to Docker Hub
-#docker push minus34/valhalla:latest
+#docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
 
-## 4. clean up Docker locally - note: this could accidentally destroy your resources
-#docker system prune
+# 4. push to Docker Hub
+docker push minus34/valhalla:latest
 
-# OR DOWNLOAD
-docker pull minus34/valhalla:latest
+# 4. clean up Docker locally - warning: this could accidentally destroy other Docker images
+echo 'y' | docker system prune
+
+# ------------------------------------------------------
+
+## OR DOWNLOAD
+#docker pull minus34/valhalla:latest
 
 # ------------------------------------------------------------------------------------------------------------
 # 2. deploy using Kubernetes
