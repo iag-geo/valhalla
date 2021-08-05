@@ -11,7 +11,7 @@ ALTER TABLE testing.temp_valhalla_segments
     ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index);
 
 -- todo: fix this issue
--- CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_shape_index);
+-- CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_edge_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.temp_valhalla_segments
@@ -26,19 +26,22 @@ SELECT trip_id,
        st_numpoints(geom) as point_count,
        'map match' AS segment_type,
        geom
-FROM testing.valhalla_map_match_shape AS temp
-WHERE NOT EXISTS(
-        SELECT trip_id,
-               search_radius,
-               gps_accuracy,
-               begin_shape_index,
-               end_shape_index
-        FROM testing.temp_valhalla_segments AS seg
-        WHERE seg.trip_id = temp.trip_id
-          AND seg.search_radius = temp.search_radius
-          AND seg.gps_accuracy = temp.gps_accuracy
-          AND temp.edge_index = seg.begin_edge_index
-    )
+FROM testing.valhalla_map_match_shape
+ON CONFLICT (trip_id, search_radius, gps_accuracy, begin_edge_index) DO NOTHING
+
+--     AS temp
+-- WHERE NOT EXISTS(
+--         SELECT trip_id,
+--                search_radius,
+--                gps_accuracy,
+--                begin_shape_index,
+--                end_shape_index
+--         FROM testing.temp_valhalla_segments AS seg
+--         WHERE seg.trip_id = temp.trip_id
+--           AND seg.search_radius = temp.search_radius
+--           AND seg.gps_accuracy = temp.gps_accuracy
+--           AND temp.edge_index = seg.begin_edge_index
+--     )
 ;
 ANALYSE testing.temp_valhalla_segments;
 

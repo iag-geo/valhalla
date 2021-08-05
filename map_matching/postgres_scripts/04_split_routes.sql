@@ -117,6 +117,9 @@ SELECT trip_id,
        end_geom
 FROM trip
 WHERE end_edge_index - begin_edge_index > 1
+    AND trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
 ;
 ANALYSE testing.temp_route_this;
 

@@ -2,7 +2,7 @@
 
 # ignore_layers = ["Google Satellite Hybrid", "CartoDb Dark Matter", "CartoDb Positron", ]
 layer_prefixes = ["vw_valhalla_", "valhalla_", "temp_"]
-filter_text = "trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC' and search_radius = 15 and gps_accuracy = 7.5"
+filter_text = "trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC' and search_radius = 7.5 and gps_accuracy = 7.5"
 
 extent = QgsRectangle()
 extent.setMinimal()
