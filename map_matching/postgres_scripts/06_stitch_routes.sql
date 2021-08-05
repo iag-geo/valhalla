@@ -11,7 +11,7 @@ ALTER TABLE testing.temp_valhalla_segments
     ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index);
 
 -- todo: fix this issue
--- CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_edge_index);
+CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_edge_index);
 
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO testing.temp_valhalla_segments

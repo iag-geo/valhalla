@@ -37,7 +37,7 @@ WITH shape AS (
              pnt.gps_accuracy
 )
 SELECT shape.trip_id,
-       true::boolean as use_segment,
+--        true::boolean as use_segment,
        shape.begin_shape_index,
        shape.end_shape_index,
        shape.search_radius,
@@ -60,11 +60,13 @@ ALTER TABLE testing.valhalla_map_match_shape
 CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape USING gist (geom);
 ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
 
--- TODO: change this to delete bad segments after QA is done to confirm this approach works
--- flag bad map match segments
-UPDATE testing.valhalla_map_match_shape AS shape
-    SET use_segment = false
-FROM testing.valhalla_map_match_point as pnt2
+
+-- delete bad map match segments
+-- UPDATE testing.valhalla_map_match_shape AS shape
+--     SET use_segment = false
+-- FROM testing.valhalla_map_match_point as pnt2
+DELETE FROM testing.valhalla_map_match_shape AS shape
+USING testing.valhalla_map_match_point as pnt2
 WHERE shape.trip_id = pnt2.trip_id
     AND shape.search_radius = pnt2.search_radius
     AND shape.gps_accuracy = pnt2.gps_accuracy
@@ -100,7 +102,7 @@ WITH trip AS (
            st_endpoint(geom) as start_geom,
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
     FROM testing.valhalla_map_match_shape
-    WHERE use_segment
+--     WHERE use_segment
 )
 SELECT trip_id,
        search_radius,
@@ -117,9 +119,9 @@ SELECT trip_id,
        end_geom
 FROM trip
 WHERE end_edge_index - begin_edge_index > 1
-    AND trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
-  and search_radius = 7.5
-  and gps_accuracy = 7.5
+--     AND trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
+--   and search_radius = 7.5
+--   and gps_accuracy = 7.5
 ;
 ANALYSE testing.temp_route_this;
 

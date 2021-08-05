@@ -32,6 +32,23 @@ order by point_index
 ;
 
 select *
+from testing.valhalla_map_match_shape
+where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
+order by begin_shape_index
+;
+
+
+select *
+from testing.temp_route_this
+where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
+  and search_radius = 7.5
+  and gps_accuracy = 7.5
+order by begin_edge_index
+;
+
+select *
 from testing.temp_valhalla_segments
 where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
   and search_radius = 7.5
