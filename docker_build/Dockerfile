@@ -1,5 +1,5 @@
 
-FROM valhalla/valhalla:run-latest
+FROM valhalla/valhalla:run-3.1.3
 
 RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
 
