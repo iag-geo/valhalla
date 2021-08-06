@@ -71,14 +71,14 @@ SELECT trip_id,
        search_radius,
        gps_accuracy,
        map_match_segments + route_segments AS total_segments,
-       (map_match_distance_km + route_distance_km)::numeric(8, 3) AS total_distance_km,
+       map_match_distance_km + route_distance_km AS total_distance_km,
        (map_match_distance_km / (map_match_distance_km + route_distance_km) * 100.0)::numeric(4, 1) AS map_match_percent,
        map_match_segments,
-       map_match_distance_km::numeric(8, 3) AS map_match_distance_km,
+       map_match_distance_km,
        route_segments,
-       route_distance_km::numeric(8, 3) AS route_distance_km,
+       route_distance_km,
        0.0::double precision AS rmse_km,
-       0.0::double precision AS waypoint_distance_km,
+       0.0::double precision AS waypoint_distance_ratio,
        0::integer AS waypoint_count,
        st_npoints(geom) as point_count,
        geom
@@ -97,7 +97,7 @@ DROP TABLE IF EXISTS temp_waypoint_stats CASCADE;
 CREATE TEMPORARY TABLE temp_waypoint_stats AS
 SELECT trip_id,
        count(*) as waypoint_count,
-       (st_length(st_makeline(geom order by point_index)::geography) / 1000.0)::numeric(12, 3) AS waypoint_distance_km
+       st_length(st_makeline(geom order by point_index)::geography) / 1000.0 AS waypoint_distance_km
 FROM testing.waypoint
 GROUP BY trip_id
 ;
@@ -110,7 +110,7 @@ ALTER TABLE temp_waypoint_stats
 -- Add waypoint stats to compare with final routes
 UPDATE testing.valhalla_final_route as route
     SET waypoint_count = stats.waypoint_count,
-        waypoint_distance_km = stats.waypoint_distance_km
+        waypoint_distance_ratio = route.total_distance_km / stats.waypoint_distance_km
 FROM temp_waypoint_stats AS stats
 WHERE route.trip_id = stats.trip_id
 ;
@@ -120,7 +120,7 @@ DROP TABLE temp_waypoint_stats;
 
 
 -- Calculate RMSE in km for waypoints versus the closest point on the final route
---   As a proxy for reliability of both the input GPS points and the final route
+--   ...as a proxy for reliability of both the input GPS points and the final route
 WITH merge AS (
     SELECT trip.trip_id,
            trip.search_radius,
