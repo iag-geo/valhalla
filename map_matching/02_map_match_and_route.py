@@ -27,7 +27,7 @@ inverse_precision = 1.0 / 1e6
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 # search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
-search_radii = [7.5, 15.0, 30.0, 60.0]
+search_radii = [None, 7.5, 15.0, 30.0, 60.0]
 # search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
 
@@ -277,10 +277,19 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     request_dict["directions_options"] = {"units": "kilometres"}
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
-    request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
+
+    if search_radius is not None or gps_accuracy is not None:
+        request_dict["trace_options"] = dict()
+
+        if search_radius is not None:
+            request_dict["trace_options"]["search_radius"] = search_radius
+
+        if gps_accuracy is not None:
+            request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
+
+    # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
     # # test parameters - yet to do anything
-    # request_dict["gps_accuracy"] = 65
     # request_dict["breakage_distance"] = 6000
     # request_dict["interpolation_distance"] = 6000
 
@@ -334,7 +343,7 @@ def map_match_trajectory(job):
     for gps_accuracy in search_radii:
         for search_radius in search_radii:
             # add point_index to points list of dicts to enable iteration
-            input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
+            # input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
             # print(input_points_with_index)
 
             # add parameters and trajectory to request
@@ -342,7 +351,13 @@ def map_match_trajectory(job):
             request_dict = get_map_matching_parameters(search_radius, gps_accuracy)
             request_dict["shape"] = input_points
 
-            # convert request data to JSON string
+            # fix None values for seearch radius and gps_accuracy (can't be NULL in a database primary key)
+            if search_radius is None:
+                search_radius = -9999
+            if gps_accuracy is None:
+                gps_accuracy = -9999
+
+        # convert request data to JSON string
             json_payload = json.dumps(request_dict)
 
             # get a route
@@ -482,30 +497,30 @@ def map_match_trajectory(job):
                     # insert all points in a single go
                     pg_cur.execute(";".join(point_sql_list))
 
-                # merge matched points with input points that couldn't be matched; as the input into the next iteration
-                new_points = list()
-                for point in input_points_with_index:
-                    matched = False
-                    # look for matched point and use its new coordinates
-                    for matched_point in matched_points:
-                        if point["point_index"] == matched_point["point_index"]:
-                            if use_timestamps:
-                                matched_point["time"] = point["time"]
-                            new_points.append(matched_point)
-                            matched = True
-                            break
-                    # if point not matched use current coordinates
-                    if not matched:
-                        new_points.append(point)
-
-                # sort new list of points
-                sorted_new_points = sorted(new_points, key=lambda k: k["point_index"])
-
-                # create new input list for next iteration of map matching
-                if use_timestamps:
-                    input_points = [{k: new_point[k] for k in ("lat", "lon", "time")} for new_point in sorted_new_points]
-                else:
-                    input_points = [{k: new_point[k] for k in ("lat", "lon")} for new_point in sorted_new_points]
+                # # merge matched points with input points that couldn't be matched; as the input into the next iteration
+                # new_points = list()
+                # for point in input_points_with_index:
+                #     matched = False
+                #     # look for matched point and use its new coordinates
+                #     for matched_point in matched_points:
+                #         if point["point_index"] == matched_point["point_index"]:
+                #             if use_timestamps:
+                #                 matched_point["time"] = point["time"]
+                #             new_points.append(matched_point)
+                #             matched = True
+                #             break
+                #     # if point not matched use current coordinates
+                #     if not matched:
+                #         new_points.append(point)
+                #
+                # # sort new list of points
+                # sorted_new_points = sorted(new_points, key=lambda k: k["point_index"])
+                #
+                # # create new input list for next iteration of map matching
+                # if use_timestamps:
+                #     input_points = [{k: new_point[k] for k in ("lat", "lon", "time")} for new_point in sorted_new_points]
+                # else:
+                #     input_points = [{k: new_point[k] for k in ("lat", "lon")} for new_point in sorted_new_points]
 
             else:
                 # get error

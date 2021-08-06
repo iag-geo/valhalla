@@ -57,11 +57,20 @@ order by begin_edge_index
 ;
 
 
-
+-- get counts of search radius and gps accuracy in map matching + routing results
+select search_radius,
+       gps_accuracy,
+       count(*) as trip_count
+from testing.vw_valhalla_final_route
+group by search_radius,
+         gps_accuracy
+;
 
 -- select count(distinct trip_id)
 select *
-from testing.vw_valhalla_final_route
+from testing.valhalla_final_route
+where trip_id = '4C6B2C40-BC74-4EB2-8081-C9085CCC5A29'
+order by total_distance_km
 ;
 
 select *
