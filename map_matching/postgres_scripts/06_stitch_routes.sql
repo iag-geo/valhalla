@@ -92,38 +92,58 @@ CREATE INDEX valhalla_final_route_geom_idx ON testing.valhalla_final_route USING
 ALTER TABLE testing.valhalla_final_route CLUSTER ON valhalla_final_route_geom_idx;
 
 
--- Calculate waypoint stats to compare with final routes
+-- create temp table of waypoint stats per trip
+DROP TABLE IF EXISTS temp_waypoint_stats CASCADE;
+CREATE TEMPORARY TABLE temp_waypoint_stats AS
+SELECT trip_id,
+       count(*) as waypoint_count,
+       (st_length(st_makeline(geom order by point_index)::geography) / 1000.0)::numeric(12, 3) AS waypoint_distance_km
+FROM testing.waypoint
+GROUP BY trip_id
+;
+ANALYSE temp_waypoint_stats;
+
+ALTER TABLE temp_waypoint_stats
+    ADD CONSTRAINT valhalla_final_route_pkey PRIMARY KEY (trip_id);
+
+
+-- Add waypoint stats to compare with final routes
+UPDATE testing.valhalla_final_route as route
+    SET waypoint_count = stats.waypoint_count,
+        waypoint_distance_km = stats.waypoint_distance_km
+FROM temp_waypoint_stats AS stats
+WHERE route.trip_id = stats.trip_id
+;
+ANALYSE testing.valhalla_final_route;
+
+
+-- Calculate RMSE in km for waypoints versus the closest point on the final route
 --   As a proxy for reliability of both the input GPS points and the final route
 WITH merge AS (
     SELECT trip.trip_id,
            trip.search_radius,
            trip.gps_accuracy,
-           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m,
-           pnt.point_index,
-           pnt.geom
+           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m
     FROM testing.valhalla_final_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
 ), stats AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km,
-           count(*) as waypoint_count,
-           (st_length(st_makeline(geom order by point_index)::geography) / 1000.0)::numeric(12, 3) AS waypoint_distance_km
+           sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km
     FROM merge
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
 )
 UPDATE testing.valhalla_final_route as route
-    SET rmse_km = stats.rmse_km,
-        waypoint_count = stats.waypoint_count,
-        waypoint_distance_km = stats.waypoint_distance_km
+    SET rmse_km = stats.rmse_km
 FROM stats
 WHERE route.trip_id = stats.trip_id
   AND route.search_radius = stats.search_radius
   AND route.gps_accuracy = stats.gps_accuracy
 ;
+ANALYSE testing.valhalla_final_route;
 
 
 -- create view of the best result for each trip
