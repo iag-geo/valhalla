@@ -94,7 +94,7 @@ where rmse_km < 1.0
 order by rmse_km desc
 ;
 
-
+select count(*) from testing.waypoint
 
 
 

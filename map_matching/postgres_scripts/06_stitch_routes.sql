@@ -88,6 +88,7 @@ ANALYSE testing.valhalla_final_route;
 
 ALTER TABLE testing.valhalla_final_route
     ADD CONSTRAINT valhalla_final_route_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
+create index valhalla_final_route_trip_id_idx on testing.valhalla_final_route using btree (trip_id);
 CREATE INDEX valhalla_final_route_geom_idx ON testing.valhalla_final_route USING gist (geom);
 ALTER TABLE testing.valhalla_final_route CLUSTER ON valhalla_final_route_geom_idx;
 
@@ -154,7 +155,7 @@ CREATE VIEW testing.vw_valhalla_final_route AS
 SELECT *
 FROM testing.valhalla_final_route
 WHERE rank = 1
-    AND rmse_km < 1.0  -- filter out the utter rubbish GPS data
+    AND rmse_km < 1.5  -- filter out the utter rubbish GPS data
 ;
 
 
