@@ -2,7 +2,7 @@
 
 # ignore_layers = ["Google Satellite Hybrid", "CartoDb Dark Matter", "CartoDb Positron", ]
 layer_prefixes = ["vw_valhalla_", "valhalla_", "temp_"]
-filter_text = "trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC' and search_radius = 7.5 and gps_accuracy = 7.5"
+filter_text = "trip_id = '8F7B0AFF-3A40-46BF-9441-9A07B0DB2585' and search_radius = 7.5 and gps_accuracy = 7.5"
 
 extent = QgsRectangle()
 extent.setMinimal()
@@ -11,9 +11,10 @@ layers = iface.mapCanvas().layers()
 # filter matching layers
 for layer in layers:
     # if layer.name() not in ignore_layers:
-    if layer.name().startswith(layer_prefixes[0]) or layer.name().startswith(layer_prefixes[1]):
-        layer.setSubsetString(filter_text)
-        extent.combineExtentWith( layer.extent() )
+    for layer_prefix in layer_prefixes:
+        if layer.name().startswith(layer_prefix):
+            layer.setSubsetString(filter_text)
+            extent.combineExtentWith( layer.extent() )
 
 # set map extents to filtered datasets
 sourceCrs = QgsCoordinateReferenceSystem("EPSG:4283")

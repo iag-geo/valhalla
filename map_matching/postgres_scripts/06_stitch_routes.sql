@@ -78,6 +78,7 @@ SELECT trip_id,
        route_segments,
        route_distance_km::numeric(8, 3) AS route_distance_km,
        0.0::double precision AS rmse_km,
+       0.0::double precision AS waypoint_distance_km,
        0::integer AS waypoint_count,
        st_npoints(geom) as point_count,
        geom
@@ -91,13 +92,15 @@ CREATE INDEX valhalla_final_route_geom_idx ON testing.valhalla_final_route USING
 ALTER TABLE testing.valhalla_final_route CLUSTER ON valhalla_final_route_geom_idx;
 
 
--- Calculate root mean square of distance from each waypoint to the final route
+-- Calculate waypoint stats to compare with final routes
 --   As a proxy for reliability of both the input GPS points and the final route
 WITH merge AS (
     SELECT trip.trip_id,
            trip.search_radius,
            trip.gps_accuracy,
-           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m
+           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m,
+           pnt.point_index,
+           pnt.geom
     FROM testing.valhalla_final_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
 ), stats AS (
@@ -105,7 +108,8 @@ WITH merge AS (
            search_radius,
            gps_accuracy,
            sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km,
-           count(*) as waypoint_count
+           count(*) as waypoint_count,
+           (st_length(st_makeline(geom order by point_index)::geography) / 1000.0)::numeric(12, 3) AS waypoint_distance_km
     FROM merge
     GROUP BY trip_id,
              search_radius,
@@ -113,7 +117,8 @@ WITH merge AS (
 )
 UPDATE testing.valhalla_final_route as route
     SET rmse_km = stats.rmse_km,
-        waypoint_count = stats.waypoint_count
+        waypoint_count = stats.waypoint_count,
+        waypoint_distance_km = stats.waypoint_distance_km
 FROM stats
 WHERE route.trip_id = stats.trip_id
   AND route.search_radius = stats.search_radius
@@ -121,16 +126,14 @@ WHERE route.trip_id = stats.trip_id
 ;
 
 
-
+-- create view of the best result for each trip
 DROP VIEW IF EXISTS testing.vw_valhalla_final_route;
 CREATE VIEW testing.vw_valhalla_final_route AS
 SELECT *
 FROM testing.valhalla_final_route
 WHERE rank = 1
+    AND rmse_km < 1.0  -- filter out the utter rubbish GPS data
 ;
-
-
-
 
 
 -- DROP TABLE IF EXISTS testing.temp_split_shape;

@@ -278,14 +278,11 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
 
-    if search_radius is not None or gps_accuracy is not None:
-        request_dict["trace_options"] = dict()
+    if search_radius is not None:
+        request_dict["trace_options"]["search_radius"] = search_radius
 
-        if search_radius is not None:
-            request_dict["trace_options"]["search_radius"] = search_radius
-
-        if gps_accuracy is not None:
-            request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
+    if gps_accuracy is not None:
+        request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
 
     # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
@@ -351,7 +348,7 @@ def map_match_trajectory(job):
             request_dict = get_map_matching_parameters(search_radius, gps_accuracy)
             request_dict["shape"] = input_points
 
-            # fix None values for seearch radius and gps_accuracy (can't be NULL in a database primary key)
+            # fix None values for search radius and gps_accuracy (can't be NULL in a database primary key)
             if search_radius is None:
                 search_radius = -9999
             if gps_accuracy is None:
