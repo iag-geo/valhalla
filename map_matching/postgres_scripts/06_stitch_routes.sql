@@ -50,8 +50,8 @@ ALTER TABLE testing.temp_valhalla_segments CLUSTER ON temp_valhalla_segments_geo
 
 
 -- stitch each route into a single linestring
-DROP TABLE IF EXISTS testing.valhalla_final_route CASCADE;
-CREATE TABLE testing.valhalla_final_route AS
+DROP TABLE IF EXISTS testing.valhalla_merged_route;
+CREATE TABLE testing.valhalla_merged_route AS
 WITH stats AS (
     SELECT trip_id,
            search_radius,
@@ -67,7 +67,6 @@ WITH stats AS (
              gps_accuracy
 )
 SELECT trip_id,
-       row_number() over (PARTITION BY trip_id ORDER BY (map_match_distance_km + route_distance_km)) AS rank,
        search_radius,
        gps_accuracy,
        map_match_segments + route_segments AS total_segments,
@@ -84,13 +83,13 @@ SELECT trip_id,
        geom
 FROM stats
 ;
-ANALYSE testing.valhalla_final_route;
+ANALYSE testing.valhalla_merged_route;
 
-ALTER TABLE testing.valhalla_final_route
-    ADD CONSTRAINT valhalla_final_route_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
-create index valhalla_final_route_trip_id_idx on testing.valhalla_final_route using btree (trip_id);
-CREATE INDEX valhalla_final_route_geom_idx ON testing.valhalla_final_route USING gist (geom);
-ALTER TABLE testing.valhalla_final_route CLUSTER ON valhalla_final_route_geom_idx;
+ALTER TABLE testing.valhalla_merged_route
+    ADD CONSTRAINT valhalla_merged_route_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
+create index valhalla_merged_route_trip_id_idx on testing.valhalla_merged_route using btree (trip_id);
+CREATE INDEX valhalla_merged_route_geom_idx ON testing.valhalla_merged_route USING gist (geom);
+ALTER TABLE testing.valhalla_merged_route CLUSTER ON valhalla_merged_route_geom_idx;
 
 
 -- create temp table of waypoint stats per trip
@@ -105,17 +104,17 @@ GROUP BY trip_id
 ANALYSE temp_waypoint_stats;
 
 ALTER TABLE temp_waypoint_stats
-    ADD CONSTRAINT valhalla_final_route_pkey PRIMARY KEY (trip_id);
+    ADD CONSTRAINT temp_waypoint_stats_pkey PRIMARY KEY (trip_id);
 
 
 -- Add waypoint stats to compare with final routes
-UPDATE testing.valhalla_final_route as route
+UPDATE testing.valhalla_merged_route as route
     SET waypoint_count = stats.waypoint_count,
         waypoint_distance_ratio = route.total_distance_km / stats.waypoint_distance_km
 FROM temp_waypoint_stats AS stats
 WHERE route.trip_id = stats.trip_id
 ;
-ANALYSE testing.valhalla_final_route;
+ANALYSE testing.valhalla_merged_route;
 
 DROP TABLE temp_waypoint_stats;
 
@@ -127,7 +126,7 @@ WITH merge AS (
            trip.search_radius,
            trip.gps_accuracy,
            st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_km
-    FROM testing.valhalla_final_route AS trip
+    FROM testing.valhalla_merged_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
 ), stats AS (
     SELECT trip_id,
@@ -139,23 +138,28 @@ WITH merge AS (
              search_radius,
              gps_accuracy
 )
-UPDATE testing.valhalla_final_route as route
+UPDATE testing.valhalla_merged_route as route
     SET rmse_km = stats.rmse_km
 FROM stats
 WHERE route.trip_id = stats.trip_id
   AND route.search_radius = stats.search_radius
   AND route.gps_accuracy = stats.gps_accuracy
 ;
-ANALYSE testing.valhalla_final_route;
+ANALYSE testing.valhalla_merged_route;
 
 
--- create view of the best result for each trip
-DROP VIEW IF EXISTS testing.vw_valhalla_final_route;
-CREATE VIEW testing.vw_valhalla_final_route AS
+-- create table of the best result for each trip
+DROP TABLE IF EXISTS testing.valhalla_final_route;
+CREATE TABLE testing.valhalla_final_route AS
+WITH ranked AS (
+    SELECT *,
+           row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
+    FROM testing.valhalla_merged_route
+    WHERE rmse_km < 2.0
+)
 SELECT *
-FROM testing.valhalla_final_route
+FROM ranked
 WHERE rank = 1
-    AND rmse_km < 1.5  -- filter out the utter rubbish GPS data
 ;
 
 

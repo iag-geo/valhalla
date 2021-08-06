@@ -278,11 +278,14 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     # request_dict["shape_match"] = "map_snap"
     request_dict["shape_match"] = "walk_or_snap"
 
-    if search_radius is not None:
-        request_dict["trace_options"]["search_radius"] = search_radius
+    if search_radius is not None or gps_accuracy is not None:
+        request_dict["trace_options"] = dict()
 
-    if gps_accuracy is not None:
-        request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
+        if search_radius is not None:
+            request_dict["trace_options"]["search_radius"] = search_radius
+
+        if gps_accuracy is not None:
+            request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
 
     # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 

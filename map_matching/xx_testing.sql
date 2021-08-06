@@ -61,7 +61,7 @@ order by begin_edge_index
 select search_radius,
        gps_accuracy,
        count(*) as trip_count
-from testing.vw_valhalla_final_route
+from testing.valhalla_final_route
 group by search_radius,
          gps_accuracy
 order by search_radius,
