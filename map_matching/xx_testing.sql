@@ -83,7 +83,8 @@ order by search_radius,
 -- select count(distinct trip_id)
 select *
 from testing.valhalla_final_route
-where trip_id = '4C6B2C40-BC74-4EB2-8081-C9085CCC5A29'
+-- where trip_id = '4C6B2C40-BC74-4EB2-8081-C9085CCC5A29'
+where trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
 order by total_distance_km
 ;
 
