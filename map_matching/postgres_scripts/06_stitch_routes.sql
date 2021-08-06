@@ -116,6 +116,8 @@ WHERE route.trip_id = stats.trip_id
 ;
 ANALYSE testing.valhalla_final_route;
 
+DROP TABLE temp_waypoint_stats;
+
 
 -- Calculate RMSE in km for waypoints versus the closest point on the final route
 --   As a proxy for reliability of both the input GPS points and the final route
@@ -123,14 +125,14 @@ WITH merge AS (
     SELECT trip.trip_id,
            trip.search_radius,
            trip.gps_accuracy,
-           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_m
+           st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_km
     FROM testing.valhalla_final_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
 ), stats AS (
     SELECT trip_id,
            search_radius,
            gps_accuracy,
-           sqrt(sum(pow(route_point_distance_m, 2)))::numeric(8, 3) AS rmse_km
+           sqrt(sum(pow(route_point_distance_km, 2)))::numeric(8, 3) AS rmse_km
     FROM merge
     GROUP BY trip_id,
              search_radius,
