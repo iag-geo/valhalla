@@ -31,3 +31,12 @@ ALTER TABLE testing.valhalla_map_match_point CLUSTER ON valhalla_map_match_point
 
 ALTER TABLE testing.valhalla_map_match_fail
     ADD CONSTRAINT valhalla_map_match_fail_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
 # TODO: look at using valhalla IDs for road segments
 #   - WARNING: IDs are transient and will change between OSM data versions
 
-# TODO: Avoid using latest Valhalla version until Edge ID issue is resolved
+# TODO: Avoid using latest Valhalla version until Edge ID issue is resolved -- check if fixed in 3.1.3 (?)
 
 import json
 import logging
@@ -83,12 +83,18 @@ def main():
     # WARNING: drops and recreates output tables
     # --------------------------------------------------------------------------------------
 
-    # optional: recreate output tables
+    # recreate interim & output tables and index them
+    # TODO: improve indexing to avoid slow inserts
     sql_file = os.path.join(runtime_directory, "postgres_scripts", "01_create_tables.sql")
     sql = open(sql_file, "r").read()
     pg_cur.execute(sql)
 
-    logger.info("\t - output tables recreated : {}".format(datetime.now() - start_time))
+    # # create indexes on interim & output tables
+    # sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
+    # sql = open(sql_file, "r").read()
+    # pg_cur.execute(sql)
+
+    logger.info("\t - interim & output tables recreated with indexes: {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # --------------------------------------------------------------------------------------
@@ -120,7 +126,12 @@ def main():
                 .format(len(job_list), iteration_count, datetime.now() - start_time))
     start_time = datetime.now()
 
-    # for each trajectory - send a map match request to Valhalla using multiprocessing
+    # for each trajectory:
+    #   1. map match each waypoint using Valhalla with multiple combinations of search distance & GPS accuracy
+    #   2. get map matched segments and determine which unmatched segment needs routing
+    #   3. route unmatched segments using Valhalla
+    #   4. stitch map matched and routed segments together
+    #   5. output the best route for each trajectory
     mp_pool = multiprocessing.Pool(cpu_count)
     mp_results = mp_pool.imap_unordered(map_match_trajectory, job_list)
     mp_pool.close()
@@ -139,25 +150,13 @@ def main():
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
-    # update stats ON map match tables
+    # update table stats
     pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_shape_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     start_time = datetime.now()
-
-    # optional: create indexes ON output tables
-    # try:
-    sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
-    sql = open(sql_file, "r").read()
-    pg_cur.execute(sql)
-
-    logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
-    start_time = datetime.now()
-    # except:
-    #     # meh!
-    #     pass
 
     # get map match table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
@@ -277,7 +276,7 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
 
     request_dict["costing"] = "auto"
     request_dict["directions_options"] = {"units": "kilometres"}
-    # request_dict["shape_match"] = "map_snap"
+    # request_dict["shape_match"] = "map_snap"  # seems to be an inferior matching algorithm
     request_dict["shape_match"] = "walk_or_snap"
 
     if search_radius != -9999 or gps_accuracy != -9999:
@@ -286,11 +285,8 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
         if search_radius != -9999:
             request_dict["trace_options"]["search_radius"] = search_radius
 
-        # TODO: investigate why all null gps accuracy map matching failed
         if gps_accuracy != -9999:
             request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
-
-    # request_dict["trace_options"] = {"search_radius": search_radius, "gps_accuracy": gps_accuracy}
 
     # # test parameters - yet to do anything
     # request_dict["breakage_distance"] = 6000
@@ -328,7 +324,7 @@ def get_routing_parameters():
     request_dict["costing"] = "auto"
     request_dict["units"] = "kilometres"
 
-    # TODO: add more parameters/constraints here if required
+    # TODO: add more parameters/constraints here (if required)
 
     return request_dict
 
@@ -352,10 +348,8 @@ def map_match_trajectory(job):
             if search_radius is None:
                 search_radius = -9999
 
-
-
             # add parameters and trajectory to request
-            # TODO: this could be done better, instead of evaluating this every request
+            # TODO: this could be done better, instead of evaluating parameters dict every request
             request_dict = get_map_matching_parameters(search_radius, gps_accuracy)
             request_dict["shape"] = input_points
 
