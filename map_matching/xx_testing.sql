@@ -23,6 +23,16 @@ order by trip_id,
 ;
 
 
+
+
+
+select distinct trip_id from testing.waypoint;
+
+
+
+
+
+
 select *
 from testing.valhalla_map_match_point
 where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
@@ -55,6 +65,10 @@ where trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
   and gps_accuracy = 7.5
 order by begin_edge_index
 ;
+
+
+select *
+from testing.valhalla_map_match_fail;
 
 
 -- get counts of search radius and gps accuracy in map matching + routing results
