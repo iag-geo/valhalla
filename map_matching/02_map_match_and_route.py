@@ -287,9 +287,6 @@ def map_match_and_route_trajectory(job):
     sql = open(sql_file, "r").read().format(trip_id)
     pg_cur.execute(sql)
 
-
-
-
     # clean up
     pg_cur.close()
     pg_pool.putconn(pg_conn)
@@ -457,6 +454,9 @@ def map_match_trajectory(pg_cur, trip_id, input_points):
 
 
 def route_trajectory(pg_cur, trip_id, job):
+
+    print(job)
+
     # get inputs
     search_radius = float(job["search_radius"])
     gps_accuracy = float(job["gps_accuracy"])

@@ -2,7 +2,7 @@
 -- create table of routed segments and unrouted, map matched segments
 INSERT INTO testing.valhalla_segment
 SELECT * FROM testing.valhalla_route_shape
-WHERE trip_id = {}
+WHERE trip_id = '{0}'
 ;
 ANALYSE testing.valhalla_segment;
 
@@ -20,7 +20,7 @@ SELECT trip_id,
        'map match' AS segment_type,
        geom
 FROM testing.valhalla_map_match_shape
-WHERE trip_id = {}
+WHERE trip_id = '{0}'
 ON CONFLICT (trip_id, search_radius, gps_accuracy, begin_edge_index) DO NOTHING
 ;
 ANALYSE testing.valhalla_segment;
@@ -38,7 +38,7 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY begin_edge_index) AS geom
     FROM testing.valhalla_segment
-    WHERE trip_id = {}
+    WHERE trip_id = '{0}'
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
@@ -70,7 +70,7 @@ SELECT trip_id,
        count(*) as waypoint_count,
        st_length(st_makeline(geom order by point_index)::geography) / 1000.0 AS waypoint_distance_km
 FROM testing.waypoint
-WHERE trip_id = {}
+WHERE trip_id = '{0}'
 GROUP BY trip_id
 ;
 ANALYSE temp_waypoint_stats;
@@ -85,7 +85,7 @@ UPDATE testing.valhalla_merged_route as route
         waypoint_distance_ratio = route.total_distance_km / stats.waypoint_distance_km
 FROM temp_waypoint_stats AS stats
 WHERE route.trip_id = stats.trip_id
-  AND route.trip_id = {}
+  AND route.trip_id = '{0}'
 ;
 ANALYSE testing.valhalla_merged_route;
 
@@ -101,7 +101,7 @@ WITH merge AS (
            st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_km
     FROM testing.valhalla_merged_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
-    WHERE trip.trip_id = {}
+    WHERE trip.trip_id = '{0}'
 ), stats AS (
     SELECT trip_id,
            search_radius,
@@ -129,7 +129,7 @@ WITH ranked AS (
            row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
     FROM testing.valhalla_merged_route
     WHERE rmse_km < 2.0
-      AND trip_id = {}
+      AND trip_id = '{0}'
 )
 SELECT *
 FROM ranked

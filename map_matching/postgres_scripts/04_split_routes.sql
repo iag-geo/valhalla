@@ -20,7 +20,7 @@ WITH shape AS (
         AND pnt.search_radius = edge.search_radius
         AND pnt.gps_accuracy = edge.gps_accuracy
         AND pnt.shape_index between begin_shape_index and edge.end_shape_index
-    WHERE pnt.trip_id = {}
+    WHERE pnt.trip_id = '{0}'
     GROUP BY pnt.trip_id,
              pnt.search_radius,
              pnt.gps_accuracy,
@@ -67,7 +67,7 @@ WHERE shape.trip_id = pnt2.trip_id
     AND shape.gps_accuracy = pnt2.gps_accuracy
     AND shape.edge_index = pnt2.edge_index
     AND pnt2.edge_index > 0
-    AND shape.trip_id = {}
+    AND shape.trip_id = '{0}'
 
 ;
 -- ANALYSE testing.valhalla_map_match_shape;
@@ -86,7 +86,7 @@ WITH trip AS (
            st_endpoint(geom) as start_geom,
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
     FROM testing.valhalla_map_match_shape
-    WHERE trip_id = {}
+    WHERE trip_id = '{0}'
 
 --     WHERE use_segment
 )
@@ -119,7 +119,7 @@ WITH pnt AS (
            geom
     FROM testing.waypoint
     WHERE point_index = 0
-        AND trip_id = {}
+        AND trip_id = '{0}'
 ), trip AS (
     SELECT trip_id,
            search_radius,
