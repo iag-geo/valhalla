@@ -1,15 +1,12 @@
 
--- TODO: refactor - this is too slow
 -- STEP 1 - create map matched shape based on edge table indexes
-DROP TABLE IF EXISTS testing.valhalla_map_match_shape;
-CREATE TABLE testing.valhalla_map_match_shape AS
--- INSERT INTO testing.valhalla_map_match_shape
+INSERT INTO testing.valhalla_map_match_shape
 WITH shape AS (
     SELECT pnt.trip_id,
-           edge.begin_shape_index,
-           edge.end_shape_index,
            pnt.search_radius,
            pnt.gps_accuracy,
+           edge.begin_shape_index,
+           edge.end_shape_index,
            edge.edge_index,
 --            edge.osm_id,
 --            edge.names,
@@ -24,6 +21,8 @@ WITH shape AS (
         AND pnt.gps_accuracy = edge.gps_accuracy
         AND pnt.shape_index between begin_shape_index and edge.end_shape_index
     GROUP BY pnt.trip_id,
+             pnt.search_radius,
+             pnt.gps_accuracy,
              edge.begin_shape_index,
              edge.end_shape_index,
              edge.edge_index,
@@ -37,11 +36,11 @@ WITH shape AS (
              pnt.gps_accuracy
 )
 SELECT shape.trip_id,
+       shape.search_radius,
+       shape.gps_accuracy,
 --        true::boolean as use_segment,
        shape.begin_shape_index,
        shape.end_shape_index,
-       shape.search_radius,
-       shape.gps_accuracy,
        shape.edge_index,
 --        shape.osm_id,
 --        shape.names,
@@ -54,14 +53,6 @@ SELECT shape.trip_id,
 FROM shape
 ;
 ANALYSE testing.valhalla_map_match_shape;
-
-ALTER TABLE testing.valhalla_map_match_shape
-    ADD CONSTRAINT valhalla_map_match_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, edge_index);
-CREATE INDEX valhalla_map_match_shape_combo_idx ON testing.valhalla_map_match_shape USING gist (geom);
-CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape
-    USING btree (trip_id, search_radius, gps_accuracy);
-ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_pkey;
-
 
 -- delete bad map match segments
 -- UPDATE testing.valhalla_map_match_shape AS shape
@@ -78,21 +69,8 @@ WHERE shape.trip_id = pnt2.trip_id
 ANALYSE testing.valhalla_map_match_shape;
 
 
--- select * from testing.valhalla_map_match_shape
--- where search_radius = 15
---   and gps_accuracy = 7.5
--- --   and trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
--- order by trip_id,
---          search_radius,
---          gps_accuracy,
---          edge_index
--- ;
-
-
 -- STEP 2 - get start and end points of segments to be routed
--- TODO: add trip start and end points where missing from map match results
-DROP TABLE IF EXISTS testing.temp_route_this;
-CREATE TABLE testing.temp_route_this AS
+INSERT INTO testing.valhalla_route_this
 WITH trip AS (
     SELECT trip_id,
            search_radius,
@@ -125,17 +103,17 @@ WHERE end_edge_index - begin_edge_index > 1
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
 ;
-ANALYSE testing.temp_route_this;
+ANALYSE testing.valhalla_route_this;
 
 
--- select * from testing.temp_route_this
+-- select * from testing.valhalla_route_this
 -- where search_radius = 15
 --   and gps_accuracy = 7.5
 -- ;
 
 
 -- need to add a route at the start if first map matched segment doesn't start at the first waypoint
-INSERT INTO testing.temp_route_this
+INSERT INTO testing.valhalla_route_this
 WITH pnt AS (
     SELECT trip_id,
            geom
@@ -174,4 +152,4 @@ SELECT trip_id,
 FROM merge
 WHERE distance_m > 50
 ;
-ANALYSE testing.temp_route_this;
+ANALYSE testing.valhalla_route_this;

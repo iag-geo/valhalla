@@ -198,7 +198,7 @@ def main():
                     start_lon,
                     end_lat,
                     end_lon
-             FROM testing.temp_route_this"""
+             FROM testing.valhalla_route_this"""
     pg_cur.execute(sql)
     job_list = pg_cur.fetchall()
     # job_count = len(job_list)
@@ -240,7 +240,7 @@ def main():
         pass
 
     # get routing table counts
-    # pg_cur.execute("SELECT count(*) FROM testing.temp_route_this")
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_this")
     # route_to_do_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
     traj_route_count = pg_cur.fetchone()[0]

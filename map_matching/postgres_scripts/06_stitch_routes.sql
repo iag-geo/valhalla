@@ -1,20 +1,12 @@
 
 -- create table of routed segments and unrouted, map matched segments
-DROP TABLE IF EXISTS testing.temp_valhalla_segments;
-CREATE TABLE testing.temp_valhalla_segments AS
+INSERT INTO testing.valhalla_segment
 SELECT * FROM testing.valhalla_route_shape
 ;
-ANALYSE testing.temp_valhalla_segments;
-
--- create primary key to ensure uniqueness
-ALTER TABLE testing.temp_valhalla_segments
-    ADD CONSTRAINT temp_valhalla_segments_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, begin_edge_index);
-
--- todo: fix this issue
-CREATE UNIQUE INDEX temp_valhalla_segments_end_shape_index_idx ON testing.temp_valhalla_segments USING btree (trip_id, search_radius, gps_accuracy, end_edge_index);
+ANALYSE testing.valhalla_segment;
 
 -- Add map matched segments that haven't been fixed by routed
-INSERT INTO testing.temp_valhalla_segments
+INSERT INTO testing.valhalla_segment
 SELECT trip_id,
        search_radius,
        gps_accuracy,
@@ -36,22 +28,18 @@ ON CONFLICT (trip_id, search_radius, gps_accuracy, begin_edge_index) DO NOTHING
 --                gps_accuracy,
 --                begin_shape_index,
 --                end_shape_index
---         FROM testing.temp_valhalla_segments AS seg
+--         FROM testing.valhalla_segment AS seg
 --         WHERE seg.trip_id = temp.trip_id
 --           AND seg.search_radius = temp.search_radius
 --           AND seg.gps_accuracy = temp.gps_accuracy
 --           AND temp.edge_index = seg.begin_edge_index
 --     )
 ;
-ANALYSE testing.temp_valhalla_segments;
-
-CREATE INDEX temp_valhalla_segments_geom_idx ON testing.temp_valhalla_segments USING gist (geom);
-ALTER TABLE testing.temp_valhalla_segments CLUSTER ON temp_valhalla_segments_geom_idx;
+ANALYSE testing.valhalla_segment;
 
 
 -- stitch each route into a single linestring
-DROP TABLE IF EXISTS testing.valhalla_merged_route;
-CREATE TABLE testing.valhalla_merged_route AS
+INSERT INTO testing.valhalla_merged_route
 WITH stats AS (
     SELECT trip_id,
            search_radius,
@@ -61,7 +49,7 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'route' THEN 1 ELSE 0 END) AS route_segments,
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY begin_edge_index) AS geom
-    FROM testing.temp_valhalla_segments
+    FROM testing.valhalla_segment
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
@@ -84,12 +72,6 @@ SELECT trip_id,
 FROM stats
 ;
 ANALYSE testing.valhalla_merged_route;
-
-ALTER TABLE testing.valhalla_merged_route
-    ADD CONSTRAINT valhalla_merged_route_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy);
-create index valhalla_merged_route_trip_id_idx on testing.valhalla_merged_route using btree (trip_id);
-CREATE INDEX valhalla_merged_route_geom_idx ON testing.valhalla_merged_route USING gist (geom);
-ALTER TABLE testing.valhalla_merged_route CLUSTER ON valhalla_merged_route_geom_idx;
 
 
 -- create temp table of waypoint stats per trip
@@ -148,9 +130,8 @@ WHERE route.trip_id = stats.trip_id
 ANALYSE testing.valhalla_merged_route;
 
 
--- create table of the best result for each trip
-DROP TABLE IF EXISTS testing.valhalla_final_route;
-CREATE TABLE testing.valhalla_final_route AS
+-- insert "best result" for each trip -- in reality, no guarantee this route is good (due to GPS issues)
+INSERT INTO testing.valhalla_final_route
 WITH ranked AS (
     SELECT *,
            row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
@@ -161,20 +142,3 @@ SELECT *
 FROM ranked
 WHERE rank = 1
 ;
-
-
--- DROP TABLE IF EXISTS testing.temp_split_shape;
-
-
--- -- 1344 test rows
--- SELECT count(*) FROM testing.temp_split_shape;
--- SELECT count(*) FROM testing.temp_valhalla_segments;
-
-
-
--- select *
--- --        geometrytype(geom)
--- from testing.valhalla_final_route
--- order by trip_id,
---          search_radius,
---          gps_accuracy;
