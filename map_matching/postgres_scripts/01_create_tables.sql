@@ -41,7 +41,6 @@ CREATE TABLE testing.valhalla_map_match_shape_point
 ALTER TABLE testing.valhalla_map_match_shape_point OWNER TO postgres;
 
 
-
 DROP TABLE IF EXISTS testing.valhalla_map_match_shape_non_pii CASCADE;
 CREATE TABLE testing.valhalla_map_match_shape_non_pii
 (

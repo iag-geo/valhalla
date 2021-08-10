@@ -108,7 +108,7 @@ def main():
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS input_points 
                  FROM {4}
                  -- WHERE trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
-                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
                  --     OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
                  GROUP BY {0}"""\
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
@@ -117,7 +117,8 @@ def main():
     job_list = pg_cur.fetchall()
     job_count = len(job_list)
 
-    logger.info("Got {} trajectories, starting map matching : {}".format(len(job_list), datetime.now() - start_time))
+    logger.info("Got {} trajectories, starting map matching with {} sets of parameters : {}"
+                .format(len(job_list), iteration_count, datetime.now() - start_time))
     start_time = datetime.now()
 
     # for each trajectory - send a map match request to Valhalla using multiprocessing
@@ -344,16 +345,15 @@ def map_match_trajectory(job):
 
     # map match for every combination of GPS accuracy and search radius to determine the best route
     for gps_accuracy in search_radii:
+        # fix None values for search radius and gps_accuracy (can't be NULL in a database primary key)
+        if gps_accuracy is None:
+            gps_accuracy = -9999
+
         for search_radius in search_radii:
-            # fix None values for search radius and gps_accuracy (can't be NULL in a database primary key)
             if search_radius is None:
                 search_radius = -9999
-            if gps_accuracy is None:
-                gps_accuracy = -9999
 
-            # add point_index to points list of dicts to enable iteration
-            # input_points_with_index = [{**e, "point_index": i} for i, e in enumerate(input_points)]
-            # print(input_points_with_index)
+
 
             # add parameters and trajectory to request
             # TODO: this could be done better, instead of evaluating this every request
