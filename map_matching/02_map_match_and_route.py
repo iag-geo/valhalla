@@ -235,7 +235,7 @@ def get_trajectories(pg_cur):
                  FROM {4}
                  -- WHERE trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
                  WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-                     -- OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
+                     OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
     pg_cur.execute(sql)
@@ -247,7 +247,7 @@ def map_match_and_route_trajectory(job):
     # get postgres connection from pool
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
-    pg_cur = pg_conn.cursor()
+    pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # trajectory data
     trip_id = job["trip_id"]
@@ -454,8 +454,6 @@ def map_match_trajectory(pg_cur, trip_id, input_points):
 
 
 def route_trajectory(pg_cur, trip_id, job):
-
-    print(job)
 
     # get inputs
     search_radius = float(job["search_radius"])
