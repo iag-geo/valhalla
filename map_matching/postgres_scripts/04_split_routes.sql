@@ -57,8 +57,10 @@ ANALYSE testing.valhalla_map_match_shape;
 
 ALTER TABLE testing.valhalla_map_match_shape
     ADD CONSTRAINT valhalla_map_match_shape_pkey PRIMARY KEY (trip_id, search_radius, gps_accuracy, edge_index);
-CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape USING gist (geom);
-ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_geom_idx;
+CREATE INDEX valhalla_map_match_shape_combo_idx ON testing.valhalla_map_match_shape USING gist (geom);
+CREATE INDEX valhalla_map_match_shape_geom_idx ON testing.valhalla_map_match_shape
+    USING btree (trip_id, search_radius, gps_accuracy);
+ALTER TABLE testing.valhalla_map_match_shape CLUSTER ON valhalla_map_match_shape_pkey;
 
 
 -- delete bad map match segments

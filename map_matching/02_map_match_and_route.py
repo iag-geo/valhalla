@@ -108,8 +108,8 @@ def main():
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS input_points 
                  FROM {4}
                  -- WHERE trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
-                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-                 --     OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
+                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                     -- OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
                  GROUP BY {0}"""\
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
 
