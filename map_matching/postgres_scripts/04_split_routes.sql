@@ -20,6 +20,7 @@ WITH shape AS (
         AND pnt.search_radius = edge.search_radius
         AND pnt.gps_accuracy = edge.gps_accuracy
         AND pnt.shape_index between begin_shape_index and edge.end_shape_index
+    WHERE pnt.trip_id = {}
     GROUP BY pnt.trip_id,
              pnt.search_radius,
              pnt.gps_accuracy,
@@ -52,7 +53,8 @@ SELECT shape.trip_id,
        shape.geom
 FROM shape
 ;
-ANALYSE testing.valhalla_map_match_shape;
+-- ANALYSE testing.valhalla_map_match_shape;
+
 
 -- delete bad map match segments
 -- UPDATE testing.valhalla_map_match_shape AS shape
@@ -65,8 +67,10 @@ WHERE shape.trip_id = pnt2.trip_id
     AND shape.gps_accuracy = pnt2.gps_accuracy
     AND shape.edge_index = pnt2.edge_index
     AND pnt2.edge_index > 0
+    AND shape.trip_id = {}
+
 ;
-ANALYSE testing.valhalla_map_match_shape;
+-- ANALYSE testing.valhalla_map_match_shape;
 
 
 -- STEP 2 - get start and end points of segments to be routed
@@ -82,6 +86,8 @@ WITH trip AS (
            st_endpoint(geom) as start_geom,
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
     FROM testing.valhalla_map_match_shape
+    WHERE trip_id = {}
+
 --     WHERE use_segment
 )
 SELECT trip_id,
@@ -103,13 +109,7 @@ WHERE end_edge_index - begin_edge_index > 1
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
 ;
-ANALYSE testing.valhalla_route_this;
-
-
--- select * from testing.valhalla_route_this
--- where search_radius = 15
---   and gps_accuracy = 7.5
--- ;
+-- ANALYSE testing.valhalla_route_this;
 
 
 -- need to add a route at the start if first map matched segment doesn't start at the first waypoint
@@ -119,6 +119,7 @@ WITH pnt AS (
            geom
     FROM testing.waypoint
     WHERE point_index = 0
+        AND trip_id = {}
 ), trip AS (
     SELECT trip_id,
            search_radius,
@@ -152,4 +153,4 @@ SELECT trip_id,
 FROM merge
 WHERE distance_m > 50
 ;
-ANALYSE testing.valhalla_route_this;
+-- ANALYSE testing.valhalla_route_this;
