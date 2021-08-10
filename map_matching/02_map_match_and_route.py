@@ -26,7 +26,6 @@ inverse_precision = 1.0 / 1e6
 
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-# search_radii = [5, 10, 20, 30, 40, 50, 60, 70]
 search_radii = [None, 7.5, 15.0, 30.0, 60.0]
 # search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
@@ -149,33 +148,33 @@ def main():
     start_time = datetime.now()
 
     # optional: create indexes ON output tables
-    try:
-        sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
-        sql = open(sql_file, "r").read()
-        pg_cur.execute(sql)
+    # try:
+    sql_file = os.path.join(runtime_directory, "postgres_scripts", "03_create_map_match_indexes.sql")
+    sql = open(sql_file, "r").read()
+    pg_cur.execute(sql)
 
-        logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
-        start_time = datetime.now()
-    except:
-        # meh!
-        pass
+    logger.info("\t - indexes created : {}".format(datetime.now() - start_time))
+    start_time = datetime.now()
+    # except:
+    #     # meh!
+    #     pass
 
     # get map match table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
     traj_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
     edge_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point")
-    point_mm_count = pg_cur.fetchone()[0]
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point WHERE point_type = 'matched'")
+    # point_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
     fail_mm_count = pg_cur.fetchone()[0]
 
     logger.info("\t - map match results")
     logger.info("\t\t - {0:,} input trajectories X {1} search radii X {1} gps_accuracies"
                 .format(job_count, len(search_radii)))
-    logger.info("\t\t - {:,} map matched trajectory segments".format(traj_mm_count))
+    logger.info("\t\t - {:,} map matched trajectory segment points".format(traj_mm_count))
     logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
-    logger.info("\t\t\t - {:,} points".format(point_mm_count))
+    # logger.info("\t\t\t - {:,} waypoints matched".format(point_mm_count))
     if fail_mm_count > 0:
         logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
 

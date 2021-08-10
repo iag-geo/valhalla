@@ -11,12 +11,12 @@ WITH shape AS (
            pnt.search_radius,
            pnt.gps_accuracy,
            edge.edge_index,
-           edge.osm_id,
-           edge.names,
+--            edge.osm_id,
+--            edge.names,
            edge.road_class,
-           edge.speed,
-           edge.traversability,
-           edge.use,
+--            edge.speed,
+--            edge.traversability,
+--            edge.use,
            st_makeline(pnt.geom ORDER BY pnt.shape_index) AS geom
     FROM testing.valhalla_map_match_shape_point AS pnt
     INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
@@ -27,12 +27,12 @@ WITH shape AS (
              edge.begin_shape_index,
              edge.end_shape_index,
              edge.edge_index,
-             edge.osm_id,
-             edge.names,
+--              edge.osm_id,
+--              edge.names,
              edge.road_class,
-             edge.speed,
-             edge.traversability,
-             edge.use,
+--              edge.speed,
+--              edge.traversability,
+--              edge.use,
              pnt.search_radius,
              pnt.gps_accuracy
 )
