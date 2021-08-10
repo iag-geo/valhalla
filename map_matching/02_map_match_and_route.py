@@ -142,7 +142,7 @@ def main():
 
     # update stats ON map match tables
     pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
-    pg_cur.execute("ANALYSE testing.valhalla_map_match_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_map_match_shape_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
     logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
@@ -161,7 +161,7 @@ def main():
         pass
 
     # get map match table counts
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape")
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
     traj_mm_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
     edge_mm_count = pg_cur.fetchone()[0]
@@ -401,19 +401,10 @@ def map_match_trajectory(job):
                             # insert each point into valhalla_map_match_shape_point table
                             point_sql = """insert into testing.valhalla_map_match_shape_point
                                              values ('{0}', {1}, {2}, {3}, {4})""" \
-                                .format(job["trip_id"], shape_index, search_radius, gps_accuracy, geom_string)
+                                .format(job["trip_id"], search_radius, gps_accuracy, shape_index, geom_string)
                             pg_cur.execute(point_sql)
 
                             shape_index += 1
-
-                        # geom_string = "ST_GeomFromText('LINESTRING("
-                        # geom_string += ",".join(point_list)
-                        # geom_string += ")', 4326)"
-                        #
-                        # shape_sql = """insert into testing.valhalla_map_match_shape
-                        #                      values ('{0}', {1}, {2}, st_length({3}::geography), {3})""" \
-                        #     .format(job["trip_id"], search_radius, gps_accuracy, geom_string)
-                        # pg_cur.execute(shape_sql)
                     else:
                         fail_sql = """insert into testing.valhalla_map_match_fail 
                                           (trip_id, search_radius, gps_accuracy, error) 

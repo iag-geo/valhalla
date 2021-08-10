@@ -17,7 +17,7 @@ WITH shape AS (
            edge.speed,
            edge.traversability,
            edge.use,
-           st_makeline(pnt.geom ORDER BY shape_index) AS geom
+           st_makeline(pnt.geom ORDER BY pnt.shape_index) AS geom
     FROM testing.valhalla_map_match_shape_point AS pnt
     INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
         AND pnt.search_radius = edge.search_radius
@@ -43,12 +43,12 @@ SELECT shape.trip_id,
        shape.search_radius,
        shape.gps_accuracy,
        shape.edge_index,
-       shape.osm_id,
-       shape.names,
+--        shape.osm_id,
+--        shape.names,
        shape.road_class,
-       shape.speed,
-       shape.traversability,
-       shape.use,
+--        shape.speed,
+--        shape.traversability,
+--        shape.use,
        st_length(shape.geom::geography) AS distance_m,
        shape.geom
 FROM shape

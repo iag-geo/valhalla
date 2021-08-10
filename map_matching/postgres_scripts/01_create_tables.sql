@@ -7,9 +7,9 @@ DROP TABLE IF EXISTS testing.valhalla_map_match_shape_point CASCADE;
 CREATE TABLE testing.valhalla_map_match_shape_point
 (
     trip_id text,
-    shape_index integer,
     search_radius double precision,
     gps_accuracy double precision,
+    shape_index integer,
     geom geometry(point, 4326)
 );
 ALTER TABLE testing.valhalla_map_match_shape_point OWNER TO postgres;
