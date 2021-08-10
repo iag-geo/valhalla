@@ -123,7 +123,7 @@ def main():
         if mp_result is not None:
             print("WARNING: multiprocessing error : {}".format(mp_result))
 
-    logger.info("\t - all trajectories map matched : {}".format(datetime.now() - start_time))
+    logger.info("\t - all trajectories map matched & routed: {}".format(datetime.now() - start_time))
     start_time = datetime.now()
 
     # # create anonymous trajectories
@@ -136,8 +136,8 @@ def main():
     pg_cur.execute("ANALYSE testing.valhalla_map_match_shape_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
     pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
-    logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
-    start_time = datetime.now()
+    # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
+    # start_time = datetime.now()
 
     # get map match table counts
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
@@ -176,12 +176,13 @@ def main():
     # logger.info("\t - all segments routed : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
 
-    # # update stats ON route tables
-    # pg_cur.execute("ANALYSE testing.valhalla_route_shape")
-    # pg_cur.execute("ANALYSE testing.valhalla_route_fail")
-    # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
+    # update stats ON route tables
+    pg_cur.execute("ANALYSE testing.valhalla_route_shape")
+    pg_cur.execute("ANALYSE testing.valhalla_route_fail")
+
+    logger.info("\t - rows counted & tables analysed : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
-    #
+
     # # optional: create indexes ON output tables
     # try:
     #     sql_file = os.path.join(runtime_directory, "postgres_scripts", "05_create_route_indexes.sql")
@@ -193,20 +194,20 @@ def main():
     # except:
     #     # meh!
     #     pass
-    #
-    # # get routing table counts
-    # # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_this")
-    # # route_to_do_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
-    # traj_route_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
-    # fail_route_count = pg_cur.fetchone()[0]
-    #
-    # logger.info("\t - routing results")
-    # # logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
-    # logger.info("\t\t - {:,} segments routed".format(traj_route_count))
-    # if fail_route_count > 0:
-    #     logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
+
+    # get routing table counts
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_this")
+    # route_to_do_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_shape")
+    traj_route_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_route_fail")
+    fail_route_count = pg_cur.fetchone()[0]
+
+    logger.info("\t - routing results")
+    # logger.info("\t\t - {:,} segments to route".format(route_to_do_count))
+    logger.info("\t\t - {:,} segments routed".format(traj_route_count))
+    if fail_route_count > 0:
+        logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
 
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_final_route")
     final_route_count = pg_cur.fetchone()[0]
@@ -234,8 +235,8 @@ def get_trajectories(pg_cur):
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS input_points 
                  FROM {4}
                  -- WHERE trip_id = '9113834E-158F-4328-B5A4-59B3A5D4BEFC'
-                 WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
-                     OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
+                 -- WHERE trip_id = 'F93947BB-AECD-48CC-A0B7-1041DFB28D03'
+                 --     OR trip_id = '918E16D3-709F-44DE-8D9B-78F8C6981122'
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, input_table)
     pg_cur.execute(sql)
