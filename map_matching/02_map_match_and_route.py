@@ -274,7 +274,7 @@ def map_match_and_route_trajectory(job):
 
             # STEP 3 - get unmatched trajectory segments to route
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
-            sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy)
+            sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy, trip_id)
             pg_cur.execute(sql)
 
             # STEP 4 - create job list for routing and process

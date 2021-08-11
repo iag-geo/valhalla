@@ -2,10 +2,7 @@
 -- STEP 1 - create map matched shape based on edge table indexes
 INSERT INTO temp_{0}_{1}_{2}_map_match_shape
 WITH shape AS (
-    SELECT pnt.trip_id,
-           pnt.search_radius,
-           pnt.gps_accuracy,
-           edge.begin_shape_index,
+    SELECT edge.begin_shape_index,
            edge.end_shape_index,
            edge.edge_index,
 --            edge.osm_id,
@@ -18,10 +15,7 @@ WITH shape AS (
     FROM temp_{0}_{1}_{2}_map_match_shape_point AS pnt
     INNER JOIN temp_{0}_{1}_{2}_map_match_edge AS edge
         ON pnt.shape_index between begin_shape_index and edge.end_shape_index
-    GROUP BY pnt.trip_id,
-             pnt.search_radius,
-             pnt.gps_accuracy,
-             edge.begin_shape_index,
+    GROUP BY edge.begin_shape_index,
              edge.end_shape_index,
              edge.edge_index,
 --              edge.osm_id,
@@ -33,11 +27,7 @@ WITH shape AS (
              pnt.search_radius,
              pnt.gps_accuracy
 )
-SELECT shape.trip_id,
-       shape.search_radius,
-       shape.gps_accuracy,
---        true::boolean as use_segment,
-       shape.begin_shape_index,
+SELECT shape.begin_shape_index,
        shape.end_shape_index,
        shape.edge_index,
 --        shape.osm_id,
@@ -68,10 +58,7 @@ ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 -- STEP 2 - get start and end points of segments to be routed
 INSERT INTO temp_{0}_{1}_{2}_route_this
 WITH trip AS (
-    SELECT trip_id,
-           search_radius,
-           gps_accuracy,
-           edge_index AS begin_edge_index,
+    SELECT edge_index AS begin_edge_index,
            lead(edge_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY edge_index) AS end_edge_index,
            end_shape_index AS begin_shape_index,
            lead(begin_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY edge_index) AS end_shape_index,
@@ -79,10 +66,7 @@ WITH trip AS (
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
     FROM temp_{0}_{1}_{2}_map_match_shape
 )
-SELECT trip_id,
-       search_radius,
-       gps_accuracy,
-       begin_edge_index + 1 AS begin_edge_index,  -- correct value to edge index(es) to route
+SELECT begin_edge_index + 1 AS begin_edge_index,  -- correct value to edge index(es) to route
        end_edge_index - 1 AS end_edge_index,  -- correct value to edge index(es) to route
        begin_shape_index,
        end_shape_index,
@@ -104,31 +88,22 @@ ANALYSE temp_{0}_{1}_{2}_route_this;
 -- need to add a route at the start if first map matched segment doesn't start at the first waypoint
 INSERT INTO temp_{0}_{1}_{2}_route_this
 WITH pnt AS (
-    SELECT trip_id,
-           geom
+    SELECT geom
     FROM testing.waypoint
     WHERE point_index = 0
+        AND trip_id = '{3}'
 ), trip AS (
-    SELECT trip_id,
-           search_radius,
-           gps_accuracy,
-           geom
+    SELECT geom
     FROM temp_{0}_{1}_{2}_map_match_shape_point
     WHERE shape_index = 0
 ), merge AS (
-    SELECT trip.trip_id,
-           search_radius,
-           gps_accuracy,
-           pnt.geom AS start_geom,
+    SELECT pnt.geom AS start_geom,
            trip.geom AS end_geom,
            st_distance(pnt.geom::geography, trip.geom::geography) AS distance_m
     FROM pnt
-             INNER JOIN trip ON pnt.trip_id = trip.trip_id
+    CROSS JOIN trip
 )
-SELECT trip_id,
-       search_radius,
-       gps_accuracy,
-       -1 AS begin_edge_index,
+SELECT -1 AS begin_edge_index,
        -1 AS end_edge_index,
        -1 AS begin_shape_index,
        0 AS end_shape_index,
