@@ -1,6 +1,6 @@
 
 -- STEP 1 - create map matched shape based on edge table indexes
-INSERT INTO testing.valhalla_map_match_shape
+INSERT INTO temp_{0}_{1}_{2}_map_match_shape
 WITH shape AS (
     SELECT pnt.trip_id,
            pnt.search_radius,
@@ -15,8 +15,8 @@ WITH shape AS (
 --            edge.traversability,
 --            edge.use,
            st_makeline(pnt.geom ORDER BY pnt.shape_index) AS geom
-    FROM testing.valhalla_map_match_shape_point AS pnt
-    INNER JOIN testing.valhalla_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
+    FROM temp_{0}_{1}_{2}_map_match_shape_point AS pnt
+    INNER JOIN temp_{0}_{1}_{2}_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
         AND pnt.search_radius = edge.search_radius
         AND pnt.gps_accuracy = edge.gps_accuracy
         AND pnt.shape_index between begin_shape_index and edge.end_shape_index
@@ -53,15 +53,15 @@ SELECT shape.trip_id,
        shape.geom
 FROM shape
 ;
--- ANALYSE testing.valhalla_map_match_shape;
+-- ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 
 
 -- delete bad map match segments
--- UPDATE testing.valhalla_map_match_shape AS shape
+-- UPDATE temp_{0}_{1}_{2}_map_match_shape AS shape
 --     SET use_segment = false
--- FROM testing.valhalla_map_match_point as pnt2
-DELETE FROM testing.valhalla_map_match_shape AS shape
-USING testing.valhalla_map_match_point as pnt2
+-- FROM temp_{0}_{1}_{2}_map_match_point as pnt2
+DELETE FROM temp_{0}_{1}_{2}_map_match_shape AS shape
+USING temp_{0}_{1}_{2}_map_match_point as pnt2
 WHERE shape.trip_id = pnt2.trip_id
     AND shape.search_radius = pnt2.search_radius
     AND shape.gps_accuracy = pnt2.gps_accuracy
@@ -70,11 +70,11 @@ WHERE shape.trip_id = pnt2.trip_id
     AND shape.trip_id = '{0}'
 
 ;
--- ANALYSE testing.valhalla_map_match_shape;
+-- ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 
 
 -- STEP 2 - get start and end points of segments to be routed
-INSERT INTO testing.valhalla_route_this
+INSERT INTO temp_{0}_{1}_{2}_route_this
 WITH trip AS (
     SELECT trip_id,
            search_radius,
@@ -85,7 +85,7 @@ WITH trip AS (
            lead(begin_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY edge_index) AS end_shape_index,
            st_endpoint(geom) as start_geom,
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
-    FROM testing.valhalla_map_match_shape
+    FROM temp_{0}_{1}_{2}_map_match_shape
     WHERE trip_id = '{0}'
 
 --     WHERE use_segment
@@ -109,11 +109,11 @@ WHERE end_edge_index - begin_edge_index > 1
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
 ;
--- ANALYSE testing.valhalla_route_this;
+-- ANALYSE temp_{0}_{1}_{2}_route_this;
 
 
 -- need to add a route at the start if first map matched segment doesn't start at the first waypoint
-INSERT INTO testing.valhalla_route_this
+INSERT INTO temp_{0}_{1}_{2}_route_this
 WITH pnt AS (
     SELECT trip_id,
            geom
@@ -125,7 +125,7 @@ WITH pnt AS (
            search_radius,
            gps_accuracy,
            geom
-    FROM testing.valhalla_map_match_shape_point
+    FROM temp_{0}_{1}_{2}_map_match_shape_point
     WHERE shape_index = 0
 ), merge AS (
     SELECT trip.trip_id,
@@ -153,4 +153,4 @@ SELECT trip_id,
 FROM merge
 WHERE distance_m > 50
 ;
--- ANALYSE testing.valhalla_route_this;
+-- ANALYSE temp_{0}_{1}_{2}_route_this;

@@ -1,13 +1,13 @@
 
 -- chop the first and last streets off the route plus one point each end
-insert into testing.valhalla_map_match_shape_non_pii
+insert into temp_{0}_{1}_{2}_map_match_shape_non_pii
 with edge AS (
     SELECT trip_id,
            osm_id,
            min(begin_shape_index) AS min_point_index,
            max(end_shape_index) AS max_point_index
-    FROM testing.valhalla_map_match_edge
-    WHERE trip_id not in (SELECT trip_id FROM testing.valhalla_map_match_shape_non_pii)
+    FROM temp_{0}_{1}_{2}_map_match_edge
+    WHERE trip_id not in (SELECT trip_id FROM temp_{0}_{1}_{2}_map_match_shape_non_pii)
     GROUP BY trip_id,
              osm_id
 ), mm AS (
@@ -20,7 +20,7 @@ with edge AS (
     SELECT trip_id,
            (ST_DumpPoints(geom)).geom AS geom,
            (ST_DumpPoints(geom)).path[1] AS point_index
-    FROM testing.valhalla_map_match_shape
+    FROM temp_{0}_{1}_{2}_map_match_shape
 ), trips AS (
     SELECT mm.trip_id,
            st_makeline(pnt.geom order by pnt.point_index) AS geom
@@ -35,4 +35,4 @@ SELECT trip_id,
        geom
 FROM trips
 ;
-analyse testing.valhalla_map_match_shape_non_pii;
+analyse temp_{0}_{1}_{2}_map_match_shape_non_pii;
