@@ -20,12 +20,10 @@ WITH shape AS (
              edge.edge_index,
 --              edge.osm_id,
 --              edge.names,
-             edge.road_class,
+             edge.road_class
 --              edge.speed,
 --              edge.traversability,
---              edge.use,
-             pnt.search_radius,
-             pnt.gps_accuracy
+--              edge.use
 )
 SELECT shape.begin_shape_index,
        shape.end_shape_index,
@@ -59,11 +57,11 @@ ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 INSERT INTO temp_{0}_{1}_{2}_route_this
 WITH trip AS (
     SELECT edge_index AS begin_edge_index,
-           lead(edge_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY edge_index) AS end_edge_index,
+           lead(edge_index) OVER (ORDER BY edge_index) AS end_edge_index,
            end_shape_index AS begin_shape_index,
-           lead(begin_shape_index) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY edge_index) AS end_shape_index,
+           lead(begin_shape_index) OVER (ORDER BY edge_index) AS end_shape_index,
            st_endpoint(geom) as start_geom,
-           st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
+           st_startpoint(lead(geom) OVER (ORDER BY begin_shape_index)) AS end_geom
     FROM temp_{0}_{1}_{2}_map_match_shape
 )
 SELECT begin_edge_index + 1 AS begin_edge_index,  -- correct value to edge index(es) to route

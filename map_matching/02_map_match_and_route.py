@@ -264,6 +264,8 @@ def map_match_and_route_trajectory(job):
             if search_radius is None:
                 search_radius = 9999
 
+            # print("{} : {} : {}".format(job_id, search_radius, gps_accuracy))
+
             # STEP 1 - create temp tables
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "01_create_temp_tables.sql")
             sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy)

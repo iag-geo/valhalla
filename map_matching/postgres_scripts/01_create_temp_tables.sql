@@ -1,7 +1,7 @@
 
 -- map matching output tables
 
-CREATE TABLE temp_{0}_{1}_{2}_map_match_shape_point
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_shape_point
 (
     shape_index integer,
     geom geometry(point, 4326)
@@ -9,7 +9,7 @@ CREATE TABLE temp_{0}_{1}_{2}_map_match_shape_point
 ALTER TABLE temp_{0}_{1}_{2}_map_match_shape_point OWNER TO postgres;
 
 
--- CREATE TABLE temp_{0}_{1}_{2}_map_match_shape_non_pii
+-- CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_shape_non_pii
 -- (
 --     distance_m double precision,
 --     geom geometry(linestring, 4326)
@@ -17,7 +17,7 @@ ALTER TABLE temp_{0}_{1}_{2}_map_match_shape_point OWNER TO postgres;
 -- ALTER TABLE temp_{0}_{1}_{2}_map_match_shape_non_pii OWNER TO postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_map_match_edge
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_edge
 (
     edge_index integer,
     osm_id integer,
@@ -32,7 +32,7 @@ CREATE TABLE temp_{0}_{1}_{2}_map_match_edge
 ALTER TABLE temp_{0}_{1}_{2}_map_match_edge OWNER TO postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_map_match_point
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_point
 (
     point_index integer,
     distance_from_trace_point double precision,
@@ -47,7 +47,7 @@ CREATE TABLE temp_{0}_{1}_{2}_map_match_point
 ALTER TABLE temp_{0}_{1}_{2}_map_match_point OWNER TO postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_map_match_fail
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_fail
 (
     error_code smallint,
     error text,
@@ -59,7 +59,7 @@ ALTER TABLE temp_{0}_{1}_{2}_map_match_fail OWNER TO postgres;
 
 -- routing outputs
 
-CREATE TABLE temp_{0}_{1}_{2}_route_shape
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_route_shape
 (
     begin_edge_index integer,
     end_edge_index integer,
@@ -73,7 +73,7 @@ CREATE TABLE temp_{0}_{1}_{2}_route_shape
 ALTER TABLE temp_{0}_{1}_{2}_route_shape OWNER TO postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_route_fail
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_route_fail
 (
     begin_edge_index integer,
     end_edge_index integer,
@@ -89,7 +89,7 @@ ALTER TABLE temp_{0}_{1}_{2}_route_fail OWNER TO postgres;
 
 -- working (interim) tables
 
-CREATE TABLE temp_{0}_{1}_{2}_map_match_shape
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_map_match_shape
 (
     begin_shape_index integer,
     end_shape_index integer,
@@ -101,7 +101,7 @@ CREATE TABLE temp_{0}_{1}_{2}_map_match_shape
 ALTER TABLE temp_{0}_{1}_{2}_map_match_shape OWNER to postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_route_this
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_route_this
 (
     begin_edge_index integer,
     end_edge_index integer,
@@ -117,7 +117,7 @@ CREATE TABLE temp_{0}_{1}_{2}_route_this
 ALTER TABLE temp_{0}_{1}_{2}_route_this OWNER to postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_segment
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_segment
 (
     begin_edge_index integer,
     end_edge_index integer,
@@ -131,7 +131,7 @@ CREATE TABLE temp_{0}_{1}_{2}_segment
 ALTER TABLE temp_{0}_{1}_{2}_segment OWNER TO postgres;
 
 
-CREATE TABLE temp_{0}_{1}_{2}_merged_route
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_merged_route
 (
     total_segments bigint,
     total_distance_km double precision,
@@ -151,7 +151,7 @@ ALTER TABLE temp_{0}_{1}_{2}_merged_route OWNER to postgres;
 
 -- final output
 
-CREATE TABLE temp_{0}_{1}_{2}_final_route
+CREATE TEMPORARY TABLE temp_{0}_{1}_{2}_final_route
 (
     total_segments bigint,
     total_distance_km double precision,

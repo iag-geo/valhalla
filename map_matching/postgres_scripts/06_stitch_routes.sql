@@ -5,6 +5,10 @@ SELECT * FROM temp_{0}_{1}_{2}_route_shape
 ;
 ANALYSE temp_{0}_{1}_{2}_segment;
 
+ALTER TABLE temp_{0}_{1}_{2}_segment  ADD CONSTRAINT valhalla_segment_pkey PRIMARY KEY (begin_edge_index);
+CREATE UNIQUE INDEX valhalla_segment_end_edge_idx ON temp_{0}_{1}_{2}_segment USING btree (end_edge_index);
+
+
 -- Add map matched segments that haven't been fixed by routed
 INSERT INTO temp_{0}_{1}_{2}_segment
 SELECT edge_index AS begin_edge_index,
@@ -30,9 +34,6 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY begin_edge_index) AS geom
     FROM temp_{0}_{1}_{2}_segment
-    GROUP BY trip_id,
-             search_radius,
-             gps_accuracy
 )
 SELECT map_match_segments + route_segments AS total_segments,
        map_match_distance_km + route_distance_km AS total_distance_km,
@@ -97,7 +98,7 @@ ANALYSE temp_{0}_{1}_{2}_merged_route;
 INSERT INTO temp_{0}_{1}_{2}_final_route
 WITH ranked AS (
     SELECT *,
-           row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
+           row_number() over (ORDER BY total_distance_km) AS rank
     FROM temp_{0}_{1}_{2}_merged_route
     WHERE rmse_km < 2.0
 )
@@ -108,17 +109,17 @@ WHERE rank = 1
 
 
 -- insert results into permanent tables
-INSERT INTO testing.valhalla_segments
-SELECT {3}, {1}, {2}, *
+INSERT INTO testing.valhalla_segment
+SELECT '{3}', {1}, {2}, *
 FROM temp_{0}_{1}_{2}_segment
 ;
 
 INSERT INTO testing.valhalla_merged_route
-SELECT {3}, {1}, {2}, *
+SELECT '{3}', {1}, {2}, *
 FROM temp_{0}_{1}_{2}_merged_route
 ;
 
 INSERT INTO testing.valhalla_final_route
-SELECT {3}, {1}, {2}, *
+SELECT '{3}', {1}, {2}, *
 FROM temp_{0}_{1}_{2}_final_route
 ;
