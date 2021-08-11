@@ -26,7 +26,8 @@ inverse_precision = 1.0 / 1e6
 
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
-search_radii = [None, 7.5, 15.0, 30.0, 60.0]
+# must be integers (these are used to name temp tables # TODO: get rid of this limitation
+search_radii = [None, 5, 10, 15, 30, 60]
 # search_radii = [7.5]
 iteration_count = pow(len(search_radii), 2)
 

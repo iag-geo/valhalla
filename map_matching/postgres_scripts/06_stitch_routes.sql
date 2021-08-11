@@ -5,8 +5,8 @@ SELECT * FROM temp_{0}_{1}_{2}_route_shape
 ;
 ANALYSE temp_{0}_{1}_{2}_segment;
 
-ALTER TABLE temp_{0}_{1}_{2}_segment  ADD CONSTRAINT valhalla_segment_pkey PRIMARY KEY (begin_edge_index);
-CREATE UNIQUE INDEX valhalla_segment_end_edge_idx ON temp_{0}_{1}_{2}_segment USING btree (end_edge_index);
+ALTER TABLE temp_{0}_{1}_{2}_segment  ADD CONSTRAINT temp_{0}_{1}_{2}_segment_pkey PRIMARY KEY (begin_edge_index);
+CREATE UNIQUE INDEX temp_{0}_{1}_{2}_segment_end_edge_idx ON temp_{0}_{1}_{2}_segment USING btree (end_edge_index);
 
 
 -- Add map matched segments that haven't been fixed by routed
