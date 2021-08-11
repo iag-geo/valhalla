@@ -141,10 +141,10 @@ def main():
     start_time = datetime.now()
 
     # get routing table counts
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_segment WHERE segment_type = 'route'")
-    routing_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_segment WHERE segment_type = 'map match'")
     map_matching_count = pg_cur.fetchone()[0]
+    pg_cur.execute("SELECT count(*) FROM testing.valhalla_segment WHERE segment_type = 'route'")
+    routing_count = pg_cur.fetchone()[0]
     pg_cur.execute("SELECT count(*) FROM testing.valhalla_merged_route")
     merged_route_count = pg_cur.fetchone()[0]
     # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
@@ -159,6 +159,7 @@ def main():
     logger.info("\t - routing results")
     logger.info("\t\t - {:,} segments map matched".format(map_matching_count))
     logger.info("\t\t - {:,} segments routed".format(routing_count))
+    logger.info("\t\t - {:,} route permutations created".format(merged_route_count))
     logger.info("\t\t - {:,} final routes created".format(final_route_count))
     # if fail_route_count > 0:
     #     logger.warning("\t\t - {:,} segments FAILED".format(fail_route_count))
@@ -272,7 +273,6 @@ def map_match_and_route_trajectory(job):
             pg_cur.execute(sql)
 
     print("{} : done : {}".format(trip_id, datetime.now() - start_time))
-    start_time = datetime.now()
 
     # clean up
     pg_cur.close()
