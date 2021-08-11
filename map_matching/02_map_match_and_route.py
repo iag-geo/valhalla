@@ -131,11 +131,7 @@ def main():
     # pg_cur.execute(sql)
     # logger.info("\t - non-pii trajectories created : {}".format(datetime.now() - start_time))
 
-    # update table stats
-    pg_cur.execute("ANALYSE testing.valhalla_map_match_edge")
-    pg_cur.execute("ANALYSE testing.valhalla_map_match_shape_point")
-    pg_cur.execute("ANALYSE testing.valhalla_map_match_point")
-    pg_cur.execute("ANALYSE testing.valhalla_map_match_fail")
+
     # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
 
@@ -255,47 +251,49 @@ def map_match_and_route_trajectory(job):
     # point_count = job["point_count"]
     input_points = job["input_points"]
 
-    # STEP 1 - map match for every combination of GPS accuracy and search radius to determine the best route
+    # process for every combination of GPS accuracy and search radius to determine the best route
     for gps_accuracy in search_radii:
         # fix None values for search radius and gps_accuracy (can't be NULL in a database primary key)
         if gps_accuracy is None:
-            gps_accuracy = -9999
+            gps_accuracy = 9999
 
         for search_radius in search_radii:
             if search_radius is None:
-                search_radius = -9999
+                search_radius = 9999
 
+            # STEP 1 - create temp tables
+            sql_file = os.path.join(runtime_directory, "postgres_scripts", "01_create_temp_tables.sql")
+            sql = open(sql_file, "r").read().format(trip_id, search_radius, gps_accuracy)
+            pg_cur.execute(sql)
+
+            # STEP 2 - map matching
             map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accuracy)
 
-    # STEP 2 - get unmatched trajectory segments to route
-    sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
-    sql = open(sql_file, "r").read().format(trip_id)
-    pg_cur.execute(sql)
+            # STEP 3 - get unmatched trajectory segments to route
+            sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
+            sql = open(sql_file, "r").read().format(trip_id, search_radius, gps_accuracy)
+            pg_cur.execute(sql)
 
-    # STEP 3 - create job list for routing and process
-    sql = """SELECT trip_id,
-                    search_radius,
-                    gps_accuracy,
-                    begin_edge_index,
-                    end_edge_index,
-                    begin_shape_index,
-                    end_shape_index,
-                    start_lat,
-                    start_lon,
-                    end_lat,
-                    end_lon
-             FROM testing.valhalla_route_this
-             WHERE trip_id = '{}'""".format(trip_id)
-    pg_cur.execute(sql)
-    route_job_list = pg_cur.fetchall()
+            # STEP 4 - create job list for routing and process
+            sql = """SELECT begin_edge_index,
+                            end_edge_index,
+                            begin_shape_index,
+                            end_shape_index,
+                            start_lat,
+                            start_lon,
+                            end_lat,
+                            end_lon
+                     FROM temp_{}_{}_{}_route_this""".format(trip_id, search_radius, gps_accuracy)
+            pg_cur.execute(sql)
+            route_job_list = pg_cur.fetchall()
 
-    for route_job in route_job_list:
-        route_trajectory(pg_cur, trip_id, route_job)
+            for route_job in route_job_list:
+                route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, route_job)
 
-    # STEP 4 - stitch map matched and routed segments into continuous trajectories
-    sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
-    sql = open(sql_file, "r").read().format(trip_id)
-    pg_cur.execute(sql)
+            # STEP 4 - stitch map matched and routed segments into continuous trajectories
+            sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
+            sql = open(sql_file, "r").read().format(trip_id)
+            pg_cur.execute(sql)
 
     # clean up
     pg_cur.close()
@@ -347,16 +345,15 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                     # print(geom_string)
 
                     # insert each point into valhalla_map_match_shape_point table
-                    point_sql = """insert into testing.valhalla_map_match_shape_point
-                                     values ('{0}', {1}, {2}, {3}, {4})""" \
+                    point_sql = """insert into temp_{}_{}_{}_map_match_shape_point
+                                     values ({}, {})""" \
                         .format(trip_id, search_radius, gps_accuracy, shape_index, geom_string)
                     pg_cur.execute(point_sql)
 
                     shape_index += 1
             else:
-                fail_sql = """insert into testing.valhalla_map_match_fail 
-                                  (trip_id, search_radius, gps_accuracy, error) 
-                                  values ('{}', {}, {}, '{}')""" \
+                fail_sql = """insert into temp_{}_{}_{}_map_match_fail (error) 
+                                  values ('{}')""" \
                     .format(trip_id, search_radius, gps_accuracy, "Linestring only has one point")
                 pg_cur.execute(fail_sql)
 
@@ -368,9 +365,9 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
             edge_index = 0
 
             for edge in edges:
-                edge[trajectory_id_field] = trip_id
-                edge["search_radius"] = search_radius
-                edge["gps_accuracy"] = gps_accuracy
+                # edge[trajectory_id_field] = trip_id
+                # edge["search_radius"] = search_radius
+                # edge["gps_accuracy"] = gps_accuracy
                 edge["osm_id"] = edge.pop("way_id")
                 edge["edge_index"] = edge_index
 
@@ -381,7 +378,8 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                 columns = list(edge.keys())
                 values = [edge[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_map_match_edge (%s) VALUES %s"
+                insert_statement = "INSERT INTO temp_{}_{}_{}_map_match_edge (%s) VALUES %s" \
+                    .format(trip_id, search_radius, gps_accuracy)
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
@@ -407,8 +405,8 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                     matched_point["point_index"] = point_index
                     matched_point["lat"] = point["lat"]
                     matched_point["lon"] = point["lon"]
-                    matched_point["search_radius"] = search_radius
-                    matched_point["gps_accuracy"] = gps_accuracy
+                    # matched_point["search_radius"] = search_radius
+                    # matched_point["gps_accuracy"] = gps_accuracy
                     matched_point["distance"] = point["distance_from_trace_point"]
                     matched_points.append(matched_point)
 
@@ -428,7 +426,8 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                 columns = list(point.keys())
                 values = [point[column] for column in columns]
 
-                insert_statement = "INSERT INTO testing.valhalla_map_match_point (%s) VALUES %s"
+                insert_statement = "INSERT INTO temp_{}_{}_{}_map_match_point (%s) VALUES %s" \
+                    .format(trip_id, search_radius, gps_accuracy)
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                     .decode("utf-8")
                 sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
@@ -445,17 +444,21 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
         curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
             .format(json_payload, map_matching_url)
 
-        sql = "insert into testing.valhalla_map_match_fail values ('{}', {}, {}, {}, '{}', '{}', '{}')" \
+        sql = "insert into temp_{}_{}_{}_map_match_fail values ({}, '{}', '{}', '{}')" \
             .format(trip_id, search_radius, gps_accuracy, e["error_code"], e["error"],
                     str(e["status_code"]) + ":" + e["status"], curl_command)
         pg_cur.execute(sql)
 
+    # update table stats
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_edge".format(trip_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_shape_point".format(trip_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_point".format(trip_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(trip_id, search_radius, gps_accuracy))
 
-def route_trajectory(pg_cur, trip_id, job):
+
+def route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, job):
 
     # get inputs
-    search_radius = float(job["search_radius"])
-    gps_accuracy = float(job["gps_accuracy"])
     begin_edge_index = int(job["begin_edge_index"])
     end_edge_index = int(job["end_edge_index"])
     begin_shape_index = int(job["begin_shape_index"])
@@ -535,15 +538,15 @@ def route_trajectory(pg_cur, trip_id, job):
                     # else:
                     segment_type = "route"
 
-                    shape_sql = """insert into testing.valhalla_route_shape
-                                         values ('{}', {}, {}, {}, {}, {}, {}, {}, {}, '{}', {})""" \
+                    shape_sql = """insert into temp_{}_{}_{}_route_shape
+                                         values ({}, {}, {}, {}, {}, {}, '{}', {})""" \
                         .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, distance_m, point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
-                    fail_sql = """insert into testing.valhalla_route_fail (trip_id, search_radius, gps_accuracy, 
+                    fail_sql = """insert into temp_{}_{}_{}_route_fail (trip_id, search_radius, gps_accuracy, 
                                           begin_edge_index, end_edge_index, begin_shape_index, end_shape_index, error)
-                                      values ('{}', {}, {}, {}, {}, {}, '{}')""" \
+                                      values ({}, {}, {}, '{}')""" \
                         .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, "Linestring only has one point")
                     pg_cur.execute(fail_sql)
@@ -555,7 +558,9 @@ def route_trajectory(pg_cur, trip_id, job):
         curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
             .format(json_payload, routing_url)
 
-        sql = "insert into testing.valhalla_route_fail values ('{}', {}, {}, {}, {}, {}, {}, '{}', '{}', '{}')" \
+        # TODO: insert final fail rows into permenant table
+
+        sql = "insert into temp_{}_{}_{}_route_fail values ({}, {}, {}, {}, '{}', '{}', '{}')" \
             .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                     begin_shape_index, end_shape_index,
                     e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
@@ -573,13 +578,13 @@ def get_map_matching_parameters(search_radius, gps_accuracy):
     # request_dict["shape_match"] = "map_snap"  # seems to be an inferior matching algorithm
     request_dict["shape_match"] = "walk_or_snap"
 
-    if search_radius != -9999 or gps_accuracy != -9999:
+    if search_radius != 9999 or gps_accuracy != 9999:
         request_dict["trace_options"] = dict()
 
-        if search_radius != -9999:
+        if search_radius != 9999:
             request_dict["trace_options"]["search_radius"] = search_radius
 
-        if gps_accuracy != -9999:
+        if gps_accuracy != 9999:
             request_dict["trace_options"]["gps_accuracy"] = gps_accuracy
 
     # # test parameters - yet to do anything

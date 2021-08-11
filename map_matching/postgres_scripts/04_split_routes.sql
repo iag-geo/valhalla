@@ -16,11 +16,8 @@ WITH shape AS (
 --            edge.use,
            st_makeline(pnt.geom ORDER BY pnt.shape_index) AS geom
     FROM temp_{0}_{1}_{2}_map_match_shape_point AS pnt
-    INNER JOIN temp_{0}_{1}_{2}_map_match_edge AS edge ON pnt.trip_id = edge.trip_id
-        AND pnt.search_radius = edge.search_radius
-        AND pnt.gps_accuracy = edge.gps_accuracy
-        AND pnt.shape_index between begin_shape_index and edge.end_shape_index
-    WHERE pnt.trip_id = '{0}'
+    INNER JOIN temp_{0}_{1}_{2}_map_match_edge AS edge
+        ON pnt.shape_index between begin_shape_index and edge.end_shape_index
     GROUP BY pnt.trip_id,
              pnt.search_radius,
              pnt.gps_accuracy,
@@ -53,7 +50,7 @@ SELECT shape.trip_id,
        shape.geom
 FROM shape
 ;
--- ANALYSE temp_{0}_{1}_{2}_map_match_shape;
+ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 
 
 -- delete bad map match segments
@@ -62,15 +59,10 @@ FROM shape
 -- FROM temp_{0}_{1}_{2}_map_match_point as pnt2
 DELETE FROM temp_{0}_{1}_{2}_map_match_shape AS shape
 USING temp_{0}_{1}_{2}_map_match_point as pnt2
-WHERE shape.trip_id = pnt2.trip_id
-    AND shape.search_radius = pnt2.search_radius
-    AND shape.gps_accuracy = pnt2.gps_accuracy
-    AND shape.edge_index = pnt2.edge_index
+WHERE shape.edge_index = pnt2.edge_index
     AND pnt2.edge_index > 0
-    AND shape.trip_id = '{0}'
-
 ;
--- ANALYSE temp_{0}_{1}_{2}_map_match_shape;
+ANALYSE temp_{0}_{1}_{2}_map_match_shape;
 
 
 -- STEP 2 - get start and end points of segments to be routed
@@ -86,9 +78,6 @@ WITH trip AS (
            st_endpoint(geom) as start_geom,
            st_startpoint(lead(geom) OVER (PARTITION BY trip_id, search_radius, gps_accuracy ORDER BY begin_shape_index)) AS end_geom
     FROM temp_{0}_{1}_{2}_map_match_shape
-    WHERE trip_id = '{0}'
-
---     WHERE use_segment
 )
 SELECT trip_id,
        search_radius,
@@ -109,7 +98,7 @@ WHERE end_edge_index - begin_edge_index > 1
 --   and search_radius = 7.5
 --   and gps_accuracy = 7.5
 ;
--- ANALYSE temp_{0}_{1}_{2}_route_this;
+ANALYSE temp_{0}_{1}_{2}_route_this;
 
 
 -- need to add a route at the start if first map matched segment doesn't start at the first waypoint
@@ -119,7 +108,6 @@ WITH pnt AS (
            geom
     FROM testing.waypoint
     WHERE point_index = 0
-        AND trip_id = '{0}'
 ), trip AS (
     SELECT trip_id,
            search_radius,
@@ -153,4 +141,4 @@ SELECT trip_id,
 FROM merge
 WHERE distance_m > 50
 ;
--- ANALYSE temp_{0}_{1}_{2}_route_this;
+ANALYSE temp_{0}_{1}_{2}_route_this;

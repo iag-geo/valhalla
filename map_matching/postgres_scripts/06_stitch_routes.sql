@@ -2,7 +2,6 @@
 -- create table of routed segments and unrouted, map matched segments
 INSERT INTO temp_{0}_{1}_{2}_segment
 SELECT * FROM temp_{0}_{1}_{2}_route_shape
-WHERE trip_id = '{0}'
 ;
 ANALYSE temp_{0}_{1}_{2}_segment;
 
@@ -20,8 +19,7 @@ SELECT trip_id,
        'map match' AS segment_type,
        geom
 FROM temp_{0}_{1}_{2}_map_match_shape
-WHERE trip_id = '{0}'
-ON CONFLICT (trip_id, search_radius, gps_accuracy, begin_edge_index) DO NOTHING
+ON CONFLICT (begin_edge_index) DO NOTHING
 ;
 ANALYSE temp_{0}_{1}_{2}_segment;
 
@@ -38,7 +36,6 @@ WITH stats AS (
            sum(CASE WHEN segment_type = 'route' THEN distance_m ELSE 0.0 END) / 1000.0 AS route_distance_km,
            st_collect(geom ORDER BY begin_edge_index) AS geom
     FROM temp_{0}_{1}_{2}_segment
-    WHERE trip_id = '{0}'
     GROUP BY trip_id,
              search_radius,
              gps_accuracy
@@ -70,7 +67,6 @@ SELECT trip_id,
        count(*) as waypoint_count,
        st_length(st_makeline(geom order by point_index)::geography) / 1000.0 AS waypoint_distance_km
 FROM testing.waypoint
-WHERE trip_id = '{0}'
 GROUP BY trip_id
 ;
 ANALYSE temp_waypoint_stats;
@@ -85,7 +81,6 @@ UPDATE temp_{0}_{1}_{2}_merged_route as route
         waypoint_distance_ratio = route.total_distance_km / stats.waypoint_distance_km
 FROM temp_waypoint_stats AS stats
 WHERE route.trip_id = stats.trip_id
-  AND route.trip_id = '{0}'
 ;
 ANALYSE temp_{0}_{1}_{2}_merged_route;
 
@@ -101,7 +96,6 @@ WITH merge AS (
            st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_km
     FROM temp_{0}_{1}_{2}_merged_route AS trip
     INNER JOIN testing.waypoint AS pnt ON trip.trip_id = pnt.trip_id
-    WHERE trip.trip_id = '{0}'
 ), stats AS (
     SELECT trip_id,
            search_radius,
@@ -129,9 +123,25 @@ WITH ranked AS (
            row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
     FROM temp_{0}_{1}_{2}_merged_route
     WHERE rmse_km < 2.0
-      AND trip_id = '{0}'
 )
 SELECT *
 FROM ranked
 WHERE rank = 1
+;
+
+
+-- insert results into permanent tables
+INSERT INTO testing.valhalla_segments
+SELECT {0}, {1}, {2}, *
+FROM temp_{0}_{1}_{2}_segment
+;
+
+INSERT INTO testing.valhalla_merged_route
+SELECT {0}, {1}, {2}, *
+FROM temp_{0}_{1}_{2}_merged_route
+;
+
+INSERT INTO testing.valhalla_final_route
+SELECT {0}, {1}, {2}, *
+FROM temp_{0}_{1}_{2}_final_route
 ;
