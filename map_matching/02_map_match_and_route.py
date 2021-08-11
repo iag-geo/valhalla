@@ -136,24 +136,24 @@ def main():
     # logger.info("\t - tables analysed : {}".format(datetime.now() - start_time))
     # start_time = datetime.now()
 
-    # get map match table counts
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
-    traj_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
-    edge_mm_count = pg_cur.fetchone()[0]
-    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point WHERE point_type = 'matched'")
-    # point_mm_count = pg_cur.fetchone()[0]
-    pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
-    fail_mm_count = pg_cur.fetchone()[0]
-
-    logger.info("\t - map match results")
-    logger.info("\t\t - {0:,} input trajectories X {1} search radii X {1} gps_accuracies"
-                .format(job_count, len(search_radii)))
-    logger.info("\t\t - {:,} map matched trajectory segment points".format(traj_mm_count))
-    logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
-    # logger.info("\t\t\t - {:,} waypoints matched".format(point_mm_count))
-    if fail_mm_count > 0:
-        logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
+    # # get map match table counts
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_shape_point")
+    # traj_mm_count = pg_cur.fetchone()[0]
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_edge")
+    # edge_mm_count = pg_cur.fetchone()[0]
+    # # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_point WHERE point_type = 'matched'")
+    # # point_mm_count = pg_cur.fetchone()[0]
+    # pg_cur.execute("SELECT count(*) FROM testing.valhalla_map_match_fail")
+    # fail_mm_count = pg_cur.fetchone()[0]
+    #
+    # logger.info("\t - map match results")
+    # logger.info("\t\t - {0:,} input trajectories X {1} search radii X {1} gps_accuracies"
+    #             .format(job_count, len(search_radii)))
+    # logger.info("\t\t - {:,} map matched trajectory segment points".format(traj_mm_count))
+    # logger.info("\t\t\t - {:,} edges".format(edge_mm_count))
+    # # logger.info("\t\t\t - {:,} waypoints matched".format(point_mm_count))
+    # if fail_mm_count > 0:
+    #     logger.warning("\t\t - {:,} trajectories FAILED".format(fail_mm_count))
 
     # logger.info("Got {} trajectory segments to route, starting routing : {}"
     #             .format(len(job_list), datetime.now() - start_time))
@@ -244,6 +244,8 @@ def get_trajectories(pg_cur):
 
 
 def map_match_and_route_trajectory(job):
+    start_time = datetime.now()
+
     # get postgres connection from pool
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
@@ -265,6 +267,7 @@ def map_match_and_route_trajectory(job):
             if search_radius is None:
                 search_radius = 9999
 
+
             # print("{} : {} : {}".format(job_id, search_radius, gps_accuracy))
 
             # STEP 1 - create temp tables
@@ -272,8 +275,16 @@ def map_match_and_route_trajectory(job):
             sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy)
             pg_cur.execute(sql)
 
+            print("{} : {} : {} : tables created : {}"
+                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
+            start_time = datetime.now()
+
             # STEP 2 - map matching
             map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accuracy)
+
+            print("{} : {} : {} : map matching done : {}"
+                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
+            start_time = datetime.now()
 
             # STEP 3 - get unmatched trajectory segments to route
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
@@ -293,13 +304,25 @@ def map_match_and_route_trajectory(job):
             pg_cur.execute(sql)
             route_job_list = pg_cur.fetchall()
 
+            print("{} : {} : {} : routing input created : {}"
+                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
+            start_time = datetime.now()
+
             for route_job in route_job_list:
                 route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, route_job)
+
+            print("{} : {} : {} : routing done : {}"
+                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
+            start_time = datetime.now()
 
             # STEP 4 - stitch map matched and routed segments into continuous trajectories
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
             sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy, trip_id)
             pg_cur.execute(sql)
+
+            print("{} : {} : {} : trip stitched together : {}"
+                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
+            start_time = datetime.now()
 
     # clean up
     pg_cur.close()

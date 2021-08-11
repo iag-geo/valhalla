@@ -82,6 +82,7 @@ WITH merge AS (
     SELECT st_distance( pnt.geom::geography, ST_ClosestPoint(trip.geom, pnt.geom)::geography) / 1000.0 AS route_point_distance_km
     FROM temp_{0}_{1}_{2}_merged_route AS trip
     CROSS JOIN testing.waypoint AS pnt
+    WHERE pnt.trip_id = '{3}'
 ), stats AS (
     SELECT sqrt(sum(pow(route_point_distance_km, 2)))::numeric(8, 3) AS rmse_km
     FROM merge
@@ -119,7 +120,7 @@ SELECT '{3}', {1}, {2}, *
 FROM temp_{0}_{1}_{2}_merged_route
 ;
 
-INSERT INTO testing.valhalla_final_route
-SELECT '{3}', {1}, {2}, *
-FROM temp_{0}_{1}_{2}_final_route
-;
+-- INSERT INTO testing.valhalla_final_route
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_final_route
+-- ;

@@ -16,13 +16,18 @@ ALTER TABLE carbar.mm_routes_202105 CLUSTER ON mm_routes_202105_geom_idx;
 
 
 
+select count(*)
+from testing.valhalla_segment
+;
+
 select *
-from testing.valhalla_final_route
-order by trip_id,
-         total_distance_km
+from testing.valhalla_merged_route
 ;
 
 
+select count(*)
+from testing.valhalla_final_route
+;
 
 
 
