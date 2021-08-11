@@ -219,14 +219,16 @@ def main():
 
 def get_trajectories(pg_cur):
     if use_timestamps:
-        sql = """SELECT {0} AS trip_id,
+        sql = """SELECT row_number() over () AS gid,
+                        {0} AS trip_id,
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}, 'time', {4}) ORDER BY {1}) AS input_points 
                  FROM {5}
                  GROUP BY {0}""" \
             .format(trajectory_id_field, point_index_field, lat_field, lon_field, time_field, input_table)
     else:
-        sql = """SELECT {0} AS trip_id,
+        sql = """SELECT row_number() over () AS gid,
+                        {0} AS trip_id,
                         count(*) AS point_count,
                         jsonb_agg(jsonb_build_object('lat', {2}, 'lon', {3}) ORDER BY {1}) AS input_points 
                  FROM {4}
@@ -247,6 +249,7 @@ def map_match_and_route_trajectory(job):
     pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # trajectory data
+    job_id = job["gid"]  # the id used for all temp tables (trip ID is too long
     trip_id = job["trip_id"]
     # point_count = job["point_count"]
     input_points = job["input_points"]
@@ -263,15 +266,15 @@ def map_match_and_route_trajectory(job):
 
             # STEP 1 - create temp tables
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "01_create_temp_tables.sql")
-            sql = open(sql_file, "r").read().format(trip_id, search_radius, gps_accuracy)
+            sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy)
             pg_cur.execute(sql)
 
             # STEP 2 - map matching
-            map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accuracy)
+            map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accuracy)
 
             # STEP 3 - get unmatched trajectory segments to route
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "04_split_routes.sql")
-            sql = open(sql_file, "r").read().format(trip_id, search_radius, gps_accuracy)
+            sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy)
             pg_cur.execute(sql)
 
             # STEP 4 - create job list for routing and process
@@ -283,16 +286,16 @@ def map_match_and_route_trajectory(job):
                             start_lon,
                             end_lat,
                             end_lon
-                     FROM temp_{}_{}_{}_route_this""".format(trip_id, search_radius, gps_accuracy)
+                     FROM temp_{}_{}_{}_route_this""".format(job_id, search_radius, gps_accuracy)
             pg_cur.execute(sql)
             route_job_list = pg_cur.fetchall()
 
             for route_job in route_job_list:
-                route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, route_job)
+                route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, route_job)
 
             # STEP 4 - stitch map matched and routed segments into continuous trajectories
             sql_file = os.path.join(runtime_directory, "postgres_scripts", "06_stitch_routes.sql")
-            sql = open(sql_file, "r").read().format(trip_id)
+            sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy, trip_id)
             pg_cur.execute(sql)
 
     # clean up
@@ -300,7 +303,7 @@ def map_match_and_route_trajectory(job):
     pg_pool.putconn(pg_conn)
 
 
-def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accuracy):
+def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accuracy):
     # add parameters and trajectory to request
     # TODO: this could be done better, instead of evaluating parameters dict every request
     request_dict = get_map_matching_parameters(search_radius, gps_accuracy)
@@ -314,7 +317,7 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
         r = requests.post(map_matching_url, data=json_payload)
     except Exception as e:
         # if complete failure - Valhalla has possibly crashed
-        return "Valhalla routing failure ON trajectory {} : {}".format(trip_id, e)
+        return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
@@ -347,14 +350,14 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                     # insert each point into valhalla_map_match_shape_point table
                     point_sql = """insert into temp_{}_{}_{}_map_match_shape_point
                                      values ({}, {})""" \
-                        .format(trip_id, search_radius, gps_accuracy, shape_index, geom_string)
+                        .format(job_id, search_radius, gps_accuracy, shape_index, geom_string)
                     pg_cur.execute(point_sql)
 
                     shape_index += 1
             else:
                 fail_sql = """insert into temp_{}_{}_{}_map_match_fail (error) 
                                   values ('{}')""" \
-                    .format(trip_id, search_radius, gps_accuracy, "Linestring only has one point")
+                    .format(job_id, search_radius, gps_accuracy, "Linestring only has one point")
                 pg_cur.execute(fail_sql)
 
         # output edge information
@@ -365,9 +368,6 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
             edge_index = 0
 
             for edge in edges:
-                # edge[trajectory_id_field] = trip_id
-                # edge["search_radius"] = search_radius
-                # edge["gps_accuracy"] = gps_accuracy
                 edge["osm_id"] = edge.pop("way_id")
                 edge["edge_index"] = edge_index
 
@@ -379,7 +379,7 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                 values = [edge[column] for column in columns]
 
                 insert_statement = "INSERT INTO temp_{}_{}_{}_map_match_edge (%s) VALUES %s" \
-                    .format(trip_id, search_radius, gps_accuracy)
+                    .format(job_id, search_radius, gps_accuracy)
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))).decode("utf-8")
                 edge_sql_list.append(sql)
 
@@ -401,19 +401,13 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                 # get only matched points for use in the next iteration
                 if point["type"] == "matched":
                     matched_point = dict()
-                    # matched_point["trip_id"] = trip_id
                     matched_point["point_index"] = point_index
                     matched_point["lat"] = point["lat"]
                     matched_point["lon"] = point["lon"]
-                    # matched_point["search_radius"] = search_radius
-                    # matched_point["gps_accuracy"] = gps_accuracy
                     matched_point["distance"] = point["distance_from_trace_point"]
                     matched_points.append(matched_point)
 
                 # alter point dict for input into Postgres
-                point[trajectory_id_field] = trip_id
-                point["search_radius"] = search_radius
-                point["gps_accuracy"] = gps_accuracy
                 point["point_type"] = point.pop("type")
                 point[point_index_field] = point_index
                 point["geom"] = "st_setsrid(st_makepoint({},{}),4326)" \
@@ -427,7 +421,7 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
                 values = [point[column] for column in columns]
 
                 insert_statement = "INSERT INTO temp_{}_{}_{}_map_match_point (%s) VALUES %s" \
-                    .format(trip_id, search_radius, gps_accuracy)
+                    .format(job_id, search_radius, gps_accuracy)
                 sql = pg_cur.mogrify(insert_statement, (AsIs(','.join(columns)), tuple(values))) \
                     .decode("utf-8")
                 sql = sql.replace("'st_setsrid(", "st_setsrid(").replace(",4326)'", ",4326)")
@@ -445,18 +439,18 @@ def map_match_trajectory(pg_cur, trip_id, input_points, search_radius, gps_accur
             .format(json_payload, map_matching_url)
 
         sql = "insert into temp_{}_{}_{}_map_match_fail values ({}, '{}', '{}', '{}')" \
-            .format(trip_id, search_radius, gps_accuracy, e["error_code"], e["error"],
+            .format(job_id, search_radius, gps_accuracy, e["error_code"], e["error"],
                     str(e["status_code"]) + ":" + e["status"], curl_command)
         pg_cur.execute(sql)
 
     # update table stats
-    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_edge".format(trip_id, search_radius, gps_accuracy))
-    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_shape_point".format(trip_id, search_radius, gps_accuracy))
-    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_point".format(trip_id, search_radius, gps_accuracy))
-    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(trip_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_edge".format(job_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_shape_point".format(job_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_point".format(job_id, search_radius, gps_accuracy))
+    pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(job_id, search_radius, gps_accuracy))
 
 
-def route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, job):
+def route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, job):
 
     # get inputs
     begin_edge_index = int(job["begin_edge_index"])
@@ -501,7 +495,7 @@ def route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, job):
         r = requests.post(routing_url, data=json_payload)
     except Exception as e:
         # if complete failure - Valhalla has possibly crashed
-        return "Valhalla routing failure ON trajectory {} : {}".format(trip_id, e)
+        return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
@@ -540,14 +534,14 @@ def route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, job):
 
                     shape_sql = """insert into temp_{}_{}_{}_route_shape
                                          values ({}, {}, {}, {}, {}, {}, '{}', {})""" \
-                        .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+                        .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, distance_m, point_count, segment_type, geom_string)
                     pg_cur.execute(shape_sql)
                 else:
-                    fail_sql = """insert into temp_{}_{}_{}_route_fail (trip_id, search_radius, gps_accuracy, 
+                    fail_sql = """insert into temp_{}_{}_{}_route_fail (job_id, search_radius, gps_accuracy, 
                                           begin_edge_index, end_edge_index, begin_shape_index, end_shape_index, error)
                                       values ({}, {}, {}, '{}')""" \
-                        .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+                        .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                                 begin_shape_index, end_shape_index, "Linestring only has one point")
                     pg_cur.execute(fail_sql)
 
@@ -561,7 +555,7 @@ def route_trajectory(pg_cur, trip_id, search_radius, gps_accuracy, job):
         # TODO: insert final fail rows into permenant table
 
         sql = "insert into temp_{}_{}_{}_route_fail values ({}, {}, {}, {}, '{}', '{}', '{}')" \
-            .format(trip_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+            .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
                     begin_shape_index, end_shape_index,
                     e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 

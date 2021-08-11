@@ -132,16 +132,16 @@ WHERE rank = 1
 
 -- insert results into permanent tables
 INSERT INTO testing.valhalla_segments
-SELECT {0}, {1}, {2}, *
+SELECT {3}, {1}, {2}, *
 FROM temp_{0}_{1}_{2}_segment
 ;
 
 INSERT INTO testing.valhalla_merged_route
-SELECT {0}, {1}, {2}, *
+SELECT {3}, {1}, {2}, *
 FROM temp_{0}_{1}_{2}_merged_route
 ;
 
 INSERT INTO testing.valhalla_final_route
-SELECT {0}, {1}, {2}, *
+SELECT {3}, {1}, {2}, *
 FROM temp_{0}_{1}_{2}_final_route
 ;
