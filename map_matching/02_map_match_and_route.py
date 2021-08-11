@@ -271,9 +271,8 @@ def map_match_and_route_trajectory(job):
             sql = open(sql_file, "r").read().format(job_id, search_radius, gps_accuracy, trip_id)
             pg_cur.execute(sql)
 
-            print("{} : {} : {} : trip stitched together : {}"
-                        .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
-            start_time = datetime.now()
+    print("{} : done : {}".format(trip_id, datetime.now() - start_time))
+    start_time = datetime.now()
 
     # clean up
     pg_cur.close()
