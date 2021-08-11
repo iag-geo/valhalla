@@ -31,6 +31,13 @@ from testing.valhalla_final_route
 
 
 
+
+
+
+
+
+
+
 select distinct trip_id from testing.waypoint;
 
 

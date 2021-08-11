@@ -1,4 +1,17 @@
 
+-- get best route for each trip
+INSERT INTO testing.valhalla_final_route
+WITH ranked AS (
+    SELECT *,
+           row_number() over (PARTITION BY trip_id ORDER BY total_distance_km) AS rank
+    FROM testing.valhalla_merged_route
+    WHERE rmse_km < 2.0
+)
+SELECT *
+FROM ranked
+WHERE rank = 1
+;
+
 -- add indexes to Valhalla output tables
 
 -- ALTER TABLE testing.valhalla_map_match_shape_non_pii
@@ -68,7 +81,6 @@ ALTER TABLE testing.valhalla_merged_route
 CREATE INDEX valhalla_merged_route_trip_id_idx ON testing.valhalla_merged_route USING btree (trip_id);
 CREATE INDEX valhalla_merged_route_geom_idx ON testing.valhalla_merged_route USING gist (geom);
 ALTER TABLE testing.valhalla_merged_route CLUSTER ON valhalla_merged_route_geom_idx;
-
 
 
 ALTER TABLE testing.valhalla_final_route
