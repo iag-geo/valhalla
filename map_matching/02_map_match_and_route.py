@@ -23,6 +23,9 @@ from psycopg2.extensions import AsIs
 # this directory
 runtime_directory = os.path.dirname(os.path.realpath(__file__))
 
+# how many Valhalla requests to run concurrently PER TRIP
+valhalla_max_processes = 4
+
 # six degrees of precision used in Valhalla encoded polyline (DO NOT EDIT)
 inverse_precision = 1.0 / 1e6
 
@@ -431,7 +434,7 @@ def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accura
 
 
 async def async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy):
-    conn = aiohttp.TCPConnector(limit=2)
+    conn = aiohttp.TCPConnector(limit=valhalla_max_processes)  # throttle the requests based on the size of the Valhalla server
 
     async with aiohttp.ClientSession(connector=conn) as session:
         job_list = []
@@ -490,8 +493,6 @@ async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy,
 
     #     r = requests.post(routing_url, data=json_payload)
     except Exception as e:
-        print(e)
-
         # if complete failure - Valhalla has possibly crashed
         return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
