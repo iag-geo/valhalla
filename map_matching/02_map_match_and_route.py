@@ -4,6 +4,8 @@
 
 # TODO: Avoid using latest Valhalla version until Edge ID issue is resolved -- check if fixed in 3.1.3 (?)
 
+import aiohttp
+import asyncio
 import json
 import logging
 import multiprocessing
@@ -260,8 +262,17 @@ def map_match_and_route_trajectory(job):
             #             .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
             # start_time = datetime.now()
 
-            for route_job in route_job_list:
-                route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, route_job)
+            # process routes asynchronously
+            async with aiohttp.ClientSession() as session:
+                job_list = []
+                # create job list to do asynchronously
+                async for route_job in route_job_list:
+                    job_list.append(route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, route_job))
+                # now execute them all at once
+                await asyncio.gather(*job_list)
+
+            # for route_job in route_job_list:
+            #     route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, route_job)
 
             # print("{} : {} : {} : routing done : {}"
             #             .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
@@ -426,7 +437,7 @@ def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accura
     pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(job_id, search_radius, gps_accuracy))
 
 
-def route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, job):
+async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, job):
 
     # get inputs
     begin_edge_index = int(job["begin_edge_index"])
@@ -467,11 +478,14 @@ def route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, job):
     json_payload = json.dumps(request_dict)
 
     # get a route
-    try:
-        r = requests.post(routing_url, data=json_payload)
-    except Exception as e:
-        # if complete failure - Valhalla has possibly crashed
-        return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
+    async with session.post(routing_url, data=json_payload) as response:
+        r = await response
+
+    # try:
+    #     r = requests.post(routing_url, data=json_payload)
+    # except Exception as e:
+    #     # if complete failure - Valhalla has possibly crashed
+    #     return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
