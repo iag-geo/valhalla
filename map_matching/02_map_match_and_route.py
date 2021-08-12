@@ -263,13 +263,11 @@ def map_match_and_route_trajectory(job):
             # start_time = datetime.now()
 
             # process routes asynchronously
-            async with aiohttp.ClientSession() as session:
-                job_list = []
-                # create job list to do asynchronously
-                async for route_job in route_job_list:
-                    job_list.append(route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, route_job))
-                # now execute them all at once
-                await asyncio.gather(*job_list)
+            loop = asyncio.get_event_loop()
+            try:
+                loop.run_until_complete(async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy))
+            finally:
+                loop.close()
 
             # for route_job in route_job_list:
             #     route_trajectory(pg_cur, job_id, search_radius, gps_accuracy, route_job)
@@ -437,6 +435,18 @@ def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accura
     pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(job_id, search_radius, gps_accuracy))
 
 
+async def async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy):
+    conn = aiohttp.TCPConnector(limit=4)
+
+    async with aiohttp.ClientSession(connector=conn) as session:
+        job_list = []
+        # create job list to do asynchronously
+        for route_job in route_job_list:
+            job_list.append(route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, route_job))
+        # now execute them all at once
+        await asyncio.gather(*job_list)
+
+
 async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, job):
 
     # get inputs
@@ -478,14 +488,13 @@ async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy,
     json_payload = json.dumps(request_dict)
 
     # get a route
-    async with session.post(routing_url, data=json_payload) as response:
-        r = await response
-
-    # try:
+    try:
+        async with session.post(routing_url, data=json_payload) as response:
+            r = await response
     #     r = requests.post(routing_url, data=json_payload)
-    # except Exception as e:
-    #     # if complete failure - Valhalla has possibly crashed
-    #     return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
+    except Exception as e:
+        # if complete failure - Valhalla has possibly crashed
+        return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
