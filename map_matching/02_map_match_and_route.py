@@ -264,7 +264,7 @@ def map_match_and_route_trajectory(job):
 
             # process routes asynchronously
             loop = asyncio.get_event_loop()
-            loop.run_until_complete(async_route_processing(route_job_list, job_id, search_radius, gps_accuracy))
+            loop.run_until_complete(async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy))
 
             # print("{} : {} : {} : routing done : {}"
             #             .format(trip_id, search_radius, gps_accuracy, datetime.now() - start_time))
@@ -430,19 +430,19 @@ def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accura
     pg_cur.execute("ANALYSE temp_{0}_{1}_{2}_map_match_fail".format(job_id, search_radius, gps_accuracy))
 
 
-async def async_route_processing(route_job_list, job_id, search_radius, gps_accuracy):
+async def async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy):
     conn = aiohttp.TCPConnector(limit=4)
 
     async with aiohttp.ClientSession(connector=conn) as session:
         job_list = []
         # create job list to do asynchronously
         for route_job in route_job_list:
-            job_list.append(route_trajectory(session, job_id, search_radius, gps_accuracy, route_job))
+            job_list.append(route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, route_job))
         # now execute them all at once
         await asyncio.gather(*job_list)
 
 
-async def route_trajectory(session, job_id, search_radius, gps_accuracy, job):
+async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy, job):
 
     # get inputs
     begin_edge_index = int(job["begin_edge_index"])
@@ -490,11 +490,6 @@ async def route_trajectory(session, job_id, search_radius, gps_accuracy, job):
     except Exception as e:
         # if complete failure - Valhalla has possibly crashed
         return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
-
-    # get postgres connection & dictionary cursor (returns rows as dicts)
-    pg_conn = pg_pool.getconn()
-    pg_conn.autocommit = True
-    pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
     if r.status_code == 200:
@@ -559,10 +554,6 @@ async def route_trajectory(session, job_id, search_radius, gps_accuracy, job):
                     e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
 
         pg_cur.execute(sql)
-
-    # close postgres connection
-    pg_cur.close()
-    pg_pool.putconn(pg_conn)
 
 
 # edit these to taste
