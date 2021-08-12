@@ -431,7 +431,7 @@ def map_match_trajectory(pg_cur, job_id, input_points, search_radius, gps_accura
 
 
 async def async_route_processing(route_job_list, pg_cur, job_id, search_radius, gps_accuracy):
-    conn = aiohttp.TCPConnector(limit=4)
+    conn = aiohttp.TCPConnector(limit=2)
 
     async with aiohttp.ClientSession(connector=conn) as session:
         job_list = []
@@ -485,75 +485,82 @@ async def route_trajectory(session, pg_cur, job_id, search_radius, gps_accuracy,
     # get a route
     try:
         async with session.post(routing_url, data=json_payload) as response:
-            r = await response
+            response_dict = await response.json()
+        # r = await session.post(routing_url, data=json_payload)
+
     #     r = requests.post(routing_url, data=json_payload)
     except Exception as e:
+        print(e)
+
         # if complete failure - Valhalla has possibly crashed
         return "Valhalla routing failure ON trajectory {} : {}".format(job_id, e)
 
     # add results to lists of shape, edge and point dicts for insertion into postgres
-    if r.status_code == 200:
-        response_dict = r.json()
+    # if r.status_code == 200:
+    # if r.status == 200:
+    #     response_dict = r.json()
 
-        # # DEBUGGING
-        # if begin_edge_index == 81 and search_radius == 60:
-        #     with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
-        #         json.dump(response_dict, response_file, indent=4, sort_keys=True)
+    # print(response_dict)
 
-        # output matched route geometry
-        legs = response_dict.get("trip")["legs"]
+    # # DEBUGGING
+    # if begin_edge_index == 81 and search_radius == 60:
+    #     with open(os.path.join(Path.home(), "tmp", "valhalla_response.json"), "w") as response_file:
+    #         json.dump(response_dict, response_file, indent=4, sort_keys=True)
 
-        if legs is not None and len(legs) > 0:
-            # for each route leg - construct postgis geometry string for insertion into postgres
-            for leg in legs:
-                distance_m = float(leg["summary"]["length"]) * 1000.0
-                shape_coords = decode(leg["shape"])  # decode Google encoded polygon
-                point_list = list()
+    # output matched route geometry
+    legs = response_dict.get("trip")["legs"]
 
-                if len(shape_coords) > 1:
-                    point_count = 0
+    if legs is not None and len(legs) > 0:
+        # for each route leg - construct postgis geometry string for insertion into postgres
+        for leg in legs:
+            distance_m = float(leg["summary"]["length"]) * 1000.0
+            shape_coords = decode(leg["shape"])  # decode Google encoded polygon
+            point_list = list()
 
-                    for coords in shape_coords:
-                        point_list.append("{} {}".format(coords[0], coords[1]))
-                        point_count += 1
+            if len(shape_coords) > 1:
+                point_count = 0
 
-                    geom_string = "ST_GeomFromText('LINESTRING("
-                    geom_string += ",".join(point_list)
-                    geom_string += ")', 4326)"
+                for coords in shape_coords:
+                    point_list.append("{} {}".format(coords[0], coords[1]))
+                    point_count += 1
 
-                    # if end_edge_index - begin_edge_index > 1:
-                    #     segment_type = "map match"
-                    # else:
-                    segment_type = "route"
+                geom_string = "ST_GeomFromText('LINESTRING("
+                geom_string += ",".join(point_list)
+                geom_string += ")', 4326)"
 
-                    shape_sql = """insert into temp_{}_{}_{}_route_shape
-                                         values ({}, {}, {}, {}, {}, {}, '{}', {})""" \
-                        .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
-                                begin_shape_index, end_shape_index, distance_m, point_count, segment_type, geom_string)
-                    pg_cur.execute(shape_sql)
-                else:
-                    fail_sql = """insert into temp_{}_{}_{}_route_fail (job_id, search_radius, gps_accuracy, 
-                                          begin_edge_index, end_edge_index, begin_shape_index, end_shape_index, error)
-                                      values ({}, {}, {}, '{}')""" \
-                        .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
-                                begin_shape_index, end_shape_index, "Linestring only has one point")
-                    pg_cur.execute(fail_sql)
+                # if end_edge_index - begin_edge_index > 1:
+                #     segment_type = "map match"
+                # else:
+                segment_type = "route"
 
-    else:
-        # get error
-        e = json.loads(r.content)
+                shape_sql = """insert into temp_{}_{}_{}_route_shape
+                                     values ({}, {}, {}, {}, {}, {}, '{}', {})""" \
+                    .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+                            begin_shape_index, end_shape_index, distance_m, point_count, segment_type, geom_string)
+                pg_cur.execute(shape_sql)
+            else:
+                fail_sql = """insert into temp_{}_{}_{}_route_fail (job_id, search_radius, gps_accuracy, 
+                                      begin_edge_index, end_edge_index, begin_shape_index, end_shape_index, error)
+                                  values ({}, {}, {}, '{}')""" \
+                    .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+                            begin_shape_index, end_shape_index, "Linestring only has one point")
+                pg_cur.execute(fail_sql)
 
-        curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
-            .format(json_payload, routing_url)
-
-        # TODO: insert final fail rows into permenant table
-
-        sql = "insert into temp_{}_{}_{}_route_fail values ({}, {}, {}, {}, '{}', '{}', '{}')" \
-            .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
-                    begin_shape_index, end_shape_index,
-                    e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
-
-        pg_cur.execute(sql)
+    # else:
+    #     # get error
+    #     e = json.loads(r.content)
+    #
+    #     curl_command = 'curl --header "Content-Type: application/json" --request POST --data \'\'{}\'\' {}' \
+    #         .format(json_payload, routing_url)
+    #
+    #     # TODO: insert final fail rows into permenant table
+    #
+    #     sql = "insert into temp_{}_{}_{}_route_fail values ({}, {}, {}, {}, '{}', '{}', '{}')" \
+    #         .format(job_id, search_radius, gps_accuracy, begin_edge_index, end_edge_index,
+    #                 begin_shape_index, end_shape_index,
+    #                 e["error_code"], e["error"], str(e["status_code"]) + ":" + e["status"], curl_command)
+    #
+    #     pg_cur.execute(sql)
 
 
 # edit these to taste
