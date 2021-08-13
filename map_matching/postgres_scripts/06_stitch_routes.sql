@@ -119,3 +119,40 @@ INSERT INTO testing.valhalla_merged_route
 SELECT '{3}', {1}, {2}, *
 FROM temp_{0}_{1}_{2}_merged_route
 ;
+
+-- insert fails
+INSERT INTO testing.valhalla_map_match_fail
+SELECT '{3}', {1}, {2}, *
+FROM temp_{0}_{1}_{2}_map_match_fail
+;
+
+INSERT INTO testing.valhalla_route_fail
+SELECT '{3}', {1}, {2}, *
+FROM temp_{0}_{1}_{2}_route_fail
+;
+
+-- -- DEBUGGING
+-- INSERT INTO testing.valhalla_map_match_point
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_map_match_point
+-- ;
+-- INSERT INTO testing.valhalla_map_match_shape
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_map_match_shape
+-- ;
+-- INSERT INTO testing.valhalla_map_match_shape_point
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_map_match_shape_point
+-- ;
+-- INSERT INTO testing.valhalla_map_match_edge
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_map_match_edge
+-- ;
+-- INSERT INTO testing.valhalla_route_this
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_route_this
+-- ;
+-- INSERT INTO testing.valhalla_route_shape
+-- SELECT '{3}', {1}, {2}, *
+-- FROM temp_{0}_{1}_{2}_route_shape
+-- ;

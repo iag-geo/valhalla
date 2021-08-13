@@ -31,7 +31,11 @@ from testing.valhalla_final_route
 
 
 
+select *
+from testing.valhalla_map_match_fail;
 
+select *
+from testing.valhalla_route_fail;
 
 
 
