@@ -9,7 +9,7 @@ with bdy as (
     from admin_bdys_202102.state_bdys
 -- where st_area(geom::geography) > 1000000.0  -- 1 sq km
 )
-select st_setsrid(st_buffer(st_union(geom)::geography, -4500.0, 1)::geometry, 4326) as geom
+select st_setsrid(st_buffer(st_union(geom)::geography, -5000.0, 1)::geometry, 4326) as geom
 from bdy
 ;
 
