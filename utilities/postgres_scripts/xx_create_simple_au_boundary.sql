@@ -5,7 +5,7 @@
 drop table if exists testing.simple_au_bdy;
 create table testing.simple_au_bdy as
 with bdy as (
-    select st_setsrid(st_buffer(geom::geography, 5000.0, 2)::geometry, 4326) as geom
+    select st_setsrid(st_buffer(geom::geography, 5000.0)::geometry, 4326) as geom
     from admin_bdys_202102.state_bdys
 -- where st_area(geom::geography) > 1000000.0  -- 1 sq km
 )
