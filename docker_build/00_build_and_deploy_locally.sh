@@ -1,36 +1,61 @@
 #!/usr/bin/env bash
 
+# ------------------------------------------------------------------------------------------------------------
+# RUNTIME ARGUMENTS
+# ------------------------------------------------------------------------------------------------------------
+#  -y : remove existing kubernetes Valhalla cluster
+#  -d : download the Valhalla image from Docker Hub instead of building locally
+# ------------------------------------------------------------------------------------------------------------
+
 SECONDS=0*
 
-# ------------------------------------------------------------------------------------------------------------
-# 1. build or download image
-# ------------------------------------------------------------------------------------------------------------
-cd $HOME
+# get directory this script is running from
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# 1. go to Dockerfile directory
-cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
+echo "------------------------------------------------------------------------------------------------------------"
+echo " 1. (optional) remove kubernetes Valhalla cluster"
+echo "------------------------------------------------------------------------------------------------------------"
 
-# 2. build the image
-# note: --squash is still an experimental docker feature (removes intermediate layers from final image)
-docker build --squash --tag minus34/valhalla:latest .
+# delete Valhalla pods, service and deployment (use command line argument) '-y'
+if [ "$1" = "-y" ]; then
+  kubectl get pods --no-headers=true | awk '/valhalla/{print $1}' | xargs kubectl delete pod
+  kubectl delete service -l app=valhalla
+  kubectl delete deployment -l app=valhalla
+else
+  echo "Skipping kubernetes cluster removal"
+fi
 
-### 3. run a container
-#docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
+if [ "$1" = "-d" ]; then
+  echo "------------------------------------------------------------------------------------------------------------"
+  echo " 2. download image"
+  echo "------------------------------------------------------------------------------------------------------------"
+  docker pull minus34/valhalla:latest
+else
+  echo "------------------------------------------------------------------------------------------------------------"
+  echo " 2. build new image"
+  echo "------------------------------------------------------------------------------------------------------------"
 
-# 4. push to Docker Hub
-docker push minus34/valhalla:latest
+  # 1. go to Dockerfile directory
+  cd ${SCRIPT_DIR}
 
-# 4. clean up Docker locally - warning: this could accidentally destroy other Docker images
-echo 'y' | docker system prune
+  # 2. build the image
+  # note: --squash is still an experimental docker feature (removes intermediate layers from final image)
+  docker build --squash --tag minus34/valhalla:latest .
 
-# ------------------------------------------------------
+  ### 3. run a container
+  #docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
 
-## OR DOWNLOAD
-#docker pull minus34/valhalla:latest
+  # 4. push to Docker Hub
+  docker push minus34/valhalla:latest
 
-# ------------------------------------------------------------------------------------------------------------
-# 2. deploy using Kubernetes
-# ------------------------------------------------------------------------------------------------------------
+  # 4. clean up Docker locally - warning: this could accidentally destroy other Docker images
+  echo 'y' | docker system prune
+
+fi
+
+echo "------------------------------------------------------------------------------------------------------------"
+echo " 3. deploy locally using Kubernetes"
+echo "------------------------------------------------------------------------------------------------------------"
 
 kubectl create deployment valhalla --image=minus34/valhalla:latest
 
@@ -57,4 +82,3 @@ curl http://localhost:8002/route \
 ##test URL with JSON formatting (install using "brew install jq")
 #curl http://localhost:8002/route \
 #--data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
-
