@@ -2,8 +2,6 @@
 # TODO: look at using valhalla IDs for road segments
 #   - WARNING: IDs are transient and will change between OSM data versions
 
-# TODO: Avoid using latest Valhalla version until Edge ID issue is resolved -- check if fixed in 3.1.3 (?)
-
 import aiohttp
 import asyncio
 import json
@@ -32,9 +30,9 @@ inverse_precision = 1.0 / 1e6
 # set of search radii to use in map matching
 # will iterate over these and select good matches as they increase; to get the best route possible
 # must be integers (these are used to name temp tables # TODO: get rid of this limitation
-search_radii = [None, 5, 10, 15, 30, 60]
-# search_radii = [7.5]
-iteration_count = pow(len(search_radii), 2)
+search_radii = [5, 10, 15]
+gps_accuracies = [None, 5, 10, 15]
+iteration_count = len(search_radii) * len(gps_accuracies)
 
 # number of CPUs to use in processing (defaults to local CPU count)
 cpu_count = multiprocessing.cpu_count()
@@ -56,7 +54,7 @@ routing_url = valhalla_base_url + "route"
 input_table = "testing.waypoint"
 
 # Does data have timestamps
-use_timestamps = False
+use_timestamps = True
 
 # latitude field
 lat_field = "latitude"
@@ -218,7 +216,7 @@ def map_match_and_route_trajectory(job):
     input_points = job["input_points"]
 
     # process for every combination of GPS accuracy and search radius to determine the best route
-    for gps_accuracy in search_radii:
+    for gps_accuracy in gps_accuracies:
         # fix None values for search radius and gps_accuracy (can't be NULL in a database primary key)
         if gps_accuracy is None:
             gps_accuracy = 9999

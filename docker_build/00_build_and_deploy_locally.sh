@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------------------------------------
 # RUNTIME ARGUMENTS
 # ------------------------------------------------------------------------------------------------------------
-#  -y : remove existing kubernetes Valhalla cluster
+#  -r : remove existing kubernetes Valhalla cluster
 #  -d : download the Valhalla image from Docker Hub instead of building locally
 # ------------------------------------------------------------------------------------------------------------
 
@@ -12,27 +12,24 @@ SECONDS=0*
 # get directory this script is running from
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-echo "------------------------------------------------------------------------------------------------------------"
-echo " 1. (optional) remove kubernetes Valhalla cluster"
-echo "------------------------------------------------------------------------------------------------------------"
-
 # delete Valhalla pods, service and deployment (use command line argument) '-y'
-if [ "$1" = "-y" ]; then
+if [ "$1" = "-r" ]; then
+  echo "------------------------------------------------------------------------------------------------------------"
+  echo " removing kubernetes Valhalla cluster"
+  echo "------------------------------------------------------------------------------------------------------------"
   kubectl get pods --no-headers=true | awk '/valhalla/{print $1}' | xargs kubectl delete pod
   kubectl delete service -l app=valhalla
   kubectl delete deployment -l app=valhalla
-else
-  echo "Skipping kubernetes cluster removal"
 fi
 
 if [ "$1" = "-d" ]; then
   echo "------------------------------------------------------------------------------------------------------------"
-  echo " 2. download image"
+  echo " 2. downloading image"
   echo "------------------------------------------------------------------------------------------------------------"
   docker pull minus34/valhalla:latest
 else
   echo "------------------------------------------------------------------------------------------------------------"
-  echo " 2. build new image"
+  echo " 2. building new image"
   echo "------------------------------------------------------------------------------------------------------------"
 
   # 1. go to Dockerfile directory

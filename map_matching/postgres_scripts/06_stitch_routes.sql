@@ -95,18 +95,18 @@ FROM stats
 ANALYSE temp_{0}_{1}_{2}_merged_route;
 
 
--- insert "best result" for each trip -- in reality, no guarantee this route is good (due to GPS issues)
-INSERT INTO temp_{0}_{1}_{2}_final_route
-WITH ranked AS (
-    SELECT *,
-           row_number() over (ORDER BY total_distance_km) AS rank
-    FROM temp_{0}_{1}_{2}_merged_route
-    WHERE rmse_km < 2.0
-)
-SELECT *
-FROM ranked
-WHERE rank = 1
-;
+-- -- insert "best result" for each trip -- in reality, no guarantee this route is good (due to GPS issues)
+-- INSERT INTO temp_{0}_{1}_{2}_final_route
+-- WITH ranked AS (
+--     SELECT *,
+--            row_number() over (ORDER BY total_distance_km) AS rank
+--     FROM temp_{0}_{1}_{2}_merged_route
+--     WHERE rmse_km < 2.0
+-- )
+-- SELECT *
+-- FROM ranked
+-- WHERE rank = 1
+-- ;
 
 
 -- insert results into permanent tables

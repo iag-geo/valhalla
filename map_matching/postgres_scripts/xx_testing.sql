@@ -27,6 +27,9 @@ from testing.valhalla_merged_route
 
 select count(*)
 from testing.valhalla_final_route
+-- where rmse_km >= 0.5  -- 164
+-- where rmse_km >= 0.7  -- 120
+where search_radius = gps_accuracy  -- 254
 ;
 
 
@@ -37,6 +40,19 @@ from testing.valhalla_map_match_fail;
 select *
 from testing.valhalla_route_fail;
 
+
+
+drop table if exists testing.valhalla_final_route_baseline;
+create table testing.valhalla_final_route_baseline as
+select *
+from testing.valhalla_final_route
+;
+
+drop table if exists testing.valhalla_segment_baseline;
+create table testing.valhalla_segment_baseline as
+select *
+from testing.valhalla_segment
+;
 
 
 
