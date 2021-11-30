@@ -37,7 +37,7 @@ else
 
   # 2. build the image
   # note: --squash is still an experimental docker feature (removes intermediate layers from final image)
-  docker build --squash --tag minus34/valhalla:latest .
+  docker build --squash --tag minus34/valhalla:latest --no-cache .
 
   ### 3. run a container
   #docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
