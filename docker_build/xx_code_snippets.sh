@@ -4,7 +4,6 @@
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
 # 2. build the image
-# note: --squash is still an experimental docker feature (removes intermediate layers from final image)
 docker build --tag minus34/valhalla:latest --no-cache .
 
 # 3. push to Docker Hub
