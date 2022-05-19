@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # 1. go to Dockerfile directory
-cd /Users/hugh.saalmans/git/iag_geo/valhalla/docker_build
+cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
 # 2. build the image
 # note: --squash is still an experimental docker feature (removes intermediate layers from final image)
@@ -12,7 +12,6 @@ docker push minus34/valhalla:latest
 
 # 4. clean up Docker locally - note: this could accidentally destroy your resources
 echo 'y' | docker system prune
-
 
 
 # run a container
