@@ -8,19 +8,15 @@ import json
 import logging
 import multiprocessing
 import os
-import psycopg  # need to install psycopg2 package
-import psycopg.extras
+import psycopg  # need to install psycopg package
+import psycopg.sql
 import requests
-# import sys
 
 from datetime import datetime
 from pathlib import Path
 
-
 from psycopg.rows import dict_row
-
-from psycopg import pool
-from psycopg.extensions import AsIs
+from psycopg_pool import ConnectionPool
 
 # this directory
 runtime_directory = os.path.dirname(os.path.realpath(__file__))
@@ -45,7 +41,7 @@ cpu_count = multiprocessing.cpu_count()
 pg_connect_string = "dbname=geo host=localhost port=5432 user=postgres password=password"
 
 # create postgres connection pool
-pg_pool = psycopg.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
+pg_pool = ConnectionPool(pg_connect_string, min_size=1, max_size=cpu_count)
 
 # TODO: make these runtime arguments
 
