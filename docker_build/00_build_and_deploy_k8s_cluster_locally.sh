@@ -4,7 +4,7 @@
 # RUNTIME ARGUMENTS
 # ------------------------------------------------------------------------------------------------------------
 #  -r : remove existing kubernetes Valhalla cluster
-#  -d : download the Valhalla image from Docker Hub instead of building locally
+#  -b : build the Valhalla image instead of downloading from Docker Hub
 # ------------------------------------------------------------------------------------------------------------
 
 SECONDS=0*
@@ -22,12 +22,7 @@ if [ "$1" = "-r" ]; then
   kubectl delete deployment -l app=valhalla
 fi
 
-if [ "$1" = "-d" ]; then
-  echo "------------------------------------------------------------------------------------------------------------"
-  echo " 2. downloading image"
-  echo "------------------------------------------------------------------------------------------------------------"
-  docker pull minus34/valhalla:latest
-else
+if [ "$1" = "-b" ]; then
   echo "------------------------------------------------------------------------------------------------------------"
   echo " 2. building new image"
   echo "------------------------------------------------------------------------------------------------------------"
@@ -47,7 +42,11 @@ else
 
   # 4. clean up Docker locally - warning: this could accidentally destroy other Docker images
   echo 'y' | docker system prune
-
+else
+  echo "------------------------------------------------------------------------------------------------------------"
+  echo " 2. downloading image"
+  echo "------------------------------------------------------------------------------------------------------------"
+  docker pull minus34/valhalla:latest
 fi
 
 echo "------------------------------------------------------------------------------------------------------------"

@@ -16,6 +16,11 @@ echo 'y' | docker system prune
 # run a container in the background
 docker run --detach --publish=8002:8002 minus34/valhalla:latest
 
+
 # test URL
 curl http://localhost:8002/route \
---data '{"locations":[{"lat":-33.85,"lon":151.13,"type":"break","city":"Leichhardt","state":"NSW"},{"lat":-33.85,"lon":151.16,"type":"break","city":"Sydney","state":"NSW"}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
+--data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}'
+
+##test URL with JSON formatting (install using "brew install jq")
+#curl http://localhost:8002/route \
+#--data '{"locations":[{"lat":-33.85,"lon":151.13},{"lat":-33.85,"lon":151.16}],"costing":"auto","directions_options":{"units":"kilometres"}}' | jq '.'
