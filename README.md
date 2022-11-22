@@ -9,10 +9,6 @@ Also contains a script for building & deploying locally on Mac.
 
 ## map_matching
 
-A [Python script](./map_matching) for recreating trajectories using a combination of map matching & routing (for areas of poosr GPS data).
+A [Python script](./map_matching) for recreating trajectories using a combination of map matching & routing (for areas of poor GPS data).
 
 Requires Postgres with PostGIS.
-
-## old_install_scripts
-
-NOT WORKING ON CURRENT VERSION OF VALHALLA - scripts for building and installing Valhalla locally on Mac.
