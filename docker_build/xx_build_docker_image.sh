@@ -13,8 +13,8 @@ docker push minus34/valhalla:latest
 echo 'y' | docker system prune
 
 
-# run a container
-docker run --name=valhalla --publish=8002:8002 minus34/valhalla:latest
+# run a container in the background
+docker run --detach --publish=8002:8002 minus34/valhalla:latest
 
 # test URL
 curl http://localhost:8002/route \
