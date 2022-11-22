@@ -8,15 +8,19 @@ import json
 import logging
 import multiprocessing
 import os
-import psycopg2  # need to install psycopg2 package
-import psycopg2.extras
+import psycopg  # need to install psycopg2 package
+import psycopg.extras
 import requests
 # import sys
 
 from datetime import datetime
 from pathlib import Path
-from psycopg2 import pool
-from psycopg2.extensions import AsIs
+
+
+from psycopg.rows import dict_row
+
+from psycopg import pool
+from psycopg.extensions import AsIs
 
 # this directory
 runtime_directory = os.path.dirname(os.path.realpath(__file__))
@@ -41,7 +45,7 @@ cpu_count = multiprocessing.cpu_count()
 pg_connect_string = "dbname=geo host=localhost port=5432 user=postgres password=password"
 
 # create postgres connection pool
-pg_pool = psycopg2.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
+pg_pool = psycopg.pool.SimpleConnectionPool(1, cpu_count, pg_connect_string)
 
 # TODO: make these runtime arguments
 
@@ -81,7 +85,7 @@ def main():
     # get postgres connection & dictionary cursor (returns rows as dicts)
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
-    pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    pg_cur = pg_conn.cursor(row_factory=dict_row)
 
     # --------------------------------------------------------------------------------------
     # WARNING: drops and recreates output tables
@@ -207,7 +211,7 @@ def map_match_and_route_trajectory(job):
     # get postgres connection from pool
     pg_conn = pg_pool.getconn()
     pg_conn.autocommit = True
-    pg_cur = pg_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    pg_cur = pg_conn.cursor(row_factory=dict_row)
 
     # trajectory data
     job_id = job["gid"]  # the id used for all temp tables (trip ID is too long
