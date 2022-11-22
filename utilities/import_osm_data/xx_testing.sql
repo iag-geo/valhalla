@@ -1,6 +1,6 @@
 
-
-
+select count(*) -- 2556697
+from osm.planet_osm_line;
 
 
 select osm_id,

@@ -6,7 +6,7 @@
 -- create table testing.simple_au_bdy as
 -- with bdy as (
 --     select st_setsrid(st_buffer(geom::geography, 5000.0, 4)::geometry(POLYGON), 4326) as geom
---     from admin_bdys_202102.state_bdys
+--     from admin_bdys_202208.state_bdys
 -- -- where st_area(geom::geography) > 1000000.0  -- 1 sq km
 -- )
 -- select st_setsrid(st_buffer(st_union(geom)::geography, -4500.0, 2)::geometry(MULTIPOLYGON), 4326) as geom
@@ -20,7 +20,7 @@ drop table if exists testing.simple_au_bdy_2;
 create table testing.simple_au_bdy_2 as
 with bdy as (
     select st_setsrid(st_buffer(geom::geography, 300.0, 1)::geometry, 4326) as geom
-    from admin_bdys_202102.abs_2016_gccsa
+    from admin_bdys_202208.abs_2016_gccsa
 -- where st_area(geom::geography) > 1000000.0  -- 1 sq km
 )
 select st_union(geom) as geom
