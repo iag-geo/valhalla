@@ -37,7 +37,7 @@ echo " Install OS updates and packages"
 echo "-------------------------------------------------------------------------"
 
 #sudo yum -y -q update
-sudo yum -y -q install tmux  # to enable logging out of the remote server while running a long job
+sudo yum -y -q install tmux jq # to enable logging out of the remote server while running a long job
 
 echo "-------------------------------------------------------------------------"
 echo " Install Kubernetes"
@@ -142,7 +142,7 @@ eval "${pf_cmd}" &>/dev/null & disown;
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl cluster-info
 echo "----------------------------------------------------------------------------------------------------------------"
-kubectl kubectl get pods
+kubectl get pods
 echo "----------------------------------------------------------------------------------------------------------------"
 kubectl describe services valhalla
 echo "----------------------------------------------------------------------------------------------------------------"

@@ -41,6 +41,13 @@ kubectl proxy
 
 #kubectl logs
 
+# look at pod log
+POD_NAME="valhalla-66699c4b79-wvmz7"
+kubectl describe pod ${POD_NAME} ./describe_pod.txt
+
+
+
+
 # create Bash session inside pod
 kubectl exec -ti $POD_NAME bash
 
