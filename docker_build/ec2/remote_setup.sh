@@ -132,12 +132,14 @@ kubectl expose deployment/valhalla --type="NodePort" --port=8002 --target-port=8
 # scale deployment
 kubectl scale deployments/valhalla --replicas=${REPLICAS}
 
-# wait for service to start
-sleep 60
+echo "----------------------------------------------------------------------------------------------------------------"
+echo "waiting for service to start (2 mins)..."
+sleep 120
+echo "----------------------------------------------------------------------------------------------------------------"
 
 # port forward from Kubernetes to all IPs (to enable external requests over port 8002)
 # run in background to allow script to complete
-pf_cmd="kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0"
+pf_cmd="kubectl port-forward service/valhalla 80:8002 --address=0.0.0.0"
 eval "${pf_cmd}" &>/dev/null & disown;
 
 echo "----------------------------------------------------------------------------------------------------------------"
