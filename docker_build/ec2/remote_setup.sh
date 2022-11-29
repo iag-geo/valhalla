@@ -49,7 +49,8 @@ sudo mv ./kubectl /usr/local/bin/kubectl
 
 echo "-------------------------------------------------------------------------"
 echo " kubectl client:"
-kubectl version --client
+#kubectl version --client
+kubectl version --short
 
 echo "-------------------------------------------------------------------------"
 echo " Install Docker"
