@@ -139,7 +139,7 @@ echo "--------------------------------------------------------------------------
 
 # port forward from Kubernetes to all IPs (to enable external requests over port 8002)
 # run in background to allow script to complete
-pf_cmd="kubectl port-forward service/valhalla 80:8002 --address=0.0.0.0"
+pf_cmd="kubectl port-forward service/valhalla 8002:8002 --address=0.0.0.0"
 eval "${pf_cmd}" &>/dev/null & disown;
 
 echo "----------------------------------------------------------------------------------------------------------------"

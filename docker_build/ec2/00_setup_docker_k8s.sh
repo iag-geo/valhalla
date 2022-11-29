@@ -97,6 +97,7 @@ echo "Docker + Kubernetes install took $((duration / 60)) mins"
 echo "----------------------------------------------------------------------------------------------------------------"
 echo "Instance ID : ${INSTANCE_ID}"
 echo "Public IP Address : ${INSTANCE_IP_ADDRESS}"
+echo "Base Valhalla URL : http://${INSTANCE_IP_ADDRESS}:8002/route"
 echo "----------------------------------------------------------------------------------------------------------------"
 
 # remote login
