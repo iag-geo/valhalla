@@ -37,9 +37,10 @@ INSTANCE_ID=$(aws ec2 run-instances \
 --count 1 \
 --instance-type ${INSTANCE_TYPE} \
 --key-name ${AWS_KEYPAIR} \
---security-group-ids ${AWS_SECURITY_GROUP} \
---subnet-id ${AWS_SUBNET} \
+--security-group-ids ${AWS_SECURITY_GROUP} | \
 python3 -c "import sys, json; print(json.load(sys.stdin)['Instances'][0]['InstanceId'])")
+
+#--subnet-id ${AWS_SUBNET} | \
 
 echo "Instance ${INSTANCE_ID} created"
 
