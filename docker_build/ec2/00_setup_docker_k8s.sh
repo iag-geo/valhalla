@@ -18,7 +18,9 @@ USER="ec2-user"
 #export AWS_PEM_FILE="<path to keypair .pem file>"
 #export AWS_SECURITY_GROUP="sg-..."
 #export AWS_SUBNET="subnet-..."
-. ${HOME}/.aws/minus34/minus34_ec2_vars.sh
+. ${HOME}/.aws/minus34/minus34/minus34_ec2_vars.sh
+
+/Users/hugh.saalmans/.aws/minus34_ec2_vars.sh
 
 # script to check instance status
 PYTHON_SCRIPT="import sys, json
