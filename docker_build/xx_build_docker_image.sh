@@ -3,8 +3,8 @@
 # 1. go to Dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
-# 2. build the image
-docker build  --no-cache --squash --tag minus34/valhalla:latest .
+# 2. build the image (force platform to avoid Apple Silicon only images)
+docker build --platform linux/amd64 --no-cache --squash --tag minus34/valhalla:latest .
 
 # 3. push to Docker Hub
 docker push minus34/valhalla:latest
