@@ -5,7 +5,7 @@ SELECT osm_id,
        name,
        oneway,
        highway AS type,
-       
+       tags->'maxspeed'::text as maxspeed,
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom
 FROM osm.planet_osm_line
@@ -41,14 +41,16 @@ WHERE highway IS NOT NULL
                      'none',
                      'services',
                      'traffic_island',
-                     'trail'
+                     'trail',
+                     'street_lamp'
 --                      'yes'
 
     )
 group by osm_id,
          name,
          oneway,
-         highway
+         highway,
+         maxspeed
 ;
 
 ANALYZE osm.osm_road;

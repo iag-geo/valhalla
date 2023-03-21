@@ -80,14 +80,68 @@ where amenity is not null;
 
 
 
-select osm_id,
-       tags->'maxspeed'::smallint as maxspeed,
-       tags
+select tags->'maxspeed' as maxspeed,
+       count(*)
 from osm.planet_osm_line
+WHERE highway IS NOT NULL
+  AND highway NOT IN (
+                      '',
+                      'footway',
+                      'steps',
+                      'cycleway',
+                      'proposed',
+                      'construction',
+                      'path',
+                      'track',
+                      'pedestrian',
+                      'bus_guideway',
+                      'bridleway',
+                      'corridor',
+                      'abandoned',
+                      'raceway',
+                      'escape',
+                      'tree_row',
+                      'crossing',
+                      'platform',
+                      'planned',
+                      'bus_stop',
+                      'rest_area',
+                      'disused',
+                      '*',
+                      'co',
+                      'driveway',
+                      'elevator',
+                      'no',
+                      'none',
+                      'services',
+                      'traffic_island',
+                      'trail'
+--                      'yes'
+
+    )
+group by maxspeed
+order by maxspeed
 ;
 
 
+select *
+from osm.planet_osm_line
+where osm_id = 181733096
+;
 
+
+-- distances of roads with/without speed limits
+select type,
+       count(*) as row_count,
+       sum(case when maxspeed is null then 1 else 0 end) as no_speed_row_count,
+       sum(case when maxspeed is not null then 1 else 0 end) as speed_row_count,
+       (sum(length) / 1000.0)::numeric(10,1) as length,
+       (sum(case when maxspeed is null then length else 0.0 end) / 1000.0)::numeric(10,1) as no_speed_length,
+       (sum(case when maxspeed is not null then length else 0.0 end) / 1000.0)::numeric(10,1) as speed_length
+from osm.osm_road
+group by type
+order by type
+;
 
 
 -- select osm_id,
