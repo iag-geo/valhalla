@@ -5,6 +5,7 @@ SELECT osm_id,
        name,
        oneway,
        highway AS type,
+       
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom
 FROM osm.planet_osm_line

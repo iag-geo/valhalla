@@ -1,4 +1,8 @@
 
+-- required for tags (including maxspeed) on roads
+CREATE EXTENSION hstore;
+
+
 select count(*) -- 2556697
 from osm.planet_osm_line;
 
@@ -71,6 +75,18 @@ where osm_id = 6698621181;
 select *
 from   osm.planet_osm_polygon
 where amenity is not null;
+
+
+
+
+
+select osm_id,
+       tags->'maxspeed'::smallint as maxspeed,
+       tags
+from osm.planet_osm_line
+;
+
+
 
 
 
