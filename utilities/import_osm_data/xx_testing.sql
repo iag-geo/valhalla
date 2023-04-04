@@ -130,14 +130,14 @@ where osm_id = 181733096
 ;
 
 
--- distances of roads with/without speed limits
+-- distances of roads with/without speed limits -- ~16
 select type,
-       count(*) as row_count,
-       sum(case when maxspeed is null then 1 else 0 end) as no_speed_row_count,
-       sum(case when maxspeed is not null then 1 else 0 end) as speed_row_count,
+--        count(*) as row_count,
+--        sum(case when maxspeed is null then 1 else 0 end) as no_speed_row_count,
+--        sum(case when maxspeed is not null then 1 else 0 end) as speed_row_count,
        (sum(length) / 1000.0)::numeric(10,1) as length,
-       (sum(case when maxspeed is null then length else 0.0 end) / 1000.0)::numeric(10,1) as no_speed_length,
-       (sum(case when maxspeed is not null then length else 0.0 end) / 1000.0)::numeric(10,1) as speed_length
+       (sum(case when maxspeed is null then length else 0.0 end) / 1000.0)::numeric(10,1) as no_speed_length
+--        (sum(case when maxspeed is not null then length else 0.0 end) / 1000.0)::numeric(10,1) as speed_length
 from osm.osm_road
 group by type
 order by type
