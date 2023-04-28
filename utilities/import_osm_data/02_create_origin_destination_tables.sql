@@ -319,7 +319,7 @@ ANALYSE osm.osm_railway_station;
 -- flag CBD stations so they can be ignored as driving destinations (low chance of that happening) -- 164
 update osm.osm_railway_station as rail
     set cbd_station = true
-from admin_bdys_202208.locality_bdys_analysis as loc
+from admin_bdys_202302.locality_bdys_analysis as loc
 where st_intersects(st_transform(rail.geom, 4283), loc.geom)
     and loc.postcode in ('2000', '3000', '4000', '5000', '6000', '7000', '8000');
 
@@ -430,9 +430,18 @@ ALTER TABLE osm.osm_retail_polygons CLUSTER ON osm_retail_polygons_geom_idx;
 -- create table to exclude CADLite property polygons where they represent a road or railway
 DROP TABLE IF EXISTS osm.osm_line_filter;
 CREATE TABLE osm.osm_line_filter AS
-select 'railway'::text as class, * from osm.osm_railway
+select 'railway'::text as class, osm_id, name, oneway, type, NULL::text as maxspeed, length, geom
+from osm.osm_railway
 union
-select 'road'::text as class, * from osm.osm_road
+select 'road'::text as class,
+       osm_id,
+       name,
+       oneway,
+       type,
+       maxspeed,
+       length,
+       geom
+from osm.osm_road
 ;
 
 ANALYZE osm.osm_line_filter;
