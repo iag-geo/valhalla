@@ -1,6 +1,17 @@
-valhalla:
+services:
+  valhalla:
     build:
-      context: ./valhalla
+#      platforms:
+#        - "linux/amd64"
+#        - "linux/arm64"
+      context: .
       dockerfile: valhalla.dockerfile
     ports:
       - 8002:8002
+    image: "valhalla:latest"
+#valhalla:
+#  build:
+#    context: ./valhalla
+#    dockerfile: valhalla.dockerfile
+#  ports:
+#    - 8002:8002

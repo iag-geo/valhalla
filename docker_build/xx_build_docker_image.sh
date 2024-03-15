@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# 1. go to Dockerfile directory
+# 1. go to valhalla.dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
 # 2. build the image

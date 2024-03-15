@@ -27,7 +27,7 @@ if [ "$1" = "-b" ]; then
   echo " 2. building new image"
   echo "------------------------------------------------------------------------------------------------------------"
 
-  # 1. go to Dockerfile directory
+  # 1. go to valhalla.dockerfile directory
   cd ${SCRIPT_DIR}
 
   # 2. build the image
