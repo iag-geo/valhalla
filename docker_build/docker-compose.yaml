@@ -1,0 +1,6 @@
+valhalla:
+    build:
+      context: ./valhalla
+      dockerfile: valhalla.dockerfile
+    ports:
+      - 8002:8002
