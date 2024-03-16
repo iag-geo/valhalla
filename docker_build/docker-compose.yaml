@@ -2,7 +2,7 @@ services:
   valhalla:
     build:
       platforms:
-        - "linux/arm64"
+        - "linux/amd64"
       context: .
       dockerfile: valhalla.dockerfile
     ports:
@@ -18,3 +18,4 @@ services:
 
 #      platforms:
 #        - "linux/amd64"
+#        - "linux/arm64"

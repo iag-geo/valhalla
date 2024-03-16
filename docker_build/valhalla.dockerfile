@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as builder
+FROM ubuntu:latest as builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEB_BUILD_MAINT_OPTIONS=optimize=+lto
@@ -24,7 +24,8 @@ RUN wget https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c934
 RUN wget https://github.com/stamen/terrain-classic/blob/master/fonts/unifont-Medium.ttf?raw=true --content-disposition -P /usr/share/fonts/
 
 # clone valhalla repo and submodules
-ARG VALHALLA_BRANCH=3.4.0
+#ARG VALHALLA_BRANCH=3.4.0
+ARG VALHALLA_BRANCH=master
 RUN git clone --branch $VALHALLA_BRANCH https://github.com/valhalla/valhalla.git
 
 WORKDIR /usr/local/src/valhalla/valhalla
@@ -67,7 +68,7 @@ RUN strip /usr/lib/python3/dist-packages/valhalla/python_valhalla*.so
 
 
 ####################################################################
-FROM ubuntu:22.04 as runner
+FROM ubuntu:latest as runner
 
 # copy the important stuff from the build stage to the runner image
 COPY --from=builder /usr/local /usr/local
