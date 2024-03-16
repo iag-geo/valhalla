@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 as builder
+FROM ubuntu:latest as builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG DEB_BUILD_MAINT_OPTIONS=optimize=+lto
@@ -68,7 +68,7 @@ RUN strip /usr/lib/python3/dist-packages/valhalla/python_valhalla*.so
 
 
 ####################################################################
-FROM ubuntu:22.04 as runner
+FROM ubuntu:latest as runner
 
 # copy the important stuff from the build stage to the runner image
 COPY --from=builder /usr/local /usr/local
