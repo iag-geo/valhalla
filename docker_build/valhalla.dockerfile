@@ -24,8 +24,8 @@ RUN wget https://github.com/googlefonts/noto-emoji/blob/9a5261d871451f9b5183c934
 RUN wget https://github.com/stamen/terrain-classic/blob/master/fonts/unifont-Medium.ttf?raw=true --content-disposition -P /usr/share/fonts/
 
 # clone valhalla repo and submodules
-#ARG VALHALLA_BRANCH=3.4.0
-ARG VALHALLA_BRANCH=master
+ARG VALHALLA_BRANCH=3.4.0
+#ARG VALHALLA_BRANCH=master
 RUN git clone --branch $VALHALLA_BRANCH https://github.com/valhalla/valhalla.git
 
 WORKDIR /usr/local/src/valhalla/valhalla
@@ -33,7 +33,6 @@ RUN ls -la \
     && git submodule sync \
     && git submodule update --init --recursive
 RUN rm -rf build && mkdir build
-
 
 RUN python3 -m pip install --upgrade "conan<2.0.0" requests
 
