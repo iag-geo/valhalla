@@ -25,8 +25,9 @@ RUN wget https://github.com/stamen/terrain-classic/blob/master/fonts/unifont-Med
 
 # clone valhalla repo and submodules
 #ARG VALHALLA_BRANCH=3.4.0
-ARG VALHALLA_BRANCH=master
-RUN git clone --branch $VALHALLA_BRANCH https://github.com/valhalla/valhalla.git
+#ARG VALHALLA_BRANCH=master
+RUN #git clone --branch $VALHALLA_BRANCH https://github.com/valhalla/valhalla.git
+RUN git clone --recurse-submodules https://github.com/valhalla/valhalla.git
 
 WORKDIR /usr/local/src/valhalla/valhalla
 RUN ls -la \
