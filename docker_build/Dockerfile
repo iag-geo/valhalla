@@ -1,6 +1,8 @@
 FROM ghcr.io/valhalla/valhalla:latest
 
-RUN apt update
+RUN apt update \
+    && apt -y upgrade \
+    && apt clean
 
 RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
 
