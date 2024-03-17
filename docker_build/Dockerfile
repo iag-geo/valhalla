@@ -1,5 +1,4 @@
 FROM ghcr.io/valhalla/valhalla:latest
-#FROM valhalla/valhalla:run-latest
 
 RUN apt update
 
