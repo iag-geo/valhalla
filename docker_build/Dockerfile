@@ -1,7 +1,10 @@
+FROM ghcr.io/valhalla/valhalla:latest
 
-FROM valhalla/valhalla:run-latest
-
-RUN mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
+RUN apt update \
+    && apt -y upgrade \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
 
 # copy timezone aliases files
 ADD alias_tz.csv /valhalla
