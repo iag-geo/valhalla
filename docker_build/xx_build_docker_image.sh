@@ -4,10 +4,12 @@
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
 # 2. build the image
-docker build --tag minus34/valhalla:latest .
+#docker build --platform linux/arm64 --tag minus34/valhalla:latest .
+docker build --platform linux/amd64 --tag minus34/valhalla:latest .
+
 
 ## 3. push to Docker Hub
-#docker push minus34/valhalla:latest
+docker push minus34/valhalla:latest
 
 # 4. clean up Docker locally - note: this could accidentally destroy your resources
 echo 'y' | docker system prune
