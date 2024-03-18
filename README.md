@@ -3,9 +3,9 @@ Scripts for setting up & running the Valhalla routing engine with OpenStreetMap 
 
 ## docker_build
 
-Deploy Valhalla with the latest OSM data for Australia using Kubernetes on an AWS EC2 instance; ready to roll! (can easily be changed to embed any region's OSM data)
+Builds a [Docker image](https://hub.docker.com/r/minus34/valhalla) with the latest OSM data for Australia (can easily be changed to embed any OSM data).
 
-Also contains a script for building & deploying locally on Mac.
+There are also some old scripts for deploying Valhlla with AU data using Kubernetes on an AWS EC2 instance or locally on Mac.
 
 ## map_matching
 
