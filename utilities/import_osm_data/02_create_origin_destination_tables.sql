@@ -319,7 +319,7 @@ ANALYSE osm.osm_railway_station;
 -- flag CBD stations so they can be ignored as driving destinations (low chance of that happening) -- 164
 update osm.osm_railway_station as rail
     set cbd_station = true
-from admin_bdys_202302.locality_bdys_analysis as loc
+from admin_bdys_202402.locality_bdys_analysis as loc
 where st_intersects(st_transform(rail.geom, 4283), loc.geom)
     and loc.postcode in ('2000', '3000', '4000', '5000', '6000', '7000', '8000');
 
