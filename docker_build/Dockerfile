@@ -3,7 +3,8 @@ FROM ghcr.io/valhalla/valhalla:latest
 RUN apt-get update \
     && apt-get -y upgrade \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+    && apt-get autoremove -y --purge \
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && mkdir -p /valhalla/valhalla_tiles /valhalla/conf /valhalla/logs
 
 # copy timezone aliases files
