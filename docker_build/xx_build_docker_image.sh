@@ -17,6 +17,7 @@ docker buildx build --platform linux/amd64,linux/arm64 --tag minus34/valhalla:la
 docker run --detach --publish=8002:8002 minus34/valhalla:latest
 
 # test URL
+sleep 30
 curl http://localhost:8002/route --data '{"locations":[{"lat":-33.8799,"lon":151.1437, "radius":5},{"lat":-33.8679,"lon":151.12123, "radius":5}],"costing":"auto","directions_options":{"units":"kilometres"}}'
 
 
