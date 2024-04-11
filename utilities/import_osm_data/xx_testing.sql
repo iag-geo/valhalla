@@ -41,7 +41,10 @@ where osm_id = 6698621181;
 
 
 
-
+select *
+from geo.osm.osm_road
+where tunnel = 'no'
+;
 
 
 

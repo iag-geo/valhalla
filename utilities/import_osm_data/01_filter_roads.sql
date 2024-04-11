@@ -5,6 +5,8 @@ SELECT osm_id,
        name,
        oneway,
        highway AS type,
+       tunnel,
+       bridge,
        tags->'maxspeed'::text as maxspeed,
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom
@@ -50,7 +52,9 @@ group by osm_id,
          name,
          oneway,
          highway,
-         maxspeed
+         maxspeed,
+         tunnel,
+         bridge
 ;
 
 ANALYZE osm.osm_road;
@@ -68,6 +72,8 @@ SELECT osm_id,
        name,
        oneway,
        railway AS type,
+       tunnel,
+       bridge,
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom
 FROM osm.planet_osm_line
@@ -76,7 +82,9 @@ WHERE railway IS NOT NULL
 group by osm_id,
          name,
          oneway,
-         railway
+         railway,
+         tunnel,
+         bridge
 ;
 
 ANALYZE osm.osm_railway;
