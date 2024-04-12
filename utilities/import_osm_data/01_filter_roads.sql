@@ -1,3 +1,13 @@
+select *
+from osm.planet_osm_line
+WHERE highway = 'primary'
+;
+
+source_ref:speed => http://osm.beldin.org/2008/10/dscf2982.jpg;http://osm.beldin.org/2008/10/dscf2986.jpg,
+source_ref:trail => http://osm.beldin.org/2008/10/dscf2990.jpg,
+maxspeed => 80,
+network => AU:SA
+
 
 DROP TABLE IF EXISTS osm.osm_road;
 CREATE TABLE osm.osm_road AS
@@ -5,6 +15,8 @@ SELECT osm_id,
        name,
        oneway,
        highway AS type,
+       ref,
+       tags->'network'::text as network,
        tunnel,
        bridge,
        tags->'maxspeed'::text as maxspeed,
@@ -54,7 +66,9 @@ group by osm_id,
          highway,
          maxspeed,
          tunnel,
-         bridge
+         bridge,
+         ref,
+         network
 ;
 
 ANALYZE osm.osm_road;
