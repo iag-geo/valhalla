@@ -1,15 +1,10 @@
-select *
-from osm.planet_osm_line
-WHERE highway = 'primary'
-;
-
-source_ref:speed => http://osm.beldin.org/2008/10/dscf2982.jpg;http://osm.beldin.org/2008/10/dscf2986.jpg,
-source_ref:trail => http://osm.beldin.org/2008/10/dscf2990.jpg,
-maxspeed => 80,
-network => AU:SA
+-- select *
+-- from osm.planet_osm_line
+-- WHERE highway = 'primary'
+-- ;
 
 
-DROP TABLE IF EXISTS osm.osm_road;
+DROP TABLE IF EXISTS osm.osm_road CASCADE;
 CREATE TABLE osm.osm_road AS
 SELECT osm_id,
        name,
@@ -80,6 +75,65 @@ CREATE INDEX osm_road_geom_idx ON osm.osm_road USING GIST (geom);
 ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 
 
+-- create view of main roads
+DROP VIEW IF EXISTS osm.vw_osm_main_road;
+CREATE VIEW osm.vw_osm_main_road AS
+select * from osm.osm_road
+where type in ('motorway',
+               'motorway_link',
+               'trunk',
+               'trunk_link',
+               'primary',
+               'secondary',
+               'primary_link',
+               'secondary_link')
+--                'tertiary',
+--                'tertiary_link')
+;
+
+
+
+
+
+
+-- -- fix bad speeds
+-- update osm.osm_road set maxspeed = '20' where maxspeed = '10 mph';
+-- update osm.osm_road set maxspeed = '60' where maxspeed = '35 mph';
+-- update osm.osm_road set maxspeed = '70' where maxspeed = '40 mph';
+-- update osm.osm_road set maxspeed = '100' where maxspeed = '60 mph';
+-- update osm.osm_road set maxspeed = '100' where maxspeed = '65 mph';
+-- update osm.osm_road set maxspeed = '110' where maxspeed = '70 mph';
+-- update osm.osm_road set maxspeed = '110' where maxspeed = '75 mph';
+-- update osm.osm_road set maxspeed = '60' where maxspeed = '35 mph';
+-- update osm.osm_road set maxspeed = null where maxspeed in ('AU:urban', 'unknown');
+-- update osm.osm_road set maxspeed = split_part(maxspeed, ';', 1) where maxspeed like '%;%';
+--
+--
+-- select maxspeed,
+--        count(*)
+-- from osm.osm_road
+-- group by maxspeed
+-- order by maxspeed
+-- ;
+--
+--
+-- select type,
+--        avg(maxspeed::integer)::integer as avg_max_speed
+-- from osm.osm_road
+-- group by type
+-- order by avg_max_speed desc
+-- ;
+
+
+
+
+
+
+
+
+
+
+
 DROP TABLE IF EXISTS osm.osm_railway;
 CREATE TABLE osm.osm_railway AS
 SELECT osm_id,
@@ -125,3 +179,6 @@ ALTER TABLE osm.osm_railway CLUSTER ON osm_railway_geom_idx;
 -- select *
 -- from osm.planet_osm_line
 -- where osm_id =358797491;
+
+
+
