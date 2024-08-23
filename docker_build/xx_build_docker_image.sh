@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+open -a Docker
+sleep 90
+
 # 1. go to Dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
