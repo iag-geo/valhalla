@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+#brew install podman
+
 # go to Dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
