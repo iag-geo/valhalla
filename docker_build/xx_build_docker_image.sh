@@ -1,28 +1,44 @@
 #!/usr/bin/env bash
 
-open -a Docker
-sleep 90
-
-# 1. go to Dockerfile directory
+# go to Dockerfile directory
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
-# 2. launch buildx
-docker buildx create --name valhalla_builder --use
-docker buildx inspect --bootstrap
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "initialise podman - warning: this could accidentally destroy other images"
+echo "---------------------------------------------------------------------------------------------------------------------"
 
-# 3. build and push images
-docker buildx build --platform linux/amd64,linux/arm64 --tag minus34/valhalla:latest . --push
+echo 'y' | podman system prune --all
+podman machine stop
+echo 'y' | podman machine rm
+podman machine init --cpus 10 --memory 16384 --disk-size=64  # memory in Mb, disk size in Gb
+podman machine start
+podman login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} docker.io/minus34
+
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "build valhalla images"
+echo "---------------------------------------------------------------------------------------------------------------------"
+
+# build images
+podman manifest create localhost/valhalla
+podman build --platform linux/amd64,linux/arm64/v8 --manifest localhost/valhalla .
+
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "push images to Docker Hub"
+echo "---------------------------------------------------------------------------------------------------------------------"
+
+podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:latest
+podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:$(date +%Y%m%d)
+
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "run container and create test route"
+echo "---------------------------------------------------------------------------------------------------------------------"
 
 # run a container in the background
-docker run --detach --publish=8002:8002 minus34/valhalla:latest
+podman run --detach --publish=8002:8002 minus34/valhalla:latest
 
-# test URL
+# test image with a simple route
 sleep 30
 curl http://localhost:8002/route --data '{"locations":[{"lat":-33.8799,"lon":151.1437, "radius":5},{"lat":-33.8679,"lon":151.12123, "radius":5}],"costing":"auto","directions_options":{"units":"kilometres"}}'
-
-
-# 4. clean up Docker locally - note: this could accidentally destroy your resources
-echo 'y' | docker system prune
 
 ##test URL with JSON formatting (install using "brew install jq")
 #curl http://localhost:8002/route \
@@ -30,3 +46,12 @@ echo 'y' | docker system prune
 
 #curl http://localhost:8002/route \
 #--data '{"locations":[{"lat":-33.8799,"lon":151.1437},{"lat":-33.8679,"lon":151.12123}],"costing":"auto","directions_options":{"units":"kilometres"}}'
+
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "clean up podman locally - warning: this could accidentally destroy other images"
+echo "---------------------------------------------------------------------------------------------------------------------"
+
+# clean up
+echo 'y' | podman system prune --all
+podman machine stop
+echo 'y' | podman machine rm
