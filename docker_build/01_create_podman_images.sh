@@ -32,13 +32,17 @@ podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:late
 podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:$(date +%Y%m%d)
 
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "run container and create test route"
+echo "run container"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 # run a container in the background
 podman run --detach --publish=8002:8002 minus34/valhalla:latest
 
 # test image with a simple route
+echo "---------------------------------------------------------------------------------------------------------------------"
+echo "create simple test route"
+echo "---------------------------------------------------------------------------------------------------------------------"
+
 sleep 30
 curl http://localhost:8002/route --data '{"locations":[{"lat":-33.8799,"lon":151.1437, "radius":5},{"lat":-33.8679,"lon":151.12123, "radius":5}],"costing":"auto","directions_options":{"units":"kilometres"}}'
 
@@ -49,6 +53,7 @@ curl http://localhost:8002/route --data '{"locations":[{"lat":-33.8799,"lon":151
 #curl http://localhost:8002/route \
 #--data '{"locations":[{"lat":-33.8799,"lon":151.1437},{"lat":-33.8679,"lon":151.12123}],"costing":"auto","directions_options":{"units":"kilometres"}}'
 
+echo ""
 echo "---------------------------------------------------------------------------------------------------------------------"
 echo "clean up podman locally - warning: this could accidentally destroy other images"
 echo "---------------------------------------------------------------------------------------------------------------------"
