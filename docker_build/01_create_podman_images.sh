@@ -6,7 +6,7 @@
 cd /Users/$(whoami)/git/iag_geo/valhalla/docker_build
 
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "initialise podman - warning: this could accidentally destroy other images"
+echo "initialise podman - warning: this could accidentally destroy other images : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 echo 'y' | podman system prune --all
@@ -17,7 +17,7 @@ podman machine start
 podman login -u ${DOCKER_USER} -p ${DOCKER_PASSWORD} docker.io/minus34
 
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "build valhalla images"
+echo "build valhalla images : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 # build images
@@ -25,14 +25,14 @@ podman manifest create localhost/valhalla
 podman build --platform linux/amd64,linux/arm64/v8 --manifest localhost/valhalla .
 
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "push images to Docker Hub"
+echo "push images to Docker Hub : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:latest
 podman manifest push localhost/valhalla docker://docker.io/minus34/valhalla:$(date +%Y%m%d)
 
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "run container"
+echo "run container : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 # run a container in the background
@@ -40,7 +40,7 @@ podman run --detach --publish=8002:8002 minus34/valhalla:latest
 
 # test image with a simple route
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "create simple test route"
+echo "create simple test route : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 sleep 30
@@ -55,7 +55,7 @@ curl http://localhost:8002/route --data '{"locations":[{"lat":-33.8799,"lon":151
 
 echo ""
 echo "---------------------------------------------------------------------------------------------------------------------"
-echo "clean up podman locally - warning: this could accidentally destroy other images"
+echo "clean up podman locally - warning: this could accidentally destroy other images : $(date)"
 echo "---------------------------------------------------------------------------------------------------------------------"
 
 # clean up
