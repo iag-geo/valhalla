@@ -16,7 +16,8 @@ SELECT osm_id,
        bridge,
        tags->'maxspeed'::text as maxspeed,
        sum(st_length(way::geography)) as length,
-       st_union(st_transform(way, 4326)) AS geom
+       st_union(st_transform(way, 4326)) AS geom,
+       st_union(st_transform(way, 4326))::geography AS geog
 FROM osm.planet_osm_line
 WHERE highway IS NOT NULL
   AND highway NOT IN (
@@ -72,6 +73,7 @@ ALTER TABLE osm.osm_road ADD PRIMARY KEY (osm_id);
 CREATE INDEX osm_road_type_idx ON osm.osm_road USING btree (type);
 
 CREATE INDEX osm_road_geom_idx ON osm.osm_road USING GIST (geom);
+CREATE INDEX osm_road_geog_idx ON osm.osm_road USING GIST (geog);
 ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 
 
@@ -101,7 +103,8 @@ SELECT osm_id,
        tunnel,
        bridge,
        sum(st_length(way::geography)) as length,
-       st_union(st_transform(way, 4326)) AS geom
+       st_union(st_transform(way, 4326)) AS geom,
+       st_union(st_transform(way, 4326))::geography AS geog
 FROM osm.planet_osm_line
 WHERE railway IS NOT NULL
     AND osm_id NOT IN (SELECT osm_id FROM osm.osm_road)
@@ -119,6 +122,7 @@ ALTER TABLE osm.osm_railway ADD PRIMARY KEY (osm_id);
 CREATE INDEX osm_railway_type_idx ON osm.osm_railway USING btree (type);
 
 CREATE INDEX osm_railway_geom_idx ON osm.osm_railway USING GIST (geom);
+CREATE INDEX osm_railway_geog_idx ON osm.osm_railway USING GIST (geog);
 ALTER TABLE osm.osm_railway CLUSTER ON osm_railway_geom_idx;
 
 --
