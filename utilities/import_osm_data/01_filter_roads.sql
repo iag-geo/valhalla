@@ -96,11 +96,34 @@ where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records w
 
 
 -- find streets without a speed limit that have one speed limit for all streets touching them (e.g. roundabouts)
-with
+with good as (
+    select osm_id,
+           inferred_maxspeed,
+           type,
+           geom
+    from osm.osm_road
+    where inferred_maxspeed is not null
+), bad as (
+    select osm_id,
+           inferred_maxspeed,
+           type,
+           geom
+    from osm.osm_road
+    where inferred_maxspeed is null
+), merge as (
+    select bad.osm_id,
+           bad.type,
+           good.inferred_maxspeed,
+           count(distinct good.osm_id) as matches
+    from bad
+    inner join good on st_touches(bad.geom, good.geom)
+    group by bad.osm_id,
+             bad.type,
+             good.inferred_maxspeed
+)
 select *
-from osm.osm_road
-where inferred_maxspeed is null
-
+from merge
+;
 
 
 
