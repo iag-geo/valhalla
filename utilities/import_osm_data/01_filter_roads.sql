@@ -90,7 +90,7 @@ select osm_id,
        bridge,
        maxspeed,
        length,
-       st_asgeojson(geog) as geom
+       st_asgeojson(geog) as geog
 from osm.osm_road
 ;
 
