@@ -95,7 +95,7 @@ where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records w
 -- ;
 
 
--- get speeds for streets without a speed limit that have one speed limit for all streets touching them (e.g. roundabouts) of the same road classification (type)
+-- infer speed limit for streets that have one speed limit for all streets touching them (e.g. roundabouts) of the same road classification (type)
 with good as (
     select osm_id,
            inferred_maxspeed,
@@ -110,6 +110,7 @@ with good as (
            geom
     from osm.osm_road
     where inferred_maxspeed is null
+    limit 1000
 ), merge as (
     select bad.osm_id,
            bad.type,
@@ -132,7 +133,6 @@ with good as (
     select distinct merge.*
     from crunch
     inner join merge on crunch.osm_id = merge.osm_id
-    limit 1000
 )
 update osm.osm_road as osm
     set inferred_maxspeed = merge2.inferred_maxspeed
