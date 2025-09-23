@@ -16,6 +16,7 @@ SELECT osm_id,
        bridge,
        junction,
        tags->'maxspeed'::text as maxspeed,
+       null::smallint as inferred_maxspeed,
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom,
        st_union(st_transform(way, 4326))::geography AS geog
@@ -78,6 +79,37 @@ CREATE INDEX osm_road_geom_idx ON osm.osm_road USING GIST (geom);
 CREATE INDEX osm_road_geog_idx ON osm.osm_road USING GIST (geog);
 ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 
+--------------------------------------------------------------------------------------------------------
+-- add inferred speed limits
+--------------------------------------------------------------------------------------------------------
+update osm.osm_road
+    set inferred_maxspeed = maxspeed::smallint
+where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records with characters in the speed (e.g. '10 mph')
+;
+
+-- -- 7 records - ignore
+-- select *
+-- from osm.osm_road
+-- where inferred_maxspeed is null
+--     and maxspeed is not null
+-- ;
+
+
+-- find streets without a speed limit that have one speed limit for all streets touching them (e.g. roundabouts)
+with
+select *
+from osm.osm_road
+where inferred_maxspeed is null
+
+
+
+
+
+
+
+
+
+
 
 -- create GeoJSON view of roads
 DROP VIEW IF EXISTS osm.vw_osm_road_geojson;
@@ -92,6 +124,7 @@ select osm_id,
        bridge,
        junction,
        maxspeed,
+       inferred_maxspeed,
        length,
        st_asgeojson(geog) as geog
 from osm.osm_road
