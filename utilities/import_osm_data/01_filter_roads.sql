@@ -116,18 +116,27 @@ with good as (
            good.inferred_maxspeed,
            count(distinct good.osm_id) as matches
     from bad
-    inner join good on st_touches(bad.geom, good.geom)
+    inner join good on bad.type = good.type
+        and st_touches(bad.geom, good.geom)
     group by bad.osm_id,
              bad.type,
              good.inferred_maxspeed
+), crunch as (
+    select osm_id,
+           type
+    from merge
+    group by osm_id,
+             type
+    having count(*) = 1
 )
-select *
-from merge
+select distinct merge.*
+from crunch
+inner join merge on crunch.osm_id = merge.osm_id
 ;
 
 
 
-
+-- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
 
 
 
