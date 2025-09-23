@@ -77,6 +77,25 @@ CREATE INDEX osm_road_geog_idx ON osm.osm_road USING GIST (geog);
 ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 
 
+-- create GeoJSON view of roads
+DROP VIEW IF EXISTS osm.vw_osm_road_geojson;
+CREATE VIEW osm.vw_osm_road_geojson AS
+select osm_id,
+       name,
+       oneway,
+       type,
+       ref,
+       network,
+       tunnel,
+       bridge,
+       maxspeed,
+       length,
+       st_asgeojson(geog) as geom
+from osm.osm_road
+;
+
+
+
 -- create view of main roads
 DROP VIEW IF EXISTS osm.vw_osm_main_road;
 CREATE VIEW osm.vw_osm_main_road AS
