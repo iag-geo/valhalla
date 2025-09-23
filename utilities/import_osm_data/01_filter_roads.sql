@@ -98,6 +98,7 @@ where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records w
 
 
 -- infer speed limit for streets that have one speed limit for all streets touching them (e.g. roundabouts) of the same road classification (type)
+-- 114,321 rows affected in 57 m 28 s 160 ms
 with good as (
     select osm_id,
            inferred_maxspeed,
@@ -143,13 +144,14 @@ from merge2
 where osm.osm_id = merge2.osm_id
 ;
 
-
+-- add 50 km/h to residential streets with no speed limit -- 357,085 rows
 update osm.osm_road
     set inferred_maxspeed = 50,
         inference_type = 'residential'
 where inferred_maxspeed is null
     and type = 'residential'
 ;
+
 
 
 -- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
