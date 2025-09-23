@@ -95,7 +95,7 @@ where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records w
 -- ;
 
 
--- find streets without a speed limit that have one speed limit for all streets touching them (e.g. roundabouts)
+-- get speeds for streets without a speed limit that have one speed limit for all streets touching them (e.g. roundabouts) of the same road classification (type)
 with good as (
     select osm_id,
            inferred_maxspeed,
@@ -128,10 +128,16 @@ with good as (
     group by osm_id,
              type
     having count(*) = 1
+), merge2 as (
+    select distinct merge.*
+    from crunch
+    inner join merge on crunch.osm_id = merge.osm_id
+    limit 1000
 )
-select distinct merge.*
-from crunch
-inner join merge on crunch.osm_id = merge.osm_id
+update osm.osm_road as osm
+    set inferred_maxspeed = merge2.inferred_maxspeed
+from merge2
+where osm.osm_id = merge2.osm_id
 ;
 
 
