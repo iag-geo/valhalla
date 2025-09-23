@@ -17,6 +17,7 @@ SELECT osm_id,
        junction,
        tags->'maxspeed'::text as maxspeed,
        null::smallint as inferred_maxspeed,
+       null::text as inference_type,
        sum(st_length(way::geography)) as length,
        st_union(st_transform(way, 4326)) AS geom,
        st_union(st_transform(way, 4326))::geography AS geog
@@ -83,7 +84,8 @@ ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 -- add inferred speed limits
 --------------------------------------------------------------------------------------------------------
 update osm.osm_road
-    set inferred_maxspeed = maxspeed::smallint
+    set inferred_maxspeed = maxspeed::smallint,
+        inference_type = 'maxspeed'
 where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records with characters in the speed (e.g. '10 mph')
 ;
 
@@ -135,11 +137,19 @@ with good as (
     inner join merge on crunch.osm_id = merge.osm_id
 )
 update osm.osm_road as osm
-    set inferred_maxspeed = merge2.inferred_maxspeed
+    set inferred_maxspeed = merge2.inferred_maxspeed,
+        inference_type = 'spatial'
 from merge2
 where osm.osm_id = merge2.osm_id
 ;
 
+
+update osm.osm_road
+    set inferred_maxspeed = 50,
+        inference_type = 'residential'
+where inferred_maxspeed is null
+    and type = 'residential'
+;
 
 
 -- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
