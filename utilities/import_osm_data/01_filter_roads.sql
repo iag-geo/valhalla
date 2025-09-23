@@ -112,7 +112,7 @@ with good as (
            geom
     from osm.osm_road
     where inferred_maxspeed is null
-    limit 1000
+--     limit 1000
 ), merge as (
     select bad.osm_id,
            bad.type,
@@ -153,9 +153,6 @@ where inferred_maxspeed is null
 
 
 -- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
-
-
-
 
 
 
