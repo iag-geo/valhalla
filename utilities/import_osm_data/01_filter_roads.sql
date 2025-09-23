@@ -153,6 +153,14 @@ where inferred_maxspeed is null
 ;
 
 
+-- 872708
+select inference_type,
+       type,
+       count(*)
+from osm.osm_road
+group by inference_type, type
+order by inference_type, type
+;
 
 -- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
 
