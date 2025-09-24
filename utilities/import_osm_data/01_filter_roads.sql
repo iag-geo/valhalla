@@ -106,6 +106,7 @@ with good as (
            geom
     from osm.osm_road
     where inferred_maxspeed is not null
+      and type not in ('service', 'unclassified')
 ), bad as (
     select osm_id,
            inferred_maxspeed,
@@ -113,6 +114,7 @@ with good as (
            geom
     from osm.osm_road
     where inferred_maxspeed is null
+      and type not in ('service', 'unclassified')
 --     limit 1000
 ), merge as (
     select bad.osm_id,
@@ -139,10 +141,61 @@ with good as (
 )
 update osm.osm_road as osm
     set inferred_maxspeed = merge2.inferred_maxspeed,
-        inference_type = 'spatial'
+        inference_type = 'spatial pass 1'
 from merge2
 where osm.osm_id = merge2.osm_id
 ;
+
+
+-- 2nd pass - to get roads that are connected to ones that got picked up in the 1st pass
+with good as (
+    select osm_id,
+           inferred_maxspeed,
+           type,
+           geom
+    from osm.osm_road
+    where inferred_maxspeed is not null
+      and type not in ('service', 'unclassified')
+), bad as (
+    select osm_id,
+           inferred_maxspeed,
+           type,
+           geom
+    from osm.osm_road
+    where inferred_maxspeed is null
+      and type not in ('service', 'unclassified')
+--     limit 1000
+), merge as (
+    select bad.osm_id,
+           bad.type,
+           good.inferred_maxspeed,
+           count(distinct good.osm_id) as matches
+    from bad
+             inner join good on bad.type = good.type
+        and st_touches(bad.geom, good.geom)
+    group by bad.osm_id,
+             bad.type,
+             good.inferred_maxspeed
+), crunch as (
+    select osm_id,
+           type
+    from merge
+    group by osm_id,
+             type
+    having count(*) = 1
+), merge2 as (
+    select distinct merge.*
+    from crunch
+             inner join merge on crunch.osm_id = merge.osm_id
+)
+update osm.osm_road as osm
+set inferred_maxspeed = merge2.inferred_maxspeed,
+    inference_type = 'spatial pass 2'
+from merge2
+where osm.osm_id = merge2.osm_id
+;
+
+
 
 -- add 50 km/h to residential streets with no speed limit -- 357,085 rows
 update osm.osm_road
@@ -161,6 +214,32 @@ from osm.osm_road
 group by inference_type, type
 order by inference_type, type
 ;
+
+-- 113940
+select count(*)
+from osm.osm_road
+where inferred_maxspeed is null
+  and type not in ('service', 'unclassified', 'busway', 'living_street')
+;
+
+select type,
+       count(*)
+from osm.osm_road
+where inferred_maxspeed is null
+group by type
+order by type
+;
+
+select type,
+       junction,
+       count(*)
+from osm.osm_road
+where inferred_maxspeed is null
+group by type, junction
+order by type, junction
+;
+
+
 
 -- and type not in ('service', 'unclassified', 'residential', 'busway', 'living_street')
 
