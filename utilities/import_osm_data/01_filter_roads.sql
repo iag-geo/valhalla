@@ -215,7 +215,7 @@ group by inference_type, type
 order by inference_type, type
 ;
 
--- 113940
+-- 98812
 select count(*)
 from osm.osm_road
 where inferred_maxspeed is null
