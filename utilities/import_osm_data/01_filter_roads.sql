@@ -196,8 +196,8 @@ where osm.osm_id = merge2.osm_id
 ;
 
 
--- TODO: add speed limits to _links (not including motorway_links)
--- 3rd pass - to get roads that are connected to ones that got picked up in the 1st pass (fixes roundabouts amongst others)
+-- 3rd pass - link roads (not including motorway_links)
+-- 13,929 rows affected in 10 s 37 ms
 with good as (
     select osm_id,
            inferred_maxspeed,
