@@ -134,3 +134,4 @@ dmypy.json
 .idea/valhalla.iml
 .idea/vcs.xml
 .idea/inspectionProfiles/profiles_settings.xml
+.DS_Store
