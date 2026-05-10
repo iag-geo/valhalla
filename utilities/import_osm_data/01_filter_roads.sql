@@ -84,7 +84,7 @@ ALTER TABLE osm.osm_road CLUSTER ON osm_road_geom_idx;
 -- add inferred speed limits
 --------------------------------------------------------------------------------------------------------
 update osm.osm_road
-    set inferred_maxspeed = maxspeed::smallint,
+    set inferred_maxspeed = maxspeed::integer,
         inference_type = 'maxspeed'
 where REGEXP_REPLACE(maxspeed, '[^0-9]', '', 'g') = maxspeed -- ignore records with characters in the speed (e.g. '10 mph')
 ;
