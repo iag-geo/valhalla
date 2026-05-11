@@ -147,7 +147,7 @@ where osm.osm_id = merge2.osm_id
 ;
 
 
--- 2nd pass - to get roads that are connected to ones that got picked up in the 1st pass (fixes roundabouts amongst others)
+-- 2nd pass - to get roads that are connected to ones that got picked up in the 1st pass (fixes roundabouts amongst others) -- 1h 15m
 with good as (
     select osm_id,
            inferred_maxspeed,
