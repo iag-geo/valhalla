@@ -24,3 +24,9 @@ osm2pgsql -c --latlong --hstore --output-pgsql-schema osm --number-processes 12 
 rm ${FILE_NAME}
 
 psql -d geo -p 5432 -U postgres -f ${SCRIPT_DIR}/01_filter_roads.sql
+
+
+# new method example using flex style
+
+#https://github.com/openstreetmap-carto/openstreetmap-carto/blob/master/openstreetmap-carto-flex.lua
+#osm2pgsql -O flex -S openstreetmap-carto-flex.lua -d gis ~/path/to/data.osm.pbf
