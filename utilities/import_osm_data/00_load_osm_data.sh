@@ -12,7 +12,7 @@ psql -d geo -p 5432 -U postgres -c "CREATE EXTENSION IF NOT EXISTS hstore;"
 cd /Users/$(whoami)/tmp
 
 ## "latest" build no longer available - pick the build from 2 days ago to be safe (yesterday's may not exist yet)
-FORMATTED_DATE="$(($(date +'%y%m%d') - 2))"
+FORMATTED_DATE="$(date -v -2d '+%y%m%d')"
 FILE_NAME="australia-${FORMATTED_DATE}.osm.pbf"
 #echo ${FILE_NAME}
 
